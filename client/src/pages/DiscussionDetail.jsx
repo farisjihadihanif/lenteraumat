@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Pencil, Trash2 } from "lucide-react";
+import { CornerDownRight, Pencil, Trash2 } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
 import Markdown from "../components/Markdown";
@@ -11,6 +11,93 @@ import BookCover from "../components/BookCover";
 import ReportButton from "../components/ReportButton";
 import { Avatar, ConfirmModal, Empty, ErrorBox, PageLoader, Stars, UserLink } from "../components/ui";
 import { formatDate, timeAgo } from "../lib/format";
+
+// Komentar utama + balasannya (satu tingkat). Balasan yang induknya hilang tampil sebagai komentar biasa.
+function threads(comments) {
+  const ids = new Set(comments.map((c) => c._id));
+  const top = comments.filter((c) => !c.parent || !ids.has(c.parent));
+  return top.map((c) => ({ c, replies: comments.filter((r) => r.parent === c._id) }));
+}
+
+function CommentItem({ c, discussionId, onAdded, onDelete, small = false }) {
+  const { user, isAdmin } = useAuth();
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const send = async (e) => {
+    e.preventDefault();
+    if (!text.trim()) return;
+    setBusy(true);
+    try {
+      const { comment } = await api.post(`/discussions/${discussionId}/comments`, { isi: text, parent: c._id });
+      onAdded(comment);
+      setText("");
+      setOpen(false);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex gap-3">
+      <Avatar user={c.author} size={small ? 28 : 34} />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm">
+          <UserLink user={c.author} /> <span className="text-xs text-ink-mute">· {timeAgo(c.createdAt)}</span>
+        </p>
+        {c.replyTo && (
+          <p className="text-xs text-ink-mute">
+            membalas{" "}
+            <Link to={`/profil/${c.replyTo.username}`} className="text-teal hover:underline">
+              @{c.replyTo.username}
+            </Link>
+          </p>
+        )}
+        <p className="mt-1 whitespace-pre-line text-[15px] text-ink-soft">{c.isi}</p>
+        <div className="mt-1 flex gap-4 text-xs">
+          {user ? (
+            <button className="inline-flex items-center gap-1 font-semibold text-ink-mute hover:text-teal" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+              <CornerDownRight size={13} /> Balas
+            </button>
+          ) : (
+            <Link to={`/masuk?next=${encodeURIComponent(location.pathname)}`} className="inline-flex items-center gap-1 font-semibold text-ink-mute hover:text-teal">
+              <CornerDownRight size={13} /> Balas
+            </Link>
+          )}
+          <ReportButton type="comment" id={c._id} ownerId={c.author?._id} />
+          {user && (c.author?._id === user._id || isAdmin) && (
+            <button className="font-semibold text-danger hover:underline" onClick={() => onDelete(c)}>
+              Hapus
+            </button>
+          )}
+        </div>
+        {open && (
+          <form onSubmit={send} className="mt-3">
+            <textarea
+              autoFocus
+              className="field min-h-[70px] text-sm"
+              maxLength={5000}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={`Balas @${c.author?.username || ""}`}
+              aria-label={`Balas komentar @${c.author?.username || ""}`}
+            />
+            <div className="mt-2 flex gap-2">
+              <button className="btn-primary btn-sm" disabled={busy || !text.trim()}>
+                {busy ? "Mengirim…" : "Kirim"}
+              </button>
+              <button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(false)}>
+                Batal
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function DiscussionDetail() {
   const { id } = useParams();
@@ -39,7 +126,7 @@ export default function DiscussionDetail() {
     setBusy(true);
     try {
       const { comment } = await api.post(`/discussions/${id}/comments`, { isi: reply });
-      setData((x) => ({ ...x, comments: [...x.comments, comment], discussion: { ...x.discussion, balasanCount: (x.discussion.balasanCount || 0) + 1 } }));
+      addComment(comment);
       setReply("");
     } catch (err) {
       toast.error(err.message);
@@ -47,6 +134,9 @@ export default function DiscussionDetail() {
       setBusy(false);
     }
   };
+
+  const addComment = (comment) =>
+    setData((x) => ({ ...x, comments: [...x.comments, comment], discussion: { ...x.discussion, balasanCount: (x.discussion.balasanCount || 0) + 1 } }));
 
   const confirmDelete = async () => {
     setBusy(true);
@@ -58,7 +148,7 @@ export default function DiscussionDetail() {
       }
       const own = del.author?._id === user._id;
       await api.del(own || !isAdmin ? `/discussions/${id}/comments/${del._id}` : `/admin/comments/${del._id}`);
-      setData((x) => ({ ...x, comments: x.comments.filter((c) => c._id !== del._id) }));
+      setData((x) => ({ ...x, comments: x.comments.filter((c) => c._id !== del._id && c.parent !== del._id) }));
       setDel(null);
     } catch (err) {
       toast.error(err.message);
@@ -127,25 +217,20 @@ export default function DiscussionDetail() {
       </article>
 
       <section id="balasan" className="mt-8">
-        <h2 className="text-lg font-bold">{comments.length} balasan</h2>
+        <h2 className="text-lg font-bold">{comments.length} komentar</h2>
         <ul className="mt-4 space-y-5">
-          {comments.map((c) => (
-            <li key={c._id} className="flex gap-3">
-              <Avatar user={c.author} size={34} />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm">
-                  <UserLink user={c.author} /> <span className="text-xs text-ink-mute">· {timeAgo(c.createdAt)}</span>
-                </p>
-                <p className="mt-1 whitespace-pre-line text-[15px] text-ink-soft">{c.isi}</p>
-                <div className="mt-1 flex gap-3 text-xs">
-                  <ReportButton type="comment" id={c._id} ownerId={c.author?._id} />
-                  {user && (c.author?._id === user._id || isAdmin) && (
-                    <button className="font-semibold text-danger hover:underline" onClick={() => setDel(c)}>
-                      Hapus
-                    </button>
-                  )}
-                </div>
-              </div>
+          {threads(comments).map(({ c, replies }) => (
+            <li key={c._id}>
+              <CommentItem c={c} discussionId={id} onAdded={addComment} onDelete={setDel} />
+              {replies.length > 0 && (
+                <ul className="ml-[17px] mt-3 space-y-4 border-l-2 border-line pl-5">
+                  {replies.map((r) => (
+                    <li key={r._id}>
+                      <CommentItem c={r} discussionId={id} onAdded={addComment} onDelete={setDel} small />
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ul>
@@ -154,9 +239,9 @@ export default function DiscussionDetail() {
           <form onSubmit={send} className="mt-6 flex gap-3">
             <Avatar user={user} size={34} />
             <div className="flex-1">
-              <textarea className="field min-h-[90px]" maxLength={5000} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Tulis balasan" aria-label="Balasan" />
+              <textarea className="field min-h-[90px]" maxLength={5000} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Tulis komentar" aria-label="Komentar" />
               <button className="btn-primary mt-2" disabled={busy || !reply.trim()}>
-                Kirim balasan
+                Kirim komentar
               </button>
             </div>
           </form>
@@ -173,7 +258,7 @@ export default function DiscussionDetail() {
       <ConfirmModal
         open={Boolean(del)}
         title={del === "post" ? "Hapus diskusi?" : "Hapus balasan?"}
-        message={del === "post" ? "Diskusi beserta semua balasannya akan dihapus." : "Balasan ini akan dihapus."}
+        message={del === "post" ? "Diskusi beserta semua balasannya akan dihapus." : del && !del.parent && comments.some((c) => c.parent === del._id) ? "Komentar ini dan balasan-balasannya akan dihapus." : "Balasan ini akan dihapus."}
         busy={busy}
         onConfirm={confirmDelete}
         onClose={() => setDel(null)}

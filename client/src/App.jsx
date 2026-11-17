@@ -10,7 +10,7 @@ import Home from "./pages/Home";
 import Catalog from "./pages/Catalog";
 import BookDetail from "./pages/BookDetail";
 import { ForgotPassword, Login, Register, ResetPassword } from "./pages/Auth";
-import { NotFound, Terms } from "./pages/Static";
+import { Copyright, NotFound, Privacy, Terms } from "./pages/Static";
 
 // Halaman berat dimuat terpisah supaya beranda cepat terbuka.
 const Reader = lazy(() => import("./pages/Reader"));
@@ -53,6 +53,8 @@ export default function App() {
               <Route path="lupa-password" element={<ForgotPassword />} />
               <Route path="reset-password" element={<ResetPassword />} />
               <Route path="ketentuan" element={<Terms />} />
+              <Route path="privasi" element={<Privacy />} />
+              <Route path="hak-cipta" element={<Copyright />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>

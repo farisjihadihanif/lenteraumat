@@ -36,6 +36,7 @@ client/  React 19 + Vite + Tailwind — pdf.js untuk render halaman, page-flip u
    ```
 
 ## Deploy (satu server)
+Panduan lengkap (VPS, PM2, Nginx, HTTPS, backup, isi `.env`): **[DEPLOY.md](DEPLOY.md)**. Ringkasnya:
 ```bash
 cd client && npm ci && npm run build      # hasil di client/dist
 cd ../api && npm ci --omit=dev && NODE_ENV=production node index.js

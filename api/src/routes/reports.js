@@ -10,6 +10,7 @@ const { requireAuth, requireAdmin } = require("../middleware/auth");
 const { HttpError, isId } = require("../middleware/errors");
 const { str, page, USER_PUBLIC } = require("../util");
 const { deleteBook, recomputeRating } = require("./cleanup");
+const { deleteComment } = require("./discussions");
 
 const router = express.Router();
 const MODELS = { book: Book, discussion: Discussion, comment: Comment, review: Review };
@@ -92,8 +93,8 @@ router.post("/:id/remove-content", requireAdmin, async (req, res) => {
       await Comment.deleteMany({ discussion: doc._id });
       await doc.deleteOne();
     } else if (r.targetType === "comment") {
-      await doc.deleteOne();
-      await Discussion.updateOne({ _id: doc.discussion }, { $inc: { balasanCount: -1 } });
+      const n = await deleteComment(doc);
+      await Discussion.updateOne({ _id: doc.discussion }, { $inc: { balasanCount: -n } });
     } else {
       await doc.deleteOne();
       await recomputeRating(doc.book);

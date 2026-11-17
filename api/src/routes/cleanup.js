@@ -1,4 +1,6 @@
 // Hapus data terkait saat buku / akun dihapus.
+const Report = require("../models/Report");
+const AiUsage = require("../models/AiUsage");
 const Book = require("../models/Book");
 const BookText = require("../models/BookText");
 const Review = require("../models/Review");
@@ -38,10 +40,16 @@ async function deleteUserContent(userId) {
   await Review.deleteMany({ user: userId });
   for (const id of reviewed) await recomputeRating(id);
   const discussions = await Discussion.find({ author: userId }).distinct("_id");
-  await Comment.deleteMany({ $or: [{ author: userId }, { discussion: { $in: discussions } }] });
+  const own = await Comment.find({ author: userId }).distinct("_id");
+  // balasan orang lain untuk komentar user ini ikut terhapus; hitung ulang jumlah balasan
+  const touched = await Comment.find({ $or: [{ _id: { $in: own } }, { parent: { $in: own } }] }).distinct("discussion");
+  await Comment.deleteMany({ $or: [{ _id: { $in: own } }, { parent: { $in: own } }, { discussion: { $in: discussions } }] });
+  for (const id of touched) await Discussion.updateOne({ _id: id }, { balasanCount: await Comment.countDocuments({ discussion: id }) });
   await Discussion.deleteMany({ author: userId });
   await ChatSession.deleteMany({ user: userId });
   await ReadingProgress.deleteMany({ user: userId });
+  await Report.deleteMany({ reporter: userId });
+  await AiUsage.deleteMany({ user: userId });
   await Book.updateMany({ disimpan: userId }, { $pull: { disimpan: userId } });
   await Discussion.updateMany({ likes: userId }, { $pull: { likes: userId }, $inc: { likeCount: -1 } });
   await Discussion.updateMany({ reposts: userId }, { $pull: { reposts: userId }, $inc: { repostCount: -1 } });

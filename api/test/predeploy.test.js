@@ -81,3 +81,26 @@ test("LUMA: batas harian per user, admin tanpa batas", async () => {
     gemini.setFetch(null);
   }
 });
+
+test("diskusi: balas komentar orang lain (satu tingkat), hapus induk ikut hapus balasan", async () => {
+  const a = await h.makeUser(app, "andi");
+  const b = await h.makeUser(app, "bela");
+  const c = await h.makeUser(app, "cici");
+  const d = (await a.post("/api/discussions").send({ judul: "Topik", isi: "Isi diskusi yang cukup panjang" }).expect(201)).body.discussion;
+  const k1 = (await b.post(`/api/discussions/${d._id}/comments`).send({ isi: "Komentar utama" }).expect(201)).body.comment;
+  const r1 = (await c.post(`/api/discussions/${d._id}/comments`).send({ isi: "Balas bela", parent: k1._id }).expect(201)).body.comment;
+  assert.equal(r1.parent, k1._id);
+  assert.equal(r1.replyTo.username, "bela");
+  // balas sebuah balasan: tetap menempel ke komentar utama, replyTo = cici
+  const r2 = (await a.post(`/api/discussions/${d._id}/comments`).send({ isi: "Balas cici", parent: r1._id }).expect(201)).body.comment;
+  assert.equal(r2.parent, k1._id);
+  assert.equal(r2.replyTo.username, "cici");
+  await a.post(`/api/discussions/${d._id}/comments`).send({ isi: "x", parent: "6afc77403550860bbeacd7e0" }).expect(404);
+  let det = (await h.request(app).get(`/api/discussions/${d._id}`)).body;
+  assert.equal(det.comments.length, 3);
+  assert.equal(det.discussion.balasanCount, 3);
+  await b.delete(`/api/discussions/${d._id}/comments/${k1._id}`).expect(200);
+  det = (await h.request(app).get(`/api/discussions/${d._id}`)).body;
+  assert.equal(det.comments.length, 0);
+  assert.equal(det.discussion.balasanCount, 0);
+});

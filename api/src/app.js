@@ -48,6 +48,8 @@ function createApp() {
   app.use(loadUser);
 
   app.get("/api/health", (req, res) => res.json({ ok: true }));
+  // Info publik untuk halaman Privasi & Hak cipta.
+  app.get("/api/site", (req, res) => res.json({ contactEmail: config.contactEmail }));
   app.use("/api/auth", require("./routes/auth"));
   app.use("/api/users", require("./routes/users"));
   app.use("/api/books", require("./routes/books"));

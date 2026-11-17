@@ -32,6 +32,12 @@ function cleanQuiz(raw) {
   };
 }
 
+// Hapus komentar beserta balasannya; mengembalikan jumlah yang terhapus.
+async function deleteComment(c) {
+  const { deletedCount } = await Comment.deleteMany({ $or: [{ _id: c._id }, { parent: c._id }] });
+  return deletedCount;
+}
+
 // Bentuk data untuk kartu (tanpa daftar user yang suka/repost).
 function card(d, user) {
   const o = d.toObject ? d.toObject() : d;
@@ -105,7 +111,7 @@ router.get("/:id", async (req, res) => {
   const d = await findDiscussion(req.params.id);
   await d.populate("author", USER_PUBLIC);
   await d.populate("book", "judul cover penulis ratingAvg");
-  const comments = await Comment.find({ discussion: d._id }).sort({ createdAt: 1 }).limit(500).populate("author", USER_PUBLIC);
+  const comments = await Comment.find({ discussion: d._id }).sort({ createdAt: 1 }).limit(1000).populate("author", USER_PUBLIC).populate("replyTo", "username namaLengkap");
   const out = card(d, req.user);
   out.canEdit = isAdmin(req.user) || isOwner(req.user, d.author);
   res.json({ discussion: out, comments });
@@ -159,10 +165,20 @@ router.post("/:id/comments", requireAuth, async (req, res) => {
   const d = await findDiscussion(req.params.id);
   const isi = str(req.body.isi, 5000);
   if (!isi) throw new HttpError(400, "Balasan tidak boleh kosong.");
-  const c = await Comment.create({ discussion: d._id, author: req.user._id, isi });
+  let parent = null;
+  let replyTo = null;
+  if (req.body.parent) {
+    if (!isId(req.body.parent)) throw new HttpError(400, "Komentar yang dibalas tidak ditemukan.");
+    const target = await Comment.findOne({ _id: req.body.parent, discussion: d._id });
+    if (!target) throw new HttpError(404, "Komentar yang dibalas sudah dihapus.");
+    parent = target.parent || target._id;
+    replyTo = target.author;
+  }
+  const c = await Comment.create({ discussion: d._id, author: req.user._id, isi, parent, replyTo });
   await Discussion.updateOne({ _id: d._id }, { $inc: { balasanCount: 1 }, lastActivityAt: new Date() });
   await recalcScore(d._id);
   await c.populate("author", USER_PUBLIC);
+  await c.populate("replyTo", "username namaLengkap");
   res.status(201).json({ comment: c });
 });
 
@@ -171,8 +187,8 @@ router.delete("/:id/comments/:commentId", requireAuth, async (req, res) => {
   const c = await Comment.findOne({ _id: req.params.commentId, discussion: req.params.id });
   if (!c) throw new HttpError(404, "Balasan tidak ditemukan.");
   if (!isAdmin(req.user) && !isOwner(req.user, c.author)) throw new HttpError(403, "Kamu tidak bisa menghapus balasan ini.");
-  await c.deleteOne();
-  await Discussion.updateOne({ _id: c.discussion }, { $inc: { balasanCount: -1 } });
+  const n = await deleteComment(c);
+  await Discussion.updateOne({ _id: c.discussion }, { $inc: { balasanCount: -n } });
   await recalcScore(c.discussion);
   res.json({ ok: true });
 });
@@ -193,3 +209,4 @@ router.post("/:id/like", requireAuth, (req, res) => toggle(req, res, "likes", "l
 router.post("/:id/repost", requireAuth, (req, res) => toggle(req, res, "reposts", "repostCount"));
 
 module.exports = router;
+module.exports.deleteComment = deleteComment;

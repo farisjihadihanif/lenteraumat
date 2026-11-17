@@ -48,9 +48,12 @@ module.exports = {
     host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: Number(process.env.SMTP_PORT) || 465,
     user: process.env.SMTP_USER || "",
-    pass: process.env.SMTP_PASS || "",
+    // App Password Google sering disalin dengan spasi ("abcd efgh ..."); spasinya dibuang.
+    pass: (process.env.SMTP_PASS || "").replace(/\s+/g, ""),
     from: process.env.SMTP_FROM || "",
   },
+  // Email kontak publik (laporan hak cipta / privasi). Kosong = SMTP_USER.
+  contactEmail: process.env.CONTACT_EMAIL || process.env.SMTP_USER || "",
   // Alamat web yang dibuka user (untuk link reset password di email).
   appUrl: (process.env.APP_URL || (process.env.CLIENT_ORIGIN || "http://localhost:5173").split(",")[0]).trim().replace(/\/+$/, ""),
 };

@@ -6,19 +6,30 @@ import { BookCard } from "../components/BookGrid";
 import { Spinner } from "../components/ui";
 import heroBg from "../assets/Beranda/hero-perpustakaan.jpg";
 
-// Teks hero "fixed" di dalam hero yang memakai mask: saat halaman digulir, hero naik
-// sementara teks diam, sehingga teks tampak turun lalu memudar (teknik HNI & FJ Coffee).
+// Judul hero "fixed" di dalam hero yang memakai mask: saat halaman digulir, hero naik
+// sementara judul diam, sehingga judul tampak turun lalu tenggelam ke gradasi hijau di bawah
+// (teknik HNI & FJ Coffee). Paragraf ikut bergulir normal bersama hero.
+const HERO_TITLE = "font-serif text-6xl font-semibold leading-none sm:text-7xl md:text-8xl";
+const TAGLINE = "Lentera Umat Digital Library ~ read the book, discuss, summary and create a Quiz with Luma";
+
 function Hero() {
   return (
     <section
       className="relative isolate -mt-16 h-svh min-h-[34rem] overflow-hidden bg-neutral-900 text-white"
-      style={{ WebkitMaskImage: "linear-gradient(#000 85%, transparent)", maskImage: "linear-gradient(#000 85%, transparent)" }}
+      style={{ WebkitMaskImage: "linear-gradient(#000, #000)", maskImage: "linear-gradient(#000, #000)" }}
     >
       <img src={heroBg} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover grayscale" />
-      <div className="absolute inset-0 -z-10 bg-black/65" aria-hidden />
-      <div className="fixed inset-x-0 top-[calc(50svh-3rem)] px-6 text-center">
-        <h1 className="font-serif text-6xl font-semibold leading-none [text-shadow:1px_1px_4px_rgba(0,0,0,.8)] sm:text-7xl md:text-8xl">Lentera Umat</h1>
+      <div className="absolute inset-0 -z-10 bg-black/60" aria-hidden />
+      <h1 className={`fixed inset-x-0 top-[calc(50svh-5rem)] px-6 text-center [text-shadow:1px_1px_4px_rgba(0,0,0,.8)] ${HERO_TITLE}`}>Lentera Umat</h1>
+      {/* Salinan judul tak terlihat menjaga jarak paragraf tepat di bawah judul. */}
+      <div className="absolute inset-x-0 top-[calc(50svh-5rem)] px-6 text-center">
+        <p className={`invisible ${HERO_TITLE}`} aria-hidden>
+          Lentera Umat
+        </p>
+        <p className="mx-auto mt-6 max-w-2xl text-white/90 [text-shadow:1px_1px_3px_rgba(0,0,0,.8)] sm:text-lg">{TAGLINE}</p>
       </div>
+      {/* Gradasi ke warna section berikutnya (hijau LUMA); judul yang turun tenggelam di sini. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[38%] bg-gradient-to-b from-transparent via-forest/70 to-forest" aria-hidden />
     </section>
   );
 }
@@ -86,7 +97,7 @@ const LUMA_FEATURES = [
 
 function LumaSection() {
   return (
-    <section className="relative bg-forest py-16 text-white sm:py-24">
+    <section className="relative bg-forest pb-16 pt-6 text-white sm:pb-24 sm:pt-10">
       <div className="container-page">
         <h2 className="text-center font-serif text-3xl font-semibold sm:text-4xl">Mari Belajar bersama LUMA</h2>
         <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

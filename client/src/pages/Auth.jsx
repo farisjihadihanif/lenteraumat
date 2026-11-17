@@ -166,6 +166,10 @@ export function Register() {
         <PasswordField id="password" autoComplete="new-password" value={form.password} onChange={set("password")} />
         <p className="hint -mt-2">Minimal 8 karakter.</p>
         <ErrorBox>{error}</ErrorBox>
+        <p className="text-xs text-ink-mute">
+          Dengan mendaftar, kamu menyetujui <Link to="/ketentuan" className="underline hover:text-ink">Ketentuan</Link> dan{" "}
+          <Link to="/privasi" className="underline hover:text-ink">Kebijakan Privasi</Link> Lentera Umat.
+        </p>
         <button className="btn-primary w-full" disabled={busy}>{busy ? "Membuat akun…" : "Daftar"}</button>
       </form>
     </Shell>

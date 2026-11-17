@@ -14,6 +14,7 @@ const { requireAdmin } = require("../middleware/auth");
 const { HttpError, isId } = require("../middleware/errors");
 const { str, page, escapeRegex, USER_PUBLIC } = require("../util");
 const { recomputeRating, deleteUserContent } = require("./cleanup");
+const { deleteComment } = require("./discussions");
 
 const router = express.Router();
 router.use(requireAdmin);
@@ -135,10 +136,11 @@ router.delete("/users/:id", async (req, res) => {
 // ---------- Diskusi (moderasi) ----------
 router.delete("/comments/:id", async (req, res) => {
   if (!isId(req.params.id)) throw new HttpError(404, "Balasan tidak ditemukan.");
-  const c = await Comment.findByIdAndDelete(req.params.id);
+  const c = await Comment.findById(req.params.id);
   if (!c) throw new HttpError(404, "Balasan tidak ditemukan.");
+  const n = await deleteComment(c);
   await Discussion.updateOne({ _id: c.discussion }, [
-    { $set: { balasanCount: { $max: [0, { $subtract: ["$balasanCount", 1] }] } } },
+    { $set: { balasanCount: { $max: [0, { $subtract: ["$balasanCount", n] }] } } },
     { $set: { skor: { $add: [{ $multiply: ["$likeCount", 2] }, { $multiply: ["$balasanCount", 3] }, { $multiply: ["$repostCount", 4] }] } } },
   ]);
   res.json({ ok: true });

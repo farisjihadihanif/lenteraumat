@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { BookOpen, Home, Instagram, Library, LogOut, MessagesSquare, Moon, Search, Settings, Shield, Sparkles, Sun, Upload, User, UserPlus } from "lucide-react";
 import { useAuth } from "../context/Auth";
-import { Avatar } from "./ui";
+import { Avatar, PageLoader } from "./ui";
 import FloatingLuma from "./FloatingLuma";
 import { displayName } from "../lib/format";
 import logoColor from "../assets/Navbar/lenteraumatwarna.svg";
@@ -201,6 +201,11 @@ function Footer({ flush }) {
     <footer className={`${flush ? "" : "mt-20"} bg-night pb-16 text-white/70 md:pb-0`}>
       <div className="container-page flex flex-col items-center justify-center gap-1.5 py-3 text-xs sm:flex-row sm:gap-6">
         <span>Lentera Umat © 2025</span>
+        <nav className="flex gap-4" aria-label="Informasi">
+          <Link to="/ketentuan" className="hover:text-white">Ketentuan</Link>
+          <Link to="/privasi" className="hover:text-white">Privasi</Link>
+          <Link to="/hak-cipta" className="hover:text-white">Hak cipta</Link>
+        </nav>
         <span className="flex items-center gap-2">
           Created by Faris Jihadi Hanif Lubis
           <a href="https://www.instagram.com/farisjihadihanif/" target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-white" aria-label="Instagram Faris Jihadi Hanif Lubis">
@@ -222,7 +227,12 @@ export default function Layout() {
     <div className="flex min-h-screen flex-col">
       <Navbar />
       <main className="flex-1 pb-16 md:pb-0">
-        <Outlet />
+        {/* key = halaman: tiap pindah halaman, isinya masuk dengan animasi singkat */}
+        <div key={pathname} className="page-enter">
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
+        </div>
       </main>
       <Footer flush={home} />
       <MobileNav />
