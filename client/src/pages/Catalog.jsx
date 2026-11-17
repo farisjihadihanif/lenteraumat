@@ -60,6 +60,14 @@ export default function Catalog() {
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute" />
           <input className="field pl-9" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Cari judul, penulis, penerbit, atau ISBN" aria-label="Cari buku" />
         </form>
+        <select className="field sm:w-56" value={kategori} onChange={(e) => update({ kategori: e.target.value })} aria-label="Kategori">
+          <option value="">Semua kategori</option>
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
         <select className="field sm:w-56" value={sort} onChange={(e) => update({ sort: e.target.value === "terbaru" ? "" : e.target.value })} aria-label="Urutkan">
           {SORTS.map(([v, l]) => (
             <option key={v} value={v}>
@@ -67,18 +75,6 @@ export default function Catalog() {
             </option>
           ))}
         </select>
-      </div>
-
-      <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
-        {["", ...CATEGORIES].map((c) => (
-          <button
-            key={c || "semua"}
-            onClick={() => update({ kategori: c })}
-            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold ${kategori === c ? "border-teal bg-teal text-white" : "border-line bg-white text-ink-soft hover:border-teal/50"}`}
-          >
-            {c || "Semua"}
-          </button>
-        ))}
       </div>
 
       {q && (

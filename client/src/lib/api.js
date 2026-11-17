@@ -22,8 +22,12 @@ async function request(method, path, body, { signal } = {}) {
     if (error.name === "AbortError") throw error;
     throw new ApiError(0, "Tidak bisa terhubung ke server. Periksa koneksi internetmu.");
   }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, data.message || `Terjadi kesalahan (${res.status}).`);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    // Tanpa balasan JSON = server API mati / tidak terjangkau (mis. MongoDB belum tersambung).
+    if (!data) throw new ApiError(res.status, "Server API tidak merespons. Pastikan server di folder api sedang jalan dan MongoDB tersambung.");
+    throw new ApiError(res.status, data.message || `Terjadi kesalahan (${res.status}).`);
+  }
   return data;
 }
 

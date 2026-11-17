@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, BookOpenText, FileQuestion, MessageCircle, ScrollText, Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowRight, BookOpenText, FileQuestion, MessageCircle, ScrollText } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
 import { BookRow } from "../components/BookGrid";
 import BookCover from "../components/BookCover";
 import { Spinner, Avatar, UserLink } from "../components/ui";
 import { timeAgo } from "../lib/format";
-import luma from "../assets/Maskot/luma-wave.webp";
+import heroBg from "../assets/Beranda/hero-perpustakaan.jpg";
 
 function Section({ title, link, children }) {
   return (
@@ -26,35 +26,15 @@ function Section({ title, link, children }) {
 }
 
 function Hero() {
-  const navigate = useNavigate();
-  const [q, setQ] = useState("");
   return (
-    <section className="relative overflow-hidden bg-ink text-white">
-      <div className="container-page grid items-center gap-8 py-12 md:grid-cols-[1.25fr_1fr] md:py-16">
-        <div>
-          <h1 className="font-serif text-4xl font-semibold leading-[1.1] sm:text-5xl">Baca, pahami, dan diskusikan buku bersama LUMA.</h1>
-          <p className="mt-4 max-w-xl text-white/75 sm:text-lg">
-            Perpustakaan digital LenteraUmat. Buka buku dan balik halamannya seperti buku cetak, lalu minta LUMA meringkas atau membuatkan kuis.
-          </p>
-          <form
-            role="search"
-            className="mt-7 flex max-w-xl gap-2 rounded-xl bg-white p-1.5"
-            onSubmit={(e) => {
-              e.preventDefault();
-              navigate(`/buku?q=${encodeURIComponent(q.trim())}`);
-            }}
-          >
-            <label className="flex flex-1 items-center gap-2 pl-3 text-ink">
-              <Search size={18} className="text-ink-mute" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-ink-mute" placeholder="Judul, penulis, atau ISBN" aria-label="Cari buku" />
-            </label>
-            <button className="btn-primary">Cari buku</button>
-          </form>
-        </div>
-        <div className="relative mx-auto hidden h-72 w-72 md:block" aria-hidden>
-          <div className="absolute inset-0 animate-glow rounded-full bg-[radial-gradient(circle,rgba(255,201,60,.55)_0%,rgba(247,147,25,.18)_45%,transparent_70%)]" />
-          <img src={luma} alt="" className="absolute inset-x-0 bottom-0 mx-auto h-64 w-auto drop-shadow-xl" />
-        </div>
+    <section className="relative isolate overflow-hidden bg-ink text-white">
+      <img src={heroBg} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+      <div className="absolute inset-0 -z-10 bg-ink/75" aria-hidden />
+      <div className="container-page flex min-h-[420px] flex-col items-center justify-center py-16 text-center md:min-h-[480px]">
+        <h1 className="font-serif text-7xl font-semibold leading-none tracking-wide sm:text-8xl md:text-9xl">LUMA</h1>
+        <p className="mt-6 max-w-2xl text-white/85 sm:text-lg">
+          Perpustakaan digital LenteraUmat. Buka buku dan balik halamannya seperti buku cetak, lalu minta LUMA meringkas atau membuatkan kuis.
+        </p>
       </div>
     </section>
   );

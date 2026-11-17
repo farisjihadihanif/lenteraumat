@@ -150,29 +150,8 @@ function MobileNav() {
 
 function Footer() {
   return (
-    <footer className="mt-20 bg-ink pb-20 text-white/80 md:pb-0">
-      <div className="container-page grid gap-8 py-12 sm:grid-cols-[2fr_1fr_1fr]">
-        <div>
-          <p className="font-serif text-xl font-semibold text-white">LenteraUmat</p>
-          <p className="mt-2 max-w-sm text-sm">Perpustakaan digital untuk membaca, berdiskusi, dan belajar bersama LUMA.</p>
-        </div>
-        <div>
-          <p className="mb-3 text-sm font-bold text-white">Jelajahi</p>
-          <ul className="space-y-2 text-sm">
-            <li><Link to="/buku" className="hover:text-white">Katalog buku</Link></li>
-            <li><Link to="/diskusi" className="hover:text-white">Diskusi</Link></li>
-            <li><Link to="/luma" className="hover:text-white">Belajar dengan LUMA</Link></li>
-          </ul>
-        </div>
-        <div>
-          <p className="mb-3 text-sm font-bold text-white">Berkontribusi</p>
-          <ul className="space-y-2 text-sm">
-            <li><Link to="/unggah" className="hover:text-white">Unggah buku</Link></li>
-            <li><Link to="/diskusi/baru" className="hover:text-white">Mulai diskusi</Link></li>
-          </ul>
-        </div>
-      </div>
-      <div className="border-t border-white/10 py-5 text-center text-xs text-white/60">© {new Date().getFullYear()} LenteraUmat</div>
+    <footer className="mt-20 bg-ink pb-16 text-white/80 md:pb-0">
+      <p className="py-6 text-center text-sm">Lentera Umat © 2025</p>
     </footer>
   );
 }
