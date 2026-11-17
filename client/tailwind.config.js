@@ -8,7 +8,8 @@ export default {
         // Warna LenteraUmat. Nilainya dari variabel CSS (lihat index.css) supaya
         // mode gelap cukup mengganti variabel, tanpa mengubah tiap halaman.
         ink: { DEFAULT: "rgb(var(--ink) / <alpha-value>)", soft: "rgb(var(--ink-soft) / <alpha-value>)", mute: "rgb(var(--ink-mute) / <alpha-value>)" },
-        lantern: { DEFAULT: "#F79319", dark: "#D97A06", soft: "rgb(var(--lantern-soft) / <alpha-value>)" },
+        lantern: { DEFAULT: "#F79319", dark: "#D97A06", soft: "rgb(var(--lantern-soft) / <alpha-value>)", text: "rgb(var(--lantern-text) / <alpha-value>)" },
+        danger: "rgb(var(--danger) / <alpha-value>)",
         teal: { DEFAULT: "rgb(var(--teal) / <alpha-value>)", bright: "#07A5A8", soft: "rgb(var(--teal-soft) / <alpha-value>)", deep: "rgb(var(--teal-deep) / <alpha-value>)" },
         lamp: "#FFC93C",
         mist: "rgb(var(--mist) / <alpha-value>)",

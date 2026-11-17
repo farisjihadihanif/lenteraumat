@@ -19,7 +19,7 @@ export function Terms() {
     <div className="container-page max-w-2xl py-10">
       <h1 className="font-serif text-3xl font-semibold">Ketentuan berbagi buku</h1>
       <div className="prose-lu mt-6 space-y-4">
-        <p>LenteraUmat adalah perpustakaan digital gratis. Supaya tetap aman dan bermanfaat, setiap buku yang diunggah perlu memenuhi ketentuan berikut.</p>
+        <p>Lentera Umat adalah perpustakaan digital gratis. Setiap buku yang diunggah perlu memenuhi ketentuan berikut.</p>
         <ul>
           <li>Kamu adalah penulis, pemegang hak cipta, atau sudah mendapat izin untuk membagikan buku secara gratis. Buku domain publik dan berlisensi terbuka juga boleh.</li>
           <li>Isi buku tidak mengandung ujaran kebencian, pornografi, atau ajakan kekerasan.</li>

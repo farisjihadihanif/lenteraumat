@@ -98,7 +98,7 @@ function LumaSection() {
               <Link to={`/luma?mode=${mode}`} className="block h-full rounded-xl border border-white/15 p-5 transition-colors hover:border-white/40 hover:bg-white/5">
                 <Icon size={24} className="text-lamp" />
                 <p className="mt-4 text-lg font-bold">{title}</p>
-                <p className="mt-1.5 text-sm leading-relaxed text-white/75">{text}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-white/85">{text}</p>
               </Link>
             </li>
           ))}

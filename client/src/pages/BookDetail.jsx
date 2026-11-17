@@ -121,7 +121,7 @@ function Reviews({ book, onRating }) {
           )}
 
           {data.items.length === 0 ? (
-            <Empty title="Belum ada ulasan">Ulasan pertama akan membantu pembaca lain memilih buku.</Empty>
+            <Empty title="Belum ada ulasan">Sudah membaca buku ini? Tulis ulasan pertama.</Empty>
           ) : (
             <ul className="divide-y divide-line">
               {data.items.map((r) => {
@@ -143,7 +143,7 @@ function Reviews({ book, onRating }) {
                               Ubah
                             </button>
                           )}
-                          <button className="text-red-600 hover:underline" onClick={() => setDel(r)}>
+                          <button className="text-danger hover:underline" onClick={() => setDel(r)}>
                             Hapus
                           </button>
                         </div>
@@ -314,7 +314,7 @@ export default function BookDetail() {
               {book.saved ? "Tersimpan" : "Simpan"}
             </button>
             <Link to={`/luma?book=${id}`} className="btn-outline">
-              <Sparkles size={18} className="text-lantern" /> Tanya LUMA
+              <Sparkles size={18} className="text-lantern-text" /> Tanya LUMA
             </Link>
             <button className="btn-ghost" onClick={share} aria-label="Bagikan">
               <Share2 size={18} />
@@ -340,7 +340,7 @@ export default function BookDetail() {
               <Link to={`/buku/${id}/ubah`} className="btn-outline btn-sm">
                 <Pencil size={14} /> Ubah
               </Link>
-              <button className="btn-outline btn-sm text-red-600" onClick={() => setConfirmDel(true)}>
+              <button className="btn-outline btn-sm text-danger" onClick={() => setConfirmDel(true)}>
                 <Trash2 size={14} /> Hapus
               </button>
             </div>

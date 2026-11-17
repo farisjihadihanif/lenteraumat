@@ -70,7 +70,7 @@ function Overview({ go }) {
   }, []);
   if (!s) return <Spinner />;
   const cards = [
-    ["Menunggu tinjauan", s.books.menunggu, "masuk", "text-lantern"],
+    ["Menunggu tinjauan", s.books.menunggu, "masuk", "text-lantern-text"],
     ["Buku tayang", s.books.disetujui, "buku", "text-teal"],
     ["Perlu revisi", s.books.revisi, "buku", "text-ink"],
     ["Ditolak", s.books.ditolak, "buku", "text-ink"],
@@ -83,9 +83,9 @@ function Overview({ go }) {
     <div className="space-y-6">
       {s.books.menunggu > 0 && (
         <button onClick={() => go("masuk")} className="flex w-full items-center gap-4 rounded-xl bg-lantern-soft p-4 text-left hover:ring-2 hover:ring-lantern/40">
-          <Inbox className="text-lantern" />
+          <Inbox className="text-lantern-text" />
           <span className="flex-1">
-            <span className="font-bold">{s.books.menunggu} buku menunggu tinjauan.</span> <span className="text-sm text-ink-soft">Tinjau supaya pengunggah tidak menunggu lama.</span>
+            <span className="font-bold">{s.books.menunggu} buku menunggu tinjauan.</span>
           </span>
           <span className="btn-primary btn-sm">Tinjau</span>
         </button>
@@ -146,7 +146,7 @@ function Incoming() {
                 <Link to={`/buku/${b._id}/baca`} target="_blank" className="btn-outline btn-sm"><ExternalLink size={14} /> Periksa isi</Link>
                 <button className="btn-teal btn-sm" onClick={() => setDialog({ book: b, action: "setujui" })}><Check size={14} /> Setujui</button>
                 <button className="btn-outline btn-sm" onClick={() => setDialog({ book: b, action: "revisi" })}><PencilLine size={14} /> Minta revisi</button>
-                <button className="btn-outline btn-sm text-red-600" onClick={() => setDialog({ book: b, action: "tolak" })}><X size={14} /> Tolak</button>
+                <button className="btn-outline btn-sm text-danger" onClick={() => setDialog({ book: b, action: "tolak" })}><X size={14} /> Tolak</button>
               </div>
             </div>
           </li>
@@ -221,7 +221,7 @@ function AllBooks() {
                       {b.status !== "disetujui" && <button className="btn-ghost btn-sm" onClick={() => setDialog({ book: b, action: "setujui" })}>Setujui</button>}
                       {b.status === "disetujui" && <button className="btn-ghost btn-sm" onClick={() => setDialog({ book: b, action: "revisi" })}>Turunkan</button>}
                       <Link to={`/buku/${b._id}/ubah`} className="btn-ghost btn-sm">Ubah</Link>
-                      <button className="btn-ghost btn-sm text-red-600" onClick={() => setDel(b)} aria-label={`Hapus ${b.judul}`}><Trash2 size={14} /></button>
+                      <button className="btn-ghost btn-sm text-danger" onClick={() => setDel(b)} aria-label={`Hapus ${b.judul}`}><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -278,7 +278,7 @@ function Reviews() {
                 <div className="mt-0.5 flex items-center gap-2 text-xs text-ink-mute"><Stars value={r.rating} size={12} /> {timeAgo(r.createdAt)}</div>
                 {r.komentar && <p className="mt-1.5 whitespace-pre-line text-sm text-ink-soft">{r.komentar}</p>}
               </div>
-              <button className="btn-ghost btn-sm self-start text-red-600" onClick={() => setDel(r)} aria-label="Hapus ulasan"><Trash2 size={14} /></button>
+              <button className="btn-ghost btn-sm self-start text-danger" onClick={() => setDel(r)} aria-label="Hapus ulasan"><Trash2 size={14} /></button>
             </li>
           ))}
         </ul>
@@ -357,7 +357,7 @@ function UsersTab() {
                   <button className="btn-outline btn-sm" onClick={() => setConfirm({ type: "peran", user: u })}>
                     {u.role === "admin" ? "Jadikan user" : "Jadikan admin"}
                   </button>
-                  <button className="btn-ghost btn-sm text-red-600" onClick={() => setConfirm({ type: "hapus", user: u })} aria-label={`Hapus ${u.username}`}><Trash2 size={14} /></button>
+                  <button className="btn-ghost btn-sm text-danger" onClick={() => setConfirm({ type: "hapus", user: u })} aria-label={`Hapus ${u.username}`}><Trash2 size={14} /></button>
                 </div>
               )}
             </li>

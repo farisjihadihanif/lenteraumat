@@ -115,7 +115,7 @@ function UserMenu() {
               await logout();
               navigate("/");
             }}
-            className="flex w-full items-center gap-3 rounded-lg border-t border-line px-3 py-2 text-sm text-red-600 hover:bg-red-500/10 dark:text-red-400"
+            className="flex w-full items-center gap-3 rounded-lg border-t border-line px-3 py-2 text-sm text-danger hover:bg-red-500/10 dark:text-red-400"
           >
             <LogOut size={16} /> Keluar dari @{user.username}
           </button>

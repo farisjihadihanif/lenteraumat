@@ -54,7 +54,7 @@ export default function Shelf() {
               ))}
             </div>
           ) : (
-            <Empty title="Belum ada buku yang dibaca" action={<Link to="/buku" className="btn-primary">Jelajahi library</Link>}>Buku yang kamu buka akan muncul di sini beserta halaman terakhirnya.</Empty>
+            <Empty title="Belum ada buku yang dibaca" action={<Link to="/buku" className="btn-primary">Buka Library</Link>}>Buku yang kamu buka akan muncul di sini beserta halaman terakhirnya.</Empty>
           ))}
 
         {items && tab === "simpan" &&

@@ -118,7 +118,7 @@ export default function DiscussionDetail() {
             <Link to={`/diskusi/${id}/ubah`} className="btn-outline btn-sm">
               <Pencil size={14} /> Ubah
             </Link>
-            <button className="btn-outline btn-sm text-red-600" onClick={() => setDel("post")}>
+            <button className="btn-outline btn-sm text-danger" onClick={() => setDel("post")}>
               <Trash2 size={14} /> Hapus
             </button>
           </div>
@@ -137,7 +137,7 @@ export default function DiscussionDetail() {
                 </p>
                 <p className="mt-1 whitespace-pre-line text-[15px] text-ink-soft">{c.isi}</p>
                 {user && (c.author?._id === user._id || isAdmin) && (
-                  <button className="mt-1 text-xs font-semibold text-red-600 hover:underline" onClick={() => setDel(c)}>
+                  <button className="mt-1 text-xs font-semibold text-danger hover:underline" onClick={() => setDel(c)}>
                     Hapus
                   </button>
                 )}

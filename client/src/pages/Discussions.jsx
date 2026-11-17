@@ -140,7 +140,7 @@ export default function Discussions() {
         {!res && !error && <Spinner />}
         {res && res.items.length === 0 && (
           <Empty title={q ? "Tidak ada diskusi yang cocok" : "Belum ada diskusi"} action={<Link to="/diskusi/baru" className="btn-primary">Start discussion</Link>}>
-            {q ? "Coba kata kunci lain." : "Pertanyaan sederhana pun bisa jadi awal diskusi yang bermanfaat."}
+            {q ? "Coba kata kunci lain." : "Mulai dengan pertanyaan tentang buku yang sedang kamu baca."}
           </Empty>
         )}
         {res?.items.length > 0 && (

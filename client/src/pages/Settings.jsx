@@ -116,9 +116,9 @@ export default function Settings() {
       </form>
 
       <section className="rounded-xl border border-red-200 bg-surface p-5">
-        <h2 className="font-bold text-red-700">Hapus akun</h2>
+        <h2 className="font-bold text-danger">Hapus akun</h2>
         <p className="mt-1 text-sm text-ink-soft">Akun, buku unggahan, ulasan, diskusi, dan riwayat LUMA milikmu akan dihapus permanen.</p>
-        <button className="btn-outline mt-3 text-red-600" onClick={() => setDelOpen(true)}>Hapus akun saya</button>
+        <button className="btn-outline mt-3 text-danger" onClick={() => setDelOpen(true)}>Hapus akun saya</button>
       </section>
 
       <Modal open={delOpen} onClose={() => setDelOpen(false)} title="Hapus akun permanen?" width="max-w-md">

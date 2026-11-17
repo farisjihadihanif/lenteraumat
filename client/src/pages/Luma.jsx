@@ -95,7 +95,7 @@ function QuizCard({ quiz }) {
           )}
           {checked && (
             <div className="mt-3 text-sm">
-              <p className={correct(q, i) ? "font-semibold text-emerald-700" : "font-semibold text-red-700"}>
+              <p className={correct(q, i) ? "font-semibold text-emerald-700" : "font-semibold text-danger"}>
                 {correct(q, i) ? "Benar." : `Jawaban: ${q.answer}`}
               </p>
               {q.explanation && <p className="mt-1 text-ink-soft">{q.explanation}</p>}
@@ -443,7 +443,7 @@ export default function Luma() {
                     {timeAgo(s.updatedAt)}
                   </p>
                 </button>
-                <button onClick={() => setDel(s)} className="mr-1 rounded p-1.5 text-ink-mute opacity-0 hover:text-red-600 focus:opacity-100 group-hover:opacity-100" aria-label={`Hapus ${s.title}`}>
+                <button onClick={() => setDel(s)} className="mr-1 rounded p-1.5 text-ink-mute opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100" aria-label={`Hapus ${s.title}`}>
                   <Trash2 size={14} />
                 </button>
               </li>
@@ -484,7 +484,7 @@ export default function Luma() {
               </>
             ) : (
               <>
-                <p className="flex-1 text-sm text-ink-soft">Pilih buku dari perpustakaan dulu.</p>
+                <p className="flex-1 text-sm text-ink-soft">Pilih buku dari Library dulu.</p>
                 <button className="btn-teal btn-sm" onClick={() => setPicker(true)}>
                   Pilih buku
                 </button>
@@ -517,7 +517,7 @@ export default function Luma() {
               <h1 className="mt-3 font-serif text-2xl font-semibold">Halo{user?.namaLengkap ? `, ${user.namaLengkap.split(" ")[0]}` : ""}! Aku LUMA.</h1>
               <p className="mt-2 text-sm text-ink-soft">
                 {mode === "chat" && "Tanya apa saja. Bisa juga kirim foto catatan, PDF, atau video untuk dibahas."}
-                {mode === "ask" && "Aku akan membaca buku pilihanmu, lalu menjawab pertanyaan tentang isinya."}
+                {mode === "ask" && "Pilih buku, lalu tanyakan isinya. LUMA menjawab berdasarkan buku dan menyebut halamannya."}
                 {mode === "summary" && "Pilih panjang ringkasan, lalu aku rangkum isi bukunya."}
                 {mode === "quiz" && (opts.untuk === "guru" ? "Buat lembar soal lengkap dengan kunci jawaban. Bisa dicetak atau diposting ke Discussion untuk dikerjakan murid." : "Pilih buku atau tulis topik, lalu uji pemahamanmu.")}
               </p>

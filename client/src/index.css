@@ -8,6 +8,8 @@
     --mist: 243 246 246; --line: 220 228 230; --surface: 255 255 255;
     --teal: 49 107 108; --teal-soft: 227 241 240; --teal-deep: 31 77 78;
     --lantern-soft: 255 241 222; --night: 20 55 82;
+    /* teks oranye & merah yang tetap terbaca (kontras >= 4.5) */
+    --lantern-text: 168 83 0; --danger: 185 28 28;
     color-scheme: light;
   }
   .dark {
@@ -15,6 +17,7 @@
     --mist: 11 20 29; --line: 41 57 71; --surface: 19 31 42;
     --teal: 92 180 176; --teal-soft: 22 52 54; --teal-deep: 64 150 150;
     --lantern-soft: 61 41 16; --night: 27 52 74;
+    --lantern-text: 255 179 92; --danger: 248 113 113;
     color-scheme: dark;
   }
   html { -webkit-text-size-adjust: 100%; }
@@ -31,7 +34,7 @@
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
   }
-  .btn-primary { @apply btn bg-lantern text-white hover:bg-lantern-dark; }
+  .btn-primary { @apply btn bg-lantern text-[#1B2B3A] hover:bg-[#FFA63A]; }
   .btn-teal { @apply btn bg-forest text-white hover:bg-forest-deep; }
   .btn-ghost { @apply btn text-ink hover:bg-ink/5; }
   .btn-outline { @apply btn border border-line bg-surface text-ink hover:border-ink/30; }

@@ -4,7 +4,7 @@ import { useState } from "react";
 const TONES = [
   ["#143752", "#FFC93C"],
   ["#316B6C", "#FFF1DE"],
-  ["#1F4D4E", "#F79319"],
+  ["#1F4D4E", "#FFC93C"],
   ["#3E5A72", "#FFFFFF"],
   ["#7A3E12", "#FFE3B8"],
 ];
@@ -33,7 +33,7 @@ export default function BookCover({ book, className = "", sizes = "sm" }) {
       <div className="flex h-full flex-col justify-between p-[10%]">
         <span className="h-px w-1/3" style={{ background: fg, opacity: 0.6 }} />
         <p className={`font-serif font-semibold leading-tight ${sizes === "lg" ? "text-2xl" : "text-[13px] sm:text-sm"}`}>{book?.judul}</p>
-        <p className={`opacity-80 ${sizes === "lg" ? "text-sm" : "text-[10px]"}`}>{book?.penulis}</p>
+        <p className={`opacity-90 ${sizes === "lg" ? "text-sm" : "text-[10px]"}`}>{book?.penulis}</p>
       </div>
     </div>
   );

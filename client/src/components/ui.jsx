@@ -32,7 +32,7 @@ export function Empty({ title, children, action }) {
 
 export function ErrorBox({ children }) {
   if (!children) return null;
-  return <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{children}</p>;
+  return <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger">{children}</p>;
 }
 
 export function Stars({ value = 0, size = 14, className = "" }) {
