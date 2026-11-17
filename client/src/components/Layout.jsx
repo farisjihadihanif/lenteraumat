@@ -199,19 +199,21 @@ function MobileNav() {
 function Footer({ flush }) {
   return (
     <footer className={`${flush ? "" : "mt-20"} bg-night pb-16 text-white/70 md:pb-0`}>
-      <div className="container-page flex flex-col items-center justify-center gap-1.5 py-3 text-xs sm:flex-row sm:gap-6">
+      {/* Kiri: pembuat · Tengah: nama aplikasi · Kanan: halaman informasi */}
+      <div className="container-page grid items-center gap-1.5 py-3 text-center text-xs md:grid-cols-3 md:gap-6">
+        <span className="flex items-center justify-center gap-1.5 md:justify-start">
+          Created by
+          <a href="https://www.instagram.com/farisjihadihanif/" target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-white" aria-label="Instagram Faris Jihadi Hanif Lubis">
+            <Instagram size={15} />
+          </a>
+          Faris Jihadi Hanif Lubis
+        </span>
         <span>Lentera Umat © 2025</span>
-        <nav className="flex gap-4" aria-label="Informasi">
+        <nav className="flex justify-center gap-4 md:justify-end" aria-label="Informasi">
           <Link to="/ketentuan" className="hover:text-white">Ketentuan</Link>
           <Link to="/privasi" className="hover:text-white">Privasi</Link>
           <Link to="/hak-cipta" className="hover:text-white">Hak cipta</Link>
         </nav>
-        <span className="flex items-center gap-2">
-          Created by Faris Jihadi Hanif Lubis
-          <a href="https://www.instagram.com/farisjihadihanif/" target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-white" aria-label="Instagram Faris Jihadi Hanif Lubis">
-            <Instagram size={15} />
-          </a>
-        </span>
       </div>
     </footer>
   );
