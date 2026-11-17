@@ -9,9 +9,23 @@ export async function pdfjs() {
   return lib;
 }
 
+// File pendukung pdf.js (disalin ke public/pdfjs saat npm run dev / build).
+const ASSETS = `${import.meta.env.BASE_URL}pdfjs/`;
+const SUPPORT = {
+  wasmUrl: `${ASSETS}wasm/`,
+  standardFontDataUrl: `${ASSETS}standard_fonts/`,
+  cMapUrl: `${ASSETS}cmaps/`,
+  cMapPacked: true,
+  iccUrl: `${ASSETS}iccs/`,
+};
+
 export async function openPdf(src) {
   const { getDocument } = await pdfjs();
-  return getDocument(typeof src === "string" ? { url: src, withCredentials: true } : { data: src }).promise;
+  // Untuk buku dari tautan: ambil per bagian (range) saja, bukan seluruh file.
+  return getDocument(
+    typeof src === "string" ? { ...SUPPORT, url: src, withCredentials: true, disableAutoFetch: true, disableStream: true, rangeChunkSize: 256 * 1024 }
+      : { ...SUPPORT, data: src },
+  ).promise;
 }
 
 // Render satu halaman ke canvas dengan lebar tertentu (px CSS).

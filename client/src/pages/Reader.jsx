@@ -41,7 +41,11 @@ export default function Reader() {
       /* buku belum siap */
     }
     const want = [];
-    for (let i = center - 2; i <= center + 5; i++) if (i >= 0 && i < d.numPages) want.push(i);
+    // Halaman yang sedang terlihat dulu, lalu halaman berikut/sebelumnya.
+    for (const off of [0, 1, 2, -1, 3, -2, 4, 5]) {
+      const i = center + off;
+      if (i >= 0 && i < d.numPages) want.push(i);
+    }
     for (const [i, canvas] of rendered.current) {
       if (Math.abs(i - center) > KEEP) {
         canvas.remove();

@@ -2,3 +2,6 @@ node_modules/
 .env
 dist/
 *.log
+
+# disalin otomatis dari node_modules/pdfjs-dist
+client/public/pdfjs/

@@ -88,8 +88,28 @@ async function read(stored) {
 }
 
 // Buka file dari penyimpanan luar sebagai stream (untuk dikirim ke pembaca).
-async function open(stored) {
-  const res = await fetch(stored.url, { signal: AbortSignal.timeout(5 * 60 * 1000), headers: { "User-Agent": "LenteraUmat/2.0" } });
+// range: header Range dari browser diteruskan, supaya pdf.js cukup mengambil bagian yang dibaca.
+// Alamat akhir setelah pengalihan (mis. archive.org/download -> server cermin) disimpan
+// sebentar, supaya tiap potongan halaman tidak perlu melewati pengalihan lagi.
+const finalUrls = new Map();
+const FINAL_TTL = 30 * 60 * 1000;
+
+async function open(stored, { range = "", signal } = {}) {
+  const sig = signal ? AbortSignal.any([signal, AbortSignal.timeout(10 * 60 * 1000)]) : AbortSignal.timeout(10 * 60 * 1000);
+  const headers = { "User-Agent": "LenteraUmat/2.0", ...(range ? { Range: range } : {}) };
+  const cached = finalUrls.get(stored.url);
+  let res;
+  if (cached && cached.until > Date.now()) {
+    res = await fetch(cached.url, { signal: sig, headers }).catch(() => null);
+    if (!res || !res.ok) {
+      finalUrls.delete(stored.url);
+      res = null;
+    }
+  }
+  if (!res) {
+    res = await fetch(stored.url, { signal: sig, headers });
+    if (res.ok && res.url && res.url !== stored.url) finalUrls.set(stored.url, { url: res.url, until: Date.now() + FINAL_TTL });
+  }
   if (res.status === 401 && stored.storage === "cloudinary") {
     throw new HttpError(502, "Cloudinary memblokir pengiriman PDF. Di Cloudinary buka Settings > Security, centang 'Allow delivery of PDF and ZIP files', lalu simpan.");
   }

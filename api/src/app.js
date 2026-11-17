@@ -17,7 +17,8 @@ function createApp() {
       contentSecurityPolicy: {
         directives: {
           "default-src": ["'self'"],
-          "script-src": ["'self'"],
+          // 'wasm-unsafe-eval': dekoder gambar pdf.js (JPEG2000) berbentuk WebAssembly
+          "script-src": ["'self'", "'wasm-unsafe-eval'"],
           "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           "font-src": ["'self'", "data:", "https://fonts.gstatic.com"],
           // sampul & foto bisa dari Cloudinary; blob: untuk pratinjau sampul sebelum unggah

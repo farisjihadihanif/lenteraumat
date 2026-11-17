@@ -135,9 +135,18 @@ router.get("/:id/file", async (req, res) => {
     if (!fs.existsSync(local)) throw new HttpError(404, "File buku tidak ditemukan di server.");
     return res.sendFile(local, { headers: { "Content-Type": "application/pdf" } });
   }
-  const upstream = await storage.open(book.file);
-  const len = upstream.headers.get("content-length");
-  if (len) res.setHeader("Content-Length", len);
+  // Penyimpanan luar (Cloudinary / sumber asli): teruskan Range supaya buku besar
+  // tidak perlu diunduh penuh, pdf.js hanya meminta halaman yang dibaca.
+  const ctrl = new AbortController();
+  res.on("close", () => ctrl.abort());
+  const range = /^bytes=\d*-\d*$/.test(req.headers.range || "") ? req.headers.range : "";
+  const upstream = await storage.open(book.file, { range, signal: ctrl.signal });
+  res.status(upstream.status === 206 ? 206 : 200);
+  for (const h of ["content-length", "content-range"]) {
+    const v = upstream.headers.get(h);
+    if (v) res.setHeader(h, v);
+  }
+  if (upstream.headers.get("accept-ranges") === "bytes" || upstream.status === 206) res.setHeader("Accept-Ranges", "bytes");
   const { Readable } = require("stream");
   Readable.fromWeb(upstream.body)
     .on("error", () => res.destroy())
