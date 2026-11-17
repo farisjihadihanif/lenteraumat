@@ -47,7 +47,7 @@ export default function Catalog() {
 
   return (
     <div className="container-page py-8">
-      <h1 className="font-serif text-3xl font-semibold">Katalog buku</h1>
+      <h1 className="font-serif text-3xl font-semibold">Library</h1>
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">
         <form
           role="search"

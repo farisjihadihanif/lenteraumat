@@ -166,7 +166,7 @@ export default function Luma() {
   const [sessions, setSessions] = useState([]);
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [mode, setMode] = useState(params.get("book") ? "ask" : "chat");
+  const [mode, setMode] = useState(() => (MODES.some((m) => m.id === params.get("mode")) ? params.get("mode") : params.get("book") ? "ask" : "chat"));
   const [book, setBook] = useState(null);
   const [picker, setPicker] = useState(false);
   const [input, setInput] = useState("");
@@ -179,7 +179,7 @@ export default function Luma() {
   const loadSessions = useCallback(() => api.get("/ai/sessions").then((r) => setSessions(r.items)).catch(() => {}), []);
 
   useEffect(() => {
-    api.get("/ai/status").then(setStatus).catch(() => setStatus({ enabled: false }));
+    api.get("/ai/status").then(setStatus).catch(() => setStatus(null));
     loadSessions();
   }, [loadSessions]);
 

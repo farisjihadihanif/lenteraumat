@@ -30,7 +30,7 @@ function Hero() {
     <section className="relative isolate overflow-hidden bg-neutral-900 text-white">
       <img src={heroBg} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover grayscale" />
       <div className="absolute inset-0 -z-10 bg-black/60" aria-hidden />
-      <div className="container-page flex min-h-[420px] flex-col items-center justify-center py-16 text-center md:min-h-[480px]">
+      <div className="container-page flex min-h-[calc(100svh-4rem)] flex-col items-center justify-center py-16 text-center">
         <h1 className="font-serif text-6xl font-semibold leading-none sm:text-7xl md:text-8xl">Lentera Umat</h1>
         <p className="mt-6 max-w-2xl text-white/85 sm:text-lg">
           Lentera Umat Digital Library ~ read the book, discuss, summary and create a Quiz with Luma
@@ -41,10 +41,10 @@ function Hero() {
 }
 
 const LUMA_FEATURES = [
-  { icon: MessageCircle, title: "Tanya apa saja", text: "Ngobrol tentang pelajaran, ibadah, atau topik yang sedang kamu pelajari." },
-  { icon: BookOpenText, title: "Tanya isi buku", text: "Pilih buku, lalu tanyakan bagian yang belum kamu pahami. LUMA menyebut halamannya." },
-  { icon: ScrollText, title: "Ringkasan", text: "Dapatkan gambaran isi buku sebelum atau sesudah membacanya." },
-  { icon: FileQuestion, title: "Kuis", text: "Uji pemahamanmu dengan soal pilihan ganda atau isian dari buku." },
+  { mode: "chat", icon: MessageCircle, title: "Tanya apa saja", text: "Ngobrol tentang pelajaran, ibadah, atau topik yang sedang kamu pelajari." },
+  { mode: "ask", icon: BookOpenText, title: "Tanya isi buku", text: "Pilih buku, lalu tanyakan bagian yang belum kamu pahami. LUMA menyebut halamannya." },
+  { mode: "summary", icon: ScrollText, title: "Ringkasan", text: "Dapatkan gambaran isi buku sebelum atau sesudah membacanya." },
+  { mode: "quiz", icon: FileQuestion, title: "Kuis", text: "Uji pemahamanmu dengan soal pilihan ganda atau isian dari buku." },
 ];
 
 export default function Home() {
@@ -128,6 +128,38 @@ export default function Home() {
               <BookRow books={data.rating} />
             </Section>
           )}
+        </>
+      )}
+
+      {/* Section 3: LUMA */}
+      <section className="container-page mt-16">
+        <div className="grid gap-8 rounded-2xl bg-teal p-6 text-white sm:p-10 lg:grid-cols-[1fr_1.4fr]">
+          <div>
+            <h2 className="font-serif text-3xl font-semibold">Belajar bersama LUMA</h2>
+            <p className="mt-3 text-white/80">LUMA adalah teman belajar berbasis AI di LenteraUmat. Ia membaca buku di perpustakaan ini supaya bisa menjawab pertanyaanmu tentang isinya.</p>
+            <Link to="/luma" className="btn mt-6 bg-white text-teal hover:bg-teal-soft">
+              Ngobrol dengan LUMA <ArrowRight size={16} />
+            </Link>
+          </div>
+          <ul className="grid gap-5 sm:grid-cols-2">
+            {LUMA_FEATURES.map(({ mode, icon: Icon, title, text }) => (
+              <li key={title}>
+                <Link to={`/luma?mode=${mode}`} className="group -m-3 flex gap-3 rounded-xl p-3 transition-colors hover:bg-white/10">
+                  <Icon size={22} className="mt-0.5 shrink-0 text-lamp" />
+                  <div>
+                    <p className="flex items-center gap-1.5 font-bold">
+                      {title} <ArrowRight size={14} className="opacity-0 transition-opacity group-hover:opacity-100" />
+                    </p>
+                    <p className="mt-1 text-sm text-white/75">{text}</p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+      {data?.total > 0 && (
+        <>
           <Section title="Kategori">
             <div className="flex flex-wrap gap-2">
               {data.cats
@@ -141,29 +173,6 @@ export default function Home() {
           </Section>
         </>
       )}
-
-      <section className="container-page mt-16">
-        <div className="grid gap-8 rounded-2xl bg-teal p-6 text-white sm:p-10 lg:grid-cols-[1fr_1.4fr]">
-          <div>
-            <h2 className="font-serif text-3xl font-semibold">Belajar bersama LUMA</h2>
-            <p className="mt-3 text-white/80">LUMA adalah teman belajar berbasis AI di LenteraUmat. Ia membaca buku di perpustakaan ini supaya bisa menjawab pertanyaanmu tentang isinya.</p>
-            <Link to="/luma" className="btn mt-6 bg-white text-teal hover:bg-teal-soft">
-              Ngobrol dengan LUMA <ArrowRight size={16} />
-            </Link>
-          </div>
-          <ul className="grid gap-5 sm:grid-cols-2">
-            {LUMA_FEATURES.map(({ icon: Icon, title, text }) => (
-              <li key={title} className="flex gap-3">
-                <Icon size={22} className="mt-0.5 shrink-0 text-lamp" />
-                <div>
-                  <p className="font-bold">{title}</p>
-                  <p className="mt-1 text-sm text-white/75">{text}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
 
       {data?.disk?.length > 0 && (
         <Section title="Diskusi terbaru" link="/diskusi">

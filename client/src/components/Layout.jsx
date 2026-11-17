@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, Home, Library, LogOut, MessagesSquare, Search, Settings, Shield, Sparkles, Upload, User, ChevronDown } from "lucide-react";
+import { BookOpen, Home, Instagram, Library, LogOut, MessagesSquare, Search, Settings, Shield, Sparkles, Upload, User, ChevronDown } from "lucide-react";
 import { useAuth } from "../context/Auth";
 import { Avatar } from "./ui";
 import FloatingLuma from "./FloatingLuma";
@@ -9,7 +9,7 @@ import logo from "../assets/Navbar/lenteraumatwarna.svg";
 
 const NAV = [
   { to: "/", label: "Beranda", icon: Home, end: true },
-  { to: "/buku", label: "Katalog", icon: Library },
+  { to: "/buku", label: "Library", icon: Library },
   { to: "/luma", label: "LUMA", icon: Sparkles },
   { to: "/diskusi", label: "Diskusi", icon: MessagesSquare },
 ];
@@ -150,8 +150,17 @@ function MobileNav() {
 
 function Footer() {
   return (
-    <footer className="mt-20 bg-ink pb-16 text-white/80 md:pb-0">
-      <p className="py-6 text-center text-sm">Lentera Umat © 2025</p>
+    <footer className="mt-20 bg-ink pb-16 text-white/70 md:pb-0">
+      <div className="container-page flex flex-col items-center justify-center gap-1.5 py-3 text-xs sm:flex-row sm:gap-3">
+        <span>Lentera Umat © 2025</span>
+        <span className="hidden sm:inline" aria-hidden>·</span>
+        <span className="flex items-center gap-2">
+          Created by Faris Jihadi Hanif Lubis
+          <a href="https://www.instagram.com/farisjihadihanif/" target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-white" aria-label="Instagram Faris Jihadi Hanif Lubis">
+            <Instagram size={15} />
+          </a>
+        </span>
+      </div>
     </footer>
   );
 }
