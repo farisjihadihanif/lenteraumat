@@ -27,13 +27,13 @@ function Section({ title, link, children }) {
 
 function Hero() {
   return (
-    <section className="relative isolate overflow-hidden bg-ink text-white">
-      <img src={heroBg} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
-      <div className="absolute inset-0 -z-10 bg-ink/75" aria-hidden />
+    <section className="relative isolate overflow-hidden bg-neutral-900 text-white">
+      <img src={heroBg} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover grayscale" />
+      <div className="absolute inset-0 -z-10 bg-black/60" aria-hidden />
       <div className="container-page flex min-h-[420px] flex-col items-center justify-center py-16 text-center md:min-h-[480px]">
-        <h1 className="font-serif text-7xl font-semibold leading-none tracking-wide sm:text-8xl md:text-9xl">LUMA</h1>
+        <h1 className="font-serif text-6xl font-semibold leading-none sm:text-7xl md:text-8xl">Lentera Umat</h1>
         <p className="mt-6 max-w-2xl text-white/85 sm:text-lg">
-          Perpustakaan digital LenteraUmat. Buka buku dan balik halamannya seperti buku cetak, lalu minta LUMA meringkas atau membuatkan kuis.
+          Lentera Umat Digital Library ~ read the book, discuss, summary and create a Quiz with Luma
         </p>
       </div>
     </section>
