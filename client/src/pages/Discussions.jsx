@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { PenSquare, Repeat2, Search } from "lucide-react";
+import { PenSquare, Repeat2, Search, FileQuestion } from "lucide-react";
 import { api } from "../lib/api";
 import { Avatar, Empty, ErrorBox, Pagination, Spinner } from "../components/ui";
 import BookCover from "../components/BookCover";
@@ -52,6 +52,17 @@ export function PostCard({ post, onChange }) {
             {post.cuplikan}
             {post.terpotong && <span className="text-teal"> …lanjut</span>}
           </p>
+          {post.kuis?.soal?.length > 0 && (
+            <Link to={`/diskusi/${post._id}`} className="mt-3 flex items-center gap-3 rounded-2xl border border-line p-3 hover:bg-mist">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-teal-soft text-teal">
+                <FileQuestion size={18} />
+              </span>
+              <span className="min-w-0 text-sm">
+                <span className="block font-semibold text-ink">Lembar soal · {post.kuis.soal.length} soal</span>
+                <span className="block truncate text-ink-mute">{[post.kuis.jenjang, post.kuis.level && `tingkat ${post.kuis.level}`].filter(Boolean).join(" · ") || "Jawab di balasan"}</span>
+              </span>
+            </Link>
+          )}
           {post.cover && <img src={post.cover} alt="" className="mt-3 max-h-80 w-full rounded-2xl border border-line object-cover" />}
           {post.book && (
             <Link to={`/buku/${post.book._id}`} className="mt-3 flex items-center gap-3 rounded-2xl border border-line p-2.5 hover:bg-mist">

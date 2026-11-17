@@ -6,6 +6,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
 import Markdown from "../components/Markdown";
 import PostActions from "../components/PostActions";
+import { DiscussionQuiz } from "../components/quiz/QuizSheet";
 import BookCover from "../components/BookCover";
 import { Avatar, ConfirmModal, Empty, ErrorBox, PageLoader, Stars, UserLink } from "../components/ui";
 import { formatDate, timeAgo } from "../lib/format";
@@ -96,6 +97,20 @@ export default function DiscussionDetail() {
 
         {d.cover && <img src={d.cover} alt="" className="mt-5 max-h-96 w-full rounded-xl object-cover" />}
         <Markdown className="mt-5 text-base">{d.isi}</Markdown>
+        {d.kuis && (
+          <DiscussionQuiz
+            kuis={d.kuis}
+            onToggleShare={async (v) => {
+              try {
+                const r = await api.patch(`/discussions/${id}`, { kunciPublik: v });
+                setData((x) => ({ ...x, discussion: { ...x.discussion, kuis: r.discussion.kuis } }));
+                toast.success(v ? "Kunci jawaban dibagikan." : "Kunci jawaban disembunyikan lagi.");
+              } catch (e) {
+                toast.error(e.message);
+              }
+            }}
+          />
+        )}
         <PostActions post={d} onChange={(patch) => setData((x) => ({ ...x, discussion: { ...x.discussion, ...patch } }))} className="mt-6 max-w-md border-y border-line py-1" />
 
         {d.canEdit && (

@@ -119,3 +119,34 @@ test("Kuis mode guru dari topik: campuran + kunci jawaban", async () => {
   assert.equal(r.body.quiz.questions[0].answer, "5");
   assert.equal(r.body.quiz.questions[1].type, "esai");
 });
+
+test("lembar soal dari LUMA diposting ke Discussion; kunci hanya untuk pembuat kecuali dibagikan", async () => {
+  const guru = await h.makeUser(app, "guru");
+  const murid = await h.makeUser(app, "murid");
+  const kuis = {
+    judul: "Thaharah",
+    level: "mudah",
+    jenjang: "SMP kelas 7",
+    questions: [
+      { type: "pilihan", question: "Air yang suci dan menyucikan disebut?", options: ["Mutlak", "Musta'mal", "Mutanajjis", "Musyammas"], answer: "Mutlak", explanation: "Air mutlak." },
+      { type: "esai", question: "Jelaskan rukun wudhu.", options: [], answer: "Niat, membasuh muka, ...", explanation: "" },
+    ],
+  };
+  const d = (await guru.post("/api/discussions").send({ judul: "Latihan: Thaharah", isi: "Kerjakan soal berikut, tulis jawabanmu di balasan.", kuis }).expect(201)).body.discussion;
+  const asMurid = (await murid.get(`/api/discussions/${d._id}`).expect(200)).body.discussion;
+  assert.equal(asMurid.kuis.soal.length, 2);
+  assert.equal(asMurid.kuis.kunci, undefined);
+  assert.equal(asMurid.kuis.bisaLihatKunci, false);
+  assert.equal(JSON.stringify(asMurid).includes("Musyammas"), true);
+  assert.equal(JSON.stringify(asMurid).includes("Niat, membasuh"), false);
+  const asGuru = (await guru.get(`/api/discussions/${d._id}`)).body.discussion;
+  assert.equal(asGuru.kuis.kunci[0].answer, "Mutlak");
+  await murid.patch(`/api/discussions/${d._id}`).send({ kunciPublik: true }).expect(403);
+  await guru.patch(`/api/discussions/${d._id}`).send({ kunciPublik: true }).expect(200);
+  assert.equal((await murid.get(`/api/discussions/${d._id}`)).body.discussion.kuis.kunci[1].answer, "Niat, membasuh muka, ...");
+  // murid menjawab di balasan
+  await murid.post(`/api/discussions/${d._id}/comments`).send({ isi: "1. Mutlak" }).expect(201);
+  // daftar tidak membocorkan kunci
+  const list = (await h.request(app).get("/api/discussions")).body.items;
+  assert.equal(list[0].kuis.kunci[0].answer, "Mutlak"); // sudah dibagikan
+});

@@ -18,6 +18,16 @@ const DiscussionSchema = new Schema(
     // Skor "Hot Topic": balasan & repost lebih berbobot daripada suka.
     skor: { type: Number, default: 0, index: true },
     lastActivityAt: { type: Date, default: Date.now },
+    // Lembar soal dari LUMA (mode guru). Kunci jawaban hanya terlihat oleh pembuat & admin,
+    // kecuali pembuat memilih membagikannya.
+    kuis: {
+      judul: String,
+      level: String,
+      jenjang: String,
+      soal: [{ _id: false, type: { type: String }, question: String, options: [String] }],
+      kunci: [{ _id: false, answer: String, explanation: String }],
+      kunciPublik: { type: Boolean, default: false },
+    },
   },
   { timestamps: true },
 );

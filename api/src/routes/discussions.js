@@ -16,9 +16,32 @@ async function recalcScore(id) {
   ]);
 }
 
+// Rapikan lembar soal dari klien (hasil LUMA) sebelum disimpan.
+function cleanQuiz(raw) {
+  if (!raw || !Array.isArray(raw.questions) || !raw.questions.length) return undefined;
+  const qs = raw.questions.slice(0, 40).filter((q) => q && q.question);
+  if (!qs.length) return undefined;
+  const type = (t) => (["pilihan", "isian", "esai"].includes(t) ? t : "pilihan");
+  return {
+    judul: str(raw.judul, 200),
+    level: str(raw.level, 20),
+    jenjang: str(raw.jenjang, 80),
+    soal: qs.map((q) => ({ type: type(q.type), question: str(q.question, 2000), options: (q.options || []).slice(0, 6).map((o) => str(o, 500)) })),
+    kunci: qs.map((q) => ({ answer: str(q.answer, 2000), explanation: str(q.explanation, 2000) })),
+    kunciPublik: Boolean(raw.kunciPublik),
+  };
+}
+
 // Bentuk data untuk kartu (tanpa daftar user yang suka/repost).
 function card(d, user) {
   const o = d.toObject ? d.toObject() : d;
+  if (o.kuis && !o.kuis.soal?.length) delete o.kuis;
+  if (o.kuis) {
+    const owner = user && (String(user._id) === String(o.author?._id || o.author) || user.role === "admin");
+    o.kuis.bisaLihatKunci = Boolean(owner || o.kuis.kunciPublik);
+    o.kuis.pemilik = Boolean(owner);
+    if (!o.kuis.bisaLihatKunci) delete o.kuis.kunci;
+  }
   const me = user ? String(user._id) : "";
   o.likedByMe = Boolean(me && (o.likes || []).some((id) => String(id._id || id) === me));
   o.repostedByMe = Boolean(me && (o.reposts || []).some((id) => String(id._id || id) === me));
@@ -96,7 +119,13 @@ router.post("/", requireAuth, upload.single("gambar"), checkImageSize("gambar"),
   const book = await validBook(req.body.book);
   let cover = "";
   if (req.file) cover = (await storage.save(req.file, "diskusi")).url;
-  const d = await Discussion.create({ judul, isi, book, cover, author: req.user._id });
+  let kuis;
+  try {
+    kuis = cleanQuiz(typeof req.body.kuis === "string" ? JSON.parse(req.body.kuis) : req.body.kuis);
+  } catch {
+    throw new HttpError(400, "Data soal tidak valid.");
+  }
+  const d = await Discussion.create({ judul, isi, book, cover, author: req.user._id, kuis });
   res.status(201).json({ discussion: d });
 });
 
@@ -112,9 +141,10 @@ router.patch("/:id", requireAuth, upload.single("gambar"), checkImageSize("gamba
     if (d.isi.length < 10) throw new HttpError(400, "Isi diskusi minimal 10 karakter.");
   }
   if ("book" in req.body) d.book = await validBook(req.body.book);
+  if ("kunciPublik" in req.body && d.kuis?.soal?.length) d.kuis.kunciPublik = req.body.kunciPublik === true || req.body.kunciPublik === "true";
   if (req.file) d.cover = (await storage.save(req.file, "diskusi")).url;
   await d.save();
-  res.json({ discussion: d });
+  res.json({ discussion: card(d, req.user) });
 });
 
 router.delete("/:id", requireAuth, async (req, res) => {

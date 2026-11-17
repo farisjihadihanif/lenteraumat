@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { BookOpenText, Check, Copy, FileQuestion, History, MessageCircle, Plus, ScrollText, Send, Trash2, X, Search, RotateCcw } from "lucide-react";
+import { BookOpenText, Check, Copy, FileQuestion, FileText, Film, History, Image as ImageIcon, MessageCircle, Music, Paperclip, Plus, ScrollText, Send, Trash2, X, Search, RotateCcw } from "lucide-react";
+import QuizSheet from "../components/quiz/QuizSheet";
 import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
 import Markdown from "../components/Markdown";
@@ -68,7 +69,7 @@ function QuizCard({ quiz }) {
   return (
     <div className="space-y-5">
       <p className="text-sm text-ink-soft">
-        Kuis {quiz.type === "pilihan" ? "pilihan ganda" : "isian"} · tingkat {quiz.level} · <span className="font-semibold">{quiz.book?.judul}</span>
+        Kuis {quiz.type === "pilihan" ? "pilihan ganda" : "isian"} · tingkat {quiz.level} · <span className="font-semibold">{quiz.judul || quiz.book?.judul}</span>
       </p>
       {quiz.questions.map((q, i) => (
         <fieldset key={i} className="rounded-lg border border-line bg-mist/50 p-4">
@@ -128,12 +129,107 @@ function QuizCard({ quiz }) {
   );
 }
 
-function Message({ m }) {
+const ACCEPT = "image/*,application/pdf,text/plain,text/markdown,text/csv,video/*,audio/*";
+const MAX_FILES = 4;
+const MAX_MB = 50;
+
+function fileIcon(type = "") {
+  if (type.startsWith("image/")) return ImageIcon;
+  if (type.startsWith("video/")) return Film;
+  if (type.startsWith("audio/")) return Music;
+  return FileText;
+}
+
+function AttachmentChip({ name, type, url, onRemove }) {
+  const Icon = fileIcon(type);
+  return (
+    <span className="inline-flex max-w-[220px] items-center gap-2 rounded-lg border border-line bg-surface py-1 pl-1 pr-2 text-xs text-ink">
+      {url && type?.startsWith("image/") ? (
+        <img src={url} alt="" className="h-8 w-8 rounded object-cover" />
+      ) : (
+        <span className="grid h-8 w-8 place-items-center rounded bg-mist text-ink-soft">
+          <Icon size={15} />
+        </span>
+      )}
+      <span className="truncate">{name}</span>
+      {onRemove && (
+        <button type="button" onClick={onRemove} className="rounded p-0.5 text-ink-mute hover:text-ink" aria-label={`Hapus lampiran ${name}`}>
+          <X size={13} />
+        </button>
+      )}
+    </span>
+  );
+}
+
+function PostQuizModal({ quiz, onClose }) {
+  const navigate = useNavigate();
+  const [judul, setJudul] = useState("");
+  const [isi, setIsi] = useState("");
+  const [share, setShare] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!quiz) return;
+    setJudul(`Latihan soal: ${quiz.judul}`.slice(0, 200));
+    setIsi(`Kerjakan ${quiz.questions.length} soal berikut${quiz.jenjang ? ` (${quiz.jenjang})` : ""}. Tulis jawabanmu di kolom balasan, misalnya "1. B, 2. C, ...".`);
+    setShare(false);
+  }, [quiz]);
+  if (!quiz) return null;
+  const post = async () => {
+    setBusy(true);
+    try {
+      const { discussion } = await api.post("/discussions", {
+        judul,
+        isi,
+        book: quiz.book?._id || "",
+        kuis: { judul: quiz.judul, level: quiz.level, jenjang: quiz.jenjang, questions: quiz.questions, kunciPublik: share },
+      });
+      toast.success("Soal diposting ke Discussion.");
+      navigate(`/diskusi/${discussion._id}`);
+    } catch (e) {
+      toast.error(e.message);
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal open onClose={onClose} title="Posting soal ke Discussion">
+      <div className="space-y-4">
+        <div>
+          <label className="label" htmlFor="pq-judul">Judul</label>
+          <input id="pq-judul" className="field" maxLength={200} value={judul} onChange={(e) => setJudul(e.target.value)} />
+        </div>
+        <div>
+          <label className="label" htmlFor="pq-isi">Petunjuk untuk murid</label>
+          <textarea id="pq-isi" className="field min-h-[90px]" maxLength={2000} value={isi} onChange={(e) => setIsi(e.target.value)} />
+        </div>
+        <label className="flex items-start gap-2 text-sm text-ink-soft">
+          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-teal" checked={share} onChange={(e) => setShare(e.target.checked)} />
+          <span>Tampilkan kunci jawaban ke semua pembaca. Biarkan tidak dicentang kalau soal ini untuk dikerjakan; kamu bisa membagikannya nanti.</span>
+        </label>
+        <div className="flex justify-end gap-2">
+          <button className="btn-ghost" onClick={onClose}>Batal</button>
+          <button className="btn-primary" onClick={post} disabled={busy || !judul.trim() || isi.trim().length < 10}>
+            {busy ? "Memposting…" : "Posting"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function Message({ m, onPostQuiz }) {
   const [copied, setCopied] = useState(false);
   if (m.role === "user") {
+    const files = m.localFiles || m.lampiran || [];
     return (
-      <div className="flex justify-end">
-        <p className="max-w-[85%] whitespace-pre-line rounded-2xl rounded-br-sm bg-forest px-4 py-2.5 text-[15px] text-white">{m.content}</p>
+      <div className="flex flex-col items-end gap-1.5">
+        {files.length > 0 && (
+          <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
+            {files.map((f, i) => (
+              <AttachmentChip key={i} name={f.name} type={f.type || f.mimeType} url={f.url} />
+            ))}
+          </div>
+        )}
+        {m.content && <p className="max-w-[85%] whitespace-pre-line rounded-2xl rounded-br-sm bg-forest px-4 py-2.5 text-[15px] text-white">{m.content}</p>}
       </div>
     );
   }
@@ -141,7 +237,15 @@ function Message({ m }) {
     <div className="flex gap-3">
       <img src={lumaImg} alt="" className="mt-1 h-9 w-9 shrink-0 rounded-full bg-lamp/30 object-contain" />
       <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm border border-line bg-surface px-4 py-3">
-        {m.kind === "quiz" && m.data ? <QuizCard quiz={m.data} /> : <Markdown>{m.content}</Markdown>}
+        {m.kind === "quiz" && m.data ? (
+          m.data.untuk === "guru" ? (
+            <QuizSheet quiz={m.data} onPost={() => onPostQuiz?.(m.data)} />
+          ) : (
+            <QuizCard quiz={m.data} />
+          )
+        ) : (
+          <Markdown>{m.content}</Markdown>
+        )}
         {m.kind !== "quiz" && (
           <button
             className="mt-2 inline-flex items-center gap-1 text-xs text-ink-mute hover:text-ink"
@@ -171,7 +275,11 @@ export default function Luma() {
   const [picker, setPicker] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [opts, setOpts] = useState({ length: "sedang", type: "pilihan", count: 5, level: "sedang" });
+  const [opts, setOpts] = useState({ length: "sedang", type: "pilihan", count: 5, level: "sedang", untuk: "latihan", sumber: "buku", topik: "", jenjang: "" });
+  const [files, setFiles] = useState([]);
+  const [dragging, setDragging] = useState(false);
+  const [postQuiz, setPostQuiz] = useState(null);
+  const fileInput = useRef(null);
   const [showHistory, setShowHistory] = useState(false);
   const [del, setDel] = useState(null);
   const endRef = useRef(null);
@@ -228,7 +336,7 @@ export default function Luma() {
 
   const run = async (kind, payload) => {
     setBusy(true);
-    const pending = payload.preview ? [{ role: "user", content: payload.preview, kind }] : [];
+    const pending = payload.preview || payload.files?.length ? [{ role: "user", content: payload.preview || "", kind, localFiles: payload.files?.map((f) => ({ name: f.file.name, type: f.file.type, url: f.url })) }] : [];
     setMessages((m) => [...m, ...pending]);
     try {
       if (kind === "summary") {
@@ -236,11 +344,30 @@ export default function Luma() {
         setSessionId(r.sessionId);
         setMessages((m) => [...m, { role: "model", content: r.reply, kind }]);
       } else if (kind === "quiz") {
-        const r = await api.post("/ai/quiz", { bookId: book._id, type: opts.type, count: opts.count, level: opts.level, sessionId });
+        const fromBook = opts.sumber === "buku";
+        const r = await api.post("/ai/quiz", {
+          bookId: fromBook ? book?._id : undefined,
+          topik: fromBook ? undefined : opts.topik,
+          untuk: opts.untuk,
+          type: opts.type,
+          count: opts.count,
+          level: opts.level,
+          jenjang: opts.untuk === "guru" ? opts.jenjang : undefined,
+          sessionId,
+        });
         setSessionId(r.sessionId);
         setMessages((m) => [...m, { role: "model", content: "Kuis", kind, data: r.quiz }]);
       } else {
-        const r = await api.post("/ai/chat", { message: payload.message, sessionId, bookId: mode === "ask" && !sessionId ? book?._id : undefined });
+        const bookId = mode === "ask" && !sessionId ? book?._id : undefined;
+        let body = { message: payload.message, sessionId, bookId };
+        if (payload.files?.length) {
+          body = new FormData();
+          body.append("message", payload.message || "");
+          if (sessionId) body.append("sessionId", sessionId);
+          if (bookId) body.append("bookId", bookId);
+          payload.files.forEach((f) => body.append("lampiran", f.file, f.file.name));
+        }
+        const r = await api.post("/ai/chat", body);
         setSessionId(r.sessionId);
         setMessages((m) => [...m, { role: "model", content: r.reply, kind }]);
       }
@@ -248,21 +375,39 @@ export default function Luma() {
     } catch (e) {
       setMessages((m) => m.slice(0, m.length - pending.length));
       if (payload.message) setInput(payload.message);
+      if (payload.files?.length) setFiles(payload.files);
       toast.error(e.message);
     } finally {
       setBusy(false);
     }
   };
 
-  const send = (text) => {
-    const message = (text ?? input).trim();
-    if (!message || busy) return;
-    if (mode === "ask" && !book) return setPicker(true);
-    setInput("");
-    run(mode === "ask" ? "ask" : "chat", { message, preview: message });
+  const addFiles = (list) => {
+    const incoming = Array.from(list || []);
+    if (!incoming.length) return;
+    const ok = [];
+    for (const file of incoming) {
+      if (file.size > MAX_MB * 1024 * 1024) toast.error(`${file.name} lebih dari ${MAX_MB} MB.`);
+      else ok.push({ file, url: file.type.startsWith("image/") ? URL.createObjectURL(file) : "" });
+    }
+    setFiles((cur) => {
+      const next = [...cur, ...ok];
+      if (next.length > MAX_FILES) toast.info(`Maksimal ${MAX_FILES} lampiran sekali kirim.`);
+      return next.slice(0, MAX_FILES);
+    });
   };
 
-  const needsBook = mode !== "chat";
+  const send = (text) => {
+    const message = (text ?? input).trim();
+    if ((!message && !files.length) || busy) return;
+    if (mode === "ask" && !book) return setPicker(true);
+    const attached = files;
+    setInput("");
+    setFiles([]);
+    run(mode === "ask" ? "ask" : "chat", { message, preview: message, files: attached });
+  };
+
+  const needsBook = mode === "ask" || mode === "summary" || (mode === "quiz" && opts.sumber === "buku");
   const disabled = status && !status.enabled;
 
   return (
@@ -348,7 +493,21 @@ export default function Luma() {
           </div>
         )}
 
-        <div className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
+        <div
+          className={`relative flex-1 space-y-5 overflow-y-auto p-4 sm:p-6 ${dragging ? "outline-dashed outline-2 -outline-offset-8 outline-teal" : ""}`}
+          onDragOver={(e) => {
+            if (mode === "chat" || mode === "ask") {
+              e.preventDefault();
+              setDragging(true);
+            }
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            if (mode === "chat" || mode === "ask") addFiles(e.dataTransfer.files);
+          }}
+        >
           {disabled && (
             <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">LUMA belum aktif di server ini. Admin perlu mengisi GEMINI_API_KEY.</p>
           )}
@@ -357,10 +516,10 @@ export default function Luma() {
               <img src={lumaImg} alt="" className="mx-auto h-28 w-28" />
               <h1 className="mt-3 font-serif text-2xl font-semibold">Halo{user?.namaLengkap ? `, ${user.namaLengkap.split(" ")[0]}` : ""}! Aku LUMA.</h1>
               <p className="mt-2 text-sm text-ink-soft">
-                {mode === "chat" && "Tanyakan apa saja. Kalau mau membahas buku tertentu, pilih mode Tanya buku."}
+                {mode === "chat" && "Tanya apa saja. Bisa juga kirim foto catatan, PDF, atau video untuk dibahas."}
                 {mode === "ask" && "Aku akan membaca buku pilihanmu, lalu menjawab pertanyaan tentang isinya."}
                 {mode === "summary" && "Pilih panjang ringkasan, lalu aku rangkum isi bukunya."}
-                {mode === "quiz" && "Atur jenis dan jumlah soal, lalu uji pemahamanmu."}
+                {mode === "quiz" && (opts.untuk === "guru" ? "Buat lembar soal lengkap dengan kunci jawaban. Bisa dicetak atau diposting ke Discussion untuk dikerjakan murid." : "Pilih buku atau tulis topik, lalu uji pemahamanmu.")}
               </p>
               {SUGGEST[mode] && (mode === "chat" || book) && (
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
@@ -374,7 +533,7 @@ export default function Luma() {
             </div>
           )}
           {messages.map((m, i) => (
-            <Message key={m._id || i} m={m} />
+            <Message key={m._id || i} m={m} onPostQuiz={setPostQuiz} />
           ))}
           {busy && (
             <div className="flex items-center gap-3 text-sm text-ink-mute">
@@ -384,7 +543,7 @@ export default function Luma() {
                   <span key={d} className="h-2 w-2 animate-bounce rounded-full bg-forest" style={{ animationDelay: `${d * 150}ms` }} />
                 ))}
               </span>
-              {mode !== "chat" && !sessionId && "Membaca buku…"}
+              {mode === "quiz" ? "Menyusun soal…" : mode !== "chat" && !sessionId ? "Membaca buku…" : ""}
             </div>
           )}
           <div ref={endRef} />
@@ -406,44 +565,98 @@ export default function Luma() {
               </button>
             </div>
           ) : mode === "quiz" ? (
-            <div className="flex flex-wrap items-end gap-3">
-              <div>
-                <label className="label text-xs">Jenis</label>
-                <select className="field w-auto" value={opts.type} onChange={(e) => setOpts((o) => ({ ...o, type: e.target.value }))}>
-                  <option value="pilihan">Pilihan ganda</option>
-                  <option value="isian">Isian singkat</option>
-                </select>
-              </div>
-              <div>
-                <label className="label text-xs">Jumlah</label>
-                <select className="field w-auto" value={opts.count} onChange={(e) => setOpts((o) => ({ ...o, count: Number(e.target.value) }))}>
-                  {[3, 5, 10, 15].map((n) => (
-                    <option key={n} value={n}>
-                      {n} soal
-                    </option>
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex rounded-lg border border-line p-0.5 text-sm font-semibold" role="radiogroup" aria-label="Kuis untuk">
+                  {[
+                    ["latihan", "Latihan sendiri"],
+                    ["guru", "Soal untuk murid"],
+                  ].map(([v, l]) => (
+                    <button key={v} role="radio" aria-checked={opts.untuk === v} onClick={() => setOpts((o) => ({ ...o, untuk: v, type: v === "latihan" && !["pilihan", "isian"].includes(o.type) ? "pilihan" : o.type }))} className={`rounded-md px-3 py-1.5 ${opts.untuk === v ? "bg-night text-white" : "text-ink-soft hover:text-ink"}`}>
+                      {l}
+                    </button>
                   ))}
-                </select>
+                </div>
+                <div className="flex rounded-lg border border-line p-0.5 text-sm font-semibold" role="radiogroup" aria-label="Sumber soal">
+                  {[
+                    ["buku", "Dari buku"],
+                    ["topik", "Dari topik"],
+                  ].map(([v, l]) => (
+                    <button key={v} role="radio" aria-checked={opts.sumber === v} onClick={() => setOpts((o) => ({ ...o, sumber: v }))} className={`rounded-md px-3 py-1.5 ${opts.sumber === v ? "bg-night text-white" : "text-ink-soft hover:text-ink"}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div>
-                <label className="label text-xs">Tingkat</label>
-                <select className="field w-auto" value={opts.level} onChange={(e) => setOpts((o) => ({ ...o, level: e.target.value }))}>
-                  <option value="mudah">Mudah</option>
-                  <option value="sedang">Sedang</option>
-                  <option value="sulit">Sulit</option>
-                </select>
+              {opts.sumber === "topik" && (
+                <input className="field" maxLength={300} value={opts.topik} onChange={(e) => setOpts((o) => ({ ...o, topik: e.target.value }))} placeholder="Topik soal, mis. Thaharah dan macam-macam air" aria-label="Topik soal" />
+              )}
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="label text-xs" htmlFor="q-type">Jenis</label>
+                  <select id="q-type" className="field w-auto" value={opts.type} onChange={(e) => setOpts((o) => ({ ...o, type: e.target.value }))}>
+                    <option value="pilihan">Pilihan ganda</option>
+                    <option value="isian">Isian singkat</option>
+                    {opts.untuk === "guru" && <option value="esai">Esai</option>}
+                    {opts.untuk === "guru" && <option value="campuran">Campuran</option>}
+                  </select>
+                </div>
+                <div>
+                  <label className="label text-xs" htmlFor="q-count">Jumlah</label>
+                  <select id="q-count" className="field w-auto" value={opts.count} onChange={(e) => setOpts((o) => ({ ...o, count: Number(e.target.value) }))}>
+                    {(opts.untuk === "guru" ? [5, 10, 15, 20, 25, 30] : [3, 5, 10, 15]).map((n) => (
+                      <option key={n} value={n}>
+                        {n} soal
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label text-xs" htmlFor="q-level">Tingkat</label>
+                  <select id="q-level" className="field w-auto" value={opts.level} onChange={(e) => setOpts((o) => ({ ...o, level: e.target.value }))}>
+                    <option value="mudah">Mudah</option>
+                    <option value="sedang">Sedang</option>
+                    <option value="sulit">Sulit</option>
+                  </select>
+                </div>
+                {opts.untuk === "guru" && (
+                  <div className="min-w-[160px] flex-1">
+                    <label className="label text-xs" htmlFor="q-jenjang">Untuk kelas</label>
+                    <input id="q-jenjang" className="field" maxLength={80} value={opts.jenjang} onChange={(e) => setOpts((o) => ({ ...o, jenjang: e.target.value }))} placeholder="mis. SMP kelas 8" />
+                  </div>
+                )}
+                <button
+                  className="btn-primary ml-auto"
+                  disabled={busy || disabled || (opts.sumber === "buku" ? !book : opts.topik.trim().length < 3)}
+                  onClick={() => {
+                    const about = opts.sumber === "buku" ? `“${book.judul}”` : `“${opts.topik.trim()}”`;
+                    run("quiz", { preview: `${opts.untuk === "guru" ? "Buatkan lembar" : "Buat"} ${opts.count} soal ${{ pilihan: "pilihan ganda", isian: "isian", esai: "esai", campuran: "campuran" }[opts.type]} (${opts.level}) tentang ${about}${opts.untuk === "guru" ? " beserta kunci jawaban" : ""}` });
+                  }}
+                >
+                  <FileQuestion size={16} /> {opts.untuk === "guru" ? "Buat lembar soal" : "Buat kuis"}
+                </button>
               </div>
-              <button className="btn-primary ml-auto" disabled={!book || busy || disabled} onClick={() => run("quiz", { preview: `Buat ${opts.count} soal ${opts.type === "pilihan" ? "pilihan ganda" : "isian"} (${opts.level}) dari “${book.judul}”` })}>
-                <FileQuestion size={16} /> Buat kuis
-              </button>
             </div>
           ) : (
             <form
-              className="flex items-end gap-2"
+              className="space-y-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 send();
               }}
             >
+              {files.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {files.map((f, i) => (
+                    <AttachmentChip key={i} name={f.file.name} type={f.file.type} url={f.url} onRemove={() => setFiles((cur) => cur.filter((_, j) => j !== i))} />
+                  ))}
+                </div>
+              )}
+              <div className="flex items-end gap-2">
+              <input ref={fileInput} type="file" multiple accept={ACCEPT} className="sr-only" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+              <button type="button" className="btn-outline h-11 w-11 shrink-0 p-0" onClick={() => fileInput.current?.click()} disabled={disabled || files.length >= MAX_FILES} aria-label="Lampirkan gambar, file, atau video" title="Lampirkan gambar, PDF, audio, atau video">
+                <Paperclip size={18} />
+              </button>
               <textarea
                 rows={1}
                 className="field max-h-40 min-h-[44px] resize-none"
@@ -456,13 +669,21 @@ export default function Luma() {
                     send();
                   }
                 }}
-                placeholder={mode === "ask" ? (book ? `Tanya tentang “${book.judul}”` : "Pilih buku dulu") : "Tulis pesan untuk LUMA"}
+                onPaste={(e) => {
+                  const pasted = Array.from(e.clipboardData?.files || []);
+                  if (pasted.length) {
+                    e.preventDefault();
+                    addFiles(pasted);
+                  }
+                }}
+                placeholder={mode === "ask" ? (book ? `Tanya tentang “${book.judul}”` : "Pilih buku dulu") : "Tulis pesan, atau lampirkan foto/PDF/video"}
                 aria-label="Pesan"
                 disabled={disabled}
               />
-              <button className="btn-primary h-11 w-11 shrink-0 p-0" disabled={!input.trim() || busy || disabled} aria-label="Kirim">
+              <button className="btn-primary h-11 w-11 shrink-0 p-0" disabled={(!input.trim() && !files.length) || busy || disabled} aria-label="Kirim">
                 <Send size={18} />
               </button>
+              </div>
             </form>
           )}
           <p className="mt-2 text-center text-[11px] text-ink-mute">
@@ -472,6 +693,7 @@ export default function Luma() {
       </section>
 
       <BookPicker open={picker} onClose={() => setPicker(false)} onPick={pickBook} />
+      <PostQuizModal quiz={postQuiz} onClose={() => setPostQuiz(null)} />
       <ConfirmModal
         open={Boolean(del)}
         title="Hapus percakapan?"
