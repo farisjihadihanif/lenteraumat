@@ -452,7 +452,7 @@ export default function Luma() {
         </div>
       </aside>
 
-      <section className="flex min-h-[calc(100vh-8rem)] flex-col rounded-xl border border-line bg-surface">
+      <section className="flex min-h-[calc(100vh-8rem)] min-w-0 flex-col rounded-xl border border-line bg-surface">
         {/* Mode LUMA (HP & tablet); di layar lebar pindah ke kolom kiri */}
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3 lg:hidden">
           <button className="btn-ghost btn-sm" onClick={() => setShowHistory(true)}>
