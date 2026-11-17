@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import { BookOpen, Home, Library, LogOut, MessagesSquare, Search, Settings, Shield, Sparkles, Upload, User, ChevronDown } from "lucide-react";
 import { useAuth } from "../context/Auth";
 import { Avatar } from "./ui";
+import FloatingLuma from "./FloatingLuma";
 import { displayName } from "../lib/format";
 import logo from "../assets/Navbar/lenteraumatwarna.svg";
 
@@ -189,6 +190,7 @@ export default function Layout() {
       </main>
       <Footer />
       <MobileNav />
+      <FloatingLuma />
     </div>
   );
 }
