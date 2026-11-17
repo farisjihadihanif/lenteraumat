@@ -43,6 +43,9 @@ async function deleteUserContent(userId) {
   await ChatSession.deleteMany({ user: userId });
   await ReadingProgress.deleteMany({ user: userId });
   await Book.updateMany({ disimpan: userId }, { $pull: { disimpan: userId } });
+  await Discussion.updateMany({ likes: userId }, { $pull: { likes: userId }, $inc: { likeCount: -1 } });
+  await Discussion.updateMany({ reposts: userId }, { $pull: { reposts: userId }, $inc: { repostCount: -1 } });
+  await Discussion.updateMany({ lastRepostBy: userId }, { $unset: { lastRepostBy: 1 } });
 }
 
 module.exports = { recomputeRating, deleteBook, deleteUserContent };

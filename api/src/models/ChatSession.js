@@ -7,6 +7,17 @@ const MessageSchema = new Schema(
     // Jenis pesan untuk tampilan: chat biasa, tanya buku, ringkasan, kuis.
     kind: { type: String, enum: ["chat", "ask", "summary", "quiz"], default: "chat" },
     data: Schema.Types.Mixed,
+    // Lampiran (disimpan di Gemini Files API selama 48 jam; kita simpan rujukannya saja)
+    lampiran: [
+      {
+        _id: false,
+        name: String,
+        mimeType: String,
+        size: Number,
+        uri: String,
+        expiresAt: Date,
+      },
+    ],
   },
   { timestamps: true },
 );

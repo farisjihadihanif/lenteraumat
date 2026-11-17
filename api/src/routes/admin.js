@@ -135,7 +135,10 @@ router.delete("/comments/:id", async (req, res) => {
   if (!isId(req.params.id)) throw new HttpError(404, "Balasan tidak ditemukan.");
   const c = await Comment.findByIdAndDelete(req.params.id);
   if (!c) throw new HttpError(404, "Balasan tidak ditemukan.");
-  await Discussion.updateOne({ _id: c.discussion }, { $inc: { balasanCount: -1 } });
+  await Discussion.updateOne({ _id: c.discussion }, [
+    { $set: { balasanCount: { $max: [0, { $subtract: ["$balasanCount", 1] }] } } },
+    { $set: { skor: { $add: [{ $multiply: ["$likeCount", 2] }, { $multiply: ["$balasanCount", 3] }, { $multiply: ["$repostCount", 4] }] } } },
+  ]);
   res.json({ ok: true });
 });
 

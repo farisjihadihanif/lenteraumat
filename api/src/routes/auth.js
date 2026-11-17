@@ -2,7 +2,9 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const rateLimit = require("express-rate-limit");
 const User = require("../models/User");
-const { issueToken, clearToken } = require("../middleware/auth");
+const jwt = require("jsonwebtoken");
+const config = require("../config");
+const { issueToken, clearToken, readAccounts, writeAccounts, COOKIE, cookieOptions } = require("../middleware/auth");
 const { HttpError } = require("../middleware/errors");
 const { str } = require("../util");
 
@@ -23,7 +25,7 @@ router.post("/register", limiter, async (req, res) => {
   if (!namaLengkap) throw new HttpError(400, "Nama lengkap wajib diisi.");
 
   const user = await User.create({ username, email, namaLengkap, password: await bcrypt.hash(password, 10), role: "user" });
-  issueToken(res, user);
+  issueToken(res, user, req);
   res.status(201).json({ user: user.toSelf() });
 });
 
@@ -35,12 +37,59 @@ router.post("/login", limiter, async (req, res) => {
   if (!user || !(await bcrypt.compare(password, user.password))) {
     throw new HttpError(401, "Username/email atau password salah.");
   }
-  issueToken(res, user);
+  issueToken(res, user, req);
   res.json({ user: user.toSelf() });
 });
 
+// Keluar dari akun ini saja (akun ini juga dilupakan dari perangkat).
 router.post("/logout", (req, res) => {
-  clearToken(res);
+  clearToken(res, req);
+  res.json({ ok: true });
+});
+
+// Keluar dari semua akun di perangkat ini.
+router.post("/logout-all", (req, res) => {
+  clearToken(res, req);
+  writeAccounts(res, []);
+  res.json({ ok: true });
+});
+
+// Daftar akun yang tersimpan di perangkat ini (token kedaluwarsa / password diganti otomatis hilang).
+async function validAccounts(req) {
+  const out = [];
+  for (const token of readAccounts(req)) {
+    try {
+      const p = jwt.verify(token, config.jwtSecret);
+      const u = await User.findById(p.sub);
+      if (u && (u.tokenVersion || 0) === (p.v || 0)) out.push({ token, user: u });
+    } catch {
+      /* lewati */
+    }
+  }
+  return out;
+}
+
+router.get("/accounts", async (req, res) => {
+  const list = await validAccounts(req);
+  writeAccounts(res, list.map((a) => a.token));
+  res.json({
+    accounts: list.map(({ user }) => ({ ...user.toPublic(), current: Boolean(req.user && String(req.user._id) === String(user._id)) })),
+  });
+});
+
+router.post("/switch", async (req, res) => {
+  const id = String(req.body.userId || "");
+  const found = (await validAccounts(req)).find((a) => String(a.user._id) === id);
+  if (!found) throw new HttpError(401, "Akun itu perlu masuk ulang.");
+  res.cookie(COOKIE, found.token, cookieOptions());
+  res.json({ user: found.user.toSelf() });
+});
+
+// Hapus satu akun dari daftar perangkat (tanpa keluar dari akun yang sedang dipakai).
+router.post("/accounts/forget", async (req, res) => {
+  const id = String(req.body.userId || "");
+  const rest = (await validAccounts(req)).filter((a) => String(a.user._id) !== id);
+  writeAccounts(res, rest.map((a) => a.token));
   res.json({ ok: true });
 });
 

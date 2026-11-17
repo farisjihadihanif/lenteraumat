@@ -15,6 +15,8 @@ export default {
         line: "rgb(var(--line) / <alpha-value>)",
         surface: "rgb(var(--surface) / <alpha-value>)",
         night: "rgb(var(--night) / <alpha-value>)",
+        // Hijau tetap (tidak berubah di mode gelap) untuk latar tombol & pita LUMA: teks putih selalu kontras.
+        forest: { DEFAULT: "#2F6667", deep: "#234F50" },
       },
       fontFamily: {
         sans: ['"Manrope"', "system-ui", "sans-serif"],

@@ -65,7 +65,7 @@ export default function Catalog() {
           <option value="">Semua kategori</option>
           {categories.map((c) => (
             <option key={c.name} value={c.name}>
-              {c.name} ({c.count})
+              {c.name}
             </option>
           ))}
         </select>

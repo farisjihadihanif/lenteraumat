@@ -127,7 +127,7 @@ export default function UploadBook() {
         <div className="space-y-5">
           <div>
             <span className="label">File buku (PDF){id && " — kosongkan bila tidak diganti"}</span>
-            <label className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed px-4 py-5 ${pdf ? "border-teal bg-teal-soft/50" : "border-line bg-surface hover:border-teal/50"}`}>
+            <label className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed px-4 py-5 ${pdf ? "border-teal bg-teal-soft" : "border-line bg-surface hover:border-teal/50"}`}>
               <FileText size={28} className="shrink-0 text-teal" />
               <span className="min-w-0 text-sm">
                 {pdf ? (

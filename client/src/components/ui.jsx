@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Star, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Star, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { STATUS, displayName } from "../lib/format";
 
 export function Spinner({ className = "", label = "Memuat" }) {
@@ -108,17 +108,47 @@ export function StatusBadge({ status }) {
 }
 
 export function Pagination({ page, pages, onChange }) {
+  const [input, setInput] = useState(String(page));
+  useEffect(() => {
+    setInput(String(page));
+  }, [page]);
   if (!pages || pages <= 1) return null;
+  const go = (n) => {
+    const p = Math.min(pages, Math.max(1, n));
+    if (p !== page) onChange(p);
+    else setInput(String(page));
+  };
+  const btn = "grid h-9 w-9 place-items-center rounded-lg border border-line bg-surface text-ink-soft hover:border-ink/30 hover:text-ink disabled:pointer-events-none disabled:opacity-40";
   return (
-    <nav className="mt-8 flex items-center justify-center gap-3" aria-label="Halaman">
-      <button className="btn-outline btn-sm" disabled={page <= 1} onClick={() => onChange(page - 1)}>
-        <ChevronLeft size={16} /> Sebelumnya
+    <nav className="mt-10 flex items-center justify-center gap-1.5" aria-label="Halaman">
+      <button className={btn} disabled={page <= 1} onClick={() => go(1)} aria-label="Halaman pertama" title="Halaman pertama">
+        <ChevronsLeft size={16} />
       </button>
-      <span className="text-sm text-ink-mute">
-        {page} dari {pages}
-      </span>
-      <button className="btn-outline btn-sm" disabled={page >= pages} onClick={() => onChange(page + 1)}>
-        Berikutnya <ChevronRight size={16} />
+      <button className={btn} disabled={page <= 1} onClick={() => go(page - 1)} aria-label="Halaman sebelumnya" title="Sebelumnya">
+        <ChevronLeft size={16} />
+      </button>
+      <form
+        className="mx-2 flex items-center gap-2 text-sm text-ink-mute"
+        onSubmit={(e) => {
+          e.preventDefault();
+          go(parseInt(input, 10) || page);
+        }}
+      >
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value.replace(/\D/g, ""))}
+          onBlur={() => go(parseInt(input, 10) || page)}
+          inputMode="numeric"
+          className="h-9 w-14 rounded-lg border border-line bg-surface text-center font-semibold text-ink focus:border-teal focus:outline-none"
+          aria-label={`Halaman (1 sampai ${pages})`}
+        />
+        <span>dari {pages}</span>
+      </form>
+      <button className={btn} disabled={page >= pages} onClick={() => go(page + 1)} aria-label="Halaman berikutnya" title="Berikutnya">
+        <ChevronRight size={16} />
+      </button>
+      <button className={btn} disabled={page >= pages} onClick={() => go(pages)} aria-label="Halaman terakhir" title="Halaman terakhir">
+        <ChevronsRight size={16} />
       </button>
     </nav>
   );

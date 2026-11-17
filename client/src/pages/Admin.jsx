@@ -263,7 +263,7 @@ function Reviews() {
     <>
       <div className="mb-4 flex flex-wrap gap-1">
         {["", "5", "4", "3", "2", "1"].map((r) => (
-          <button key={r} onClick={() => { setPage(1); setRating(r); }} className={`rounded-full border px-3 py-1 text-sm font-semibold ${rating === r ? "border-teal bg-teal text-white" : "border-line bg-surface"}`}>
+          <button key={r} onClick={() => { setPage(1); setRating(r); }} className={`rounded-full border px-3 py-1 text-sm font-semibold ${rating === r ? "border-forest bg-forest text-white" : "border-line bg-surface"}`}>
             {r ? `${r} bintang` : "Semua"}
           </button>
         ))}

@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
 import Markdown from "../components/Markdown";
+import PostActions from "../components/PostActions";
 import BookCover from "../components/BookCover";
 import { Avatar, ConfirmModal, Empty, ErrorBox, PageLoader, Stars, UserLink } from "../components/ui";
 import { formatDate, timeAgo } from "../lib/format";
@@ -36,7 +37,7 @@ export default function DiscussionDetail() {
     setBusy(true);
     try {
       const { comment } = await api.post(`/discussions/${id}/comments`, { isi: reply });
-      setData((x) => ({ ...x, comments: [...x.comments, comment] }));
+      setData((x) => ({ ...x, comments: [...x.comments, comment], discussion: { ...x.discussion, balasanCount: (x.discussion.balasanCount || 0) + 1 } }));
       setReply("");
     } catch (err) {
       toast.error(err.message);
@@ -74,7 +75,8 @@ export default function DiscussionDetail() {
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-mute">
           <Avatar user={d.author} size={28} />
           <UserLink user={d.author} className="text-ink" />
-          <span>· {formatDate(d.createdAt)}</span>
+          <span className="text-ink-mute">@{d.author?.username}</span>
+          <time dateTime={d.createdAt}>{formatDate(d.createdAt)}</time>
         </div>
 
         {d.book && (
@@ -94,6 +96,7 @@ export default function DiscussionDetail() {
 
         {d.cover && <img src={d.cover} alt="" className="mt-5 max-h-96 w-full rounded-xl object-cover" />}
         <Markdown className="mt-5 text-base">{d.isi}</Markdown>
+        <PostActions post={d} onChange={(patch) => setData((x) => ({ ...x, discussion: { ...x.discussion, ...patch } }))} className="mt-6 max-w-md border-y border-line py-1" />
 
         {d.canEdit && (
           <div className="mt-5 flex gap-2">
@@ -107,7 +110,7 @@ export default function DiscussionDetail() {
         )}
       </article>
 
-      <section className="mt-10 border-t border-line pt-8">
+      <section id="balasan" className="mt-8">
         <h2 className="text-lg font-bold">{comments.length} balasan</h2>
         <ul className="mt-4 space-y-5">
           {comments.map((c) => (

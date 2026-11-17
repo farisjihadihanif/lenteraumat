@@ -48,6 +48,7 @@ async function save(file, folder) {
         },
         (err, res) => (err ? fail(err) : resolve(res)),
       );
+      stream.on("error", fail);
       stream.end(file.buffer);
     });
     return { url: result.secure_url, storage: "cloudinary", key: result.public_id, size: file.size };

@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --ink: 20 55 82; --ink-soft: 62 90 114; --ink-mute: 107 128 148;
+    --ink: 20 55 82; --ink-soft: 58 84 107; --ink-mute: 92 112 131;
     --mist: 243 246 246; --line: 220 228 230; --surface: 255 255 255;
     --teal: 49 107 108; --teal-soft: 227 241 240; --teal-deep: 31 77 78;
     --lantern-soft: 255 241 222; --night: 20 55 82;
@@ -12,8 +12,8 @@
   }
   .dark {
     --ink: 230 237 243; --ink-soft: 192 205 216; --ink-mute: 138 156 173;
-    --mist: 10 18 26; --line: 37 51 64; --surface: 18 29 39;
-    --teal: 64 150 150; --teal-soft: 21 50 52; --teal-deep: 46 118 118;
+    --mist: 11 20 29; --line: 41 57 71; --surface: 19 31 42;
+    --teal: 92 180 176; --teal-soft: 22 52 54; --teal-deep: 64 150 150;
     --lantern-soft: 61 41 16; --night: 27 52 74;
     color-scheme: dark;
   }
@@ -32,7 +32,7 @@
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary { @apply btn bg-lantern text-white hover:bg-lantern-dark; }
-  .btn-teal { @apply btn bg-teal text-white hover:bg-teal-deep; }
+  .btn-teal { @apply btn bg-forest text-white hover:bg-forest-deep; }
   .btn-ghost { @apply btn text-ink hover:bg-ink/5; }
   .btn-outline { @apply btn border border-line bg-surface text-ink hover:border-ink/30; }
   .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }

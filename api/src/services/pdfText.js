@@ -1,36 +1,32 @@
-// Ekstraksi teks PDF di server (sekali per buku), hasilnya disimpan di BookText.
-let pdfjsPromise = null;
-function pdfjs() {
-  pdfjsPromise ||= import("pdfjs-dist/legacy/build/pdf.mjs");
-  return pdfjsPromise;
+// Membaca PDF (jumlah halaman & teks untuk LUMA) lewat worker thread terpisah.
+// Kalau worker macet atau rusak, hanya worker itu yang dimatikan; server tetap jalan.
+const path = require("path");
+const { Worker } = require("worker_threads");
+
+const TIMEOUT = { count: 60 * 1000, text: 5 * 60 * 1000 };
+
+function run(task, buffer) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, "pdfWorker.js"));
+    let done = false;
+    const finish = (fn, value) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      worker.terminate().catch(() => {});
+      fn(value);
+    };
+    const timer = setTimeout(() => finish(reject, new Error("Membaca PDF terlalu lama.")), TIMEOUT[task]);
+    worker.on("message", (msg) => (msg.error ? finish(reject, new Error(msg.error)) : finish(resolve, msg.result)));
+    worker.on("error", (err) => finish(reject, err));
+    worker.on("exit", (code) => finish(reject, new Error(`Pembaca PDF berhenti (kode ${code}).`)));
+    // Salin buffer supaya data asli tetap bisa dipakai (mis. untuk diunggah).
+    const copy = Uint8Array.from(buffer).buffer;
+    worker.postMessage({ id: 1, task, data: copy }, [copy]);
+  });
 }
 
-const MAX_CHARS = 400000;
-// Font standar PDF (Helvetica, Times, dll) bawaan pdf.js, supaya tidak muncul peringatan.
-const FONTS = require("path").join(require.resolve("pdfjs-dist/package.json"), "..", "standard_fonts") + "/";
+const countPages = (buffer) => run("count", buffer);
+const extractText = (buffer) => run("text", buffer);
 
-async function extractText(buffer) {
-  const { getDocument } = await pdfjs();
-  const doc = await getDocument({ data: new Uint8Array(buffer), isEvalSupported: false, disableFontFace: true, useSystemFonts: false, standardFontDataUrl: FONTS, verbosity: 0 })
-    .promise;
-  let text = "";
-  for (let i = 1; i <= doc.numPages && text.length < MAX_CHARS; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    text += `\n[Halaman ${i}]\n` + content.items.map((it) => it.str).join(" ").replace(/\s+/g, " ").trim();
-    page.cleanup();
-  }
-  const pages = doc.numPages;
-  await doc.destroy();
-  return { text: text.slice(0, MAX_CHARS).trim(), pages };
-}
-
-async function countPages(buffer) {
-  const { getDocument } = await pdfjs();
-  const doc = await getDocument({ data: new Uint8Array(buffer), isEvalSupported: false, standardFontDataUrl: FONTS, verbosity: 0 }).promise;
-  const n = doc.numPages;
-  await doc.destroy();
-  return n;
-}
-
-module.exports = { extractText, countPages };
+module.exports = { countPages, extractText };

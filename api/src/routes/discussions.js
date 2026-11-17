@@ -10,6 +10,23 @@ const { str, page, escapeRegex, USER_PUBLIC } = require("../util");
 
 const router = express.Router();
 
+async function recalcScore(id) {
+  await Discussion.updateOne({ _id: id }, [
+    { $set: { skor: { $add: [{ $multiply: ["$likeCount", 2] }, { $multiply: ["$balasanCount", 3] }, { $multiply: ["$repostCount", 4] }] } } },
+  ]);
+}
+
+// Bentuk data untuk kartu (tanpa daftar user yang suka/repost).
+function card(d, user) {
+  const o = d.toObject ? d.toObject() : d;
+  const me = user ? String(user._id) : "";
+  o.likedByMe = Boolean(me && (o.likes || []).some((id) => String(id._id || id) === me));
+  o.repostedByMe = Boolean(me && (o.reposts || []).some((id) => String(id._id || id) === me));
+  delete o.likes;
+  delete o.reposts;
+  return o;
+}
+
 async function findDiscussion(id) {
   if (!isId(id)) throw new HttpError(404, "Diskusi tidak ditemukan.");
   const d = await Discussion.findById(id);
@@ -34,15 +51,27 @@ router.get("/", async (req, res) => {
     const rx = new RegExp(escapeRegex(q), "i");
     filter.$or = [{ judul: rx }, { isi: rx }];
   }
-  const sort = req.query.sort === "aktif" ? { lastActivityAt: -1 } : req.query.sort === "ramai" ? { balasanCount: -1, createdAt: -1 } : { createdAt: -1 };
+  const sort =
+    req.query.sort === "aktif"
+      ? { lastActivityAt: -1 }
+      : req.query.sort === "hot" || req.query.sort === "ramai"
+        ? { skor: -1, lastActivityAt: -1 }
+        : { createdAt: -1 };
   const [items, total] = await Promise.all([
-    Discussion.find(filter).sort(sort).skip(skip).limit(limit).populate("author", USER_PUBLIC).populate("book", "judul cover penulis"),
+    Discussion.find(filter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .populate("author", USER_PUBLIC)
+      .populate("lastRepostBy", USER_PUBLIC)
+      .populate("book", "judul cover penulis"),
     Discussion.countDocuments(filter),
   ]);
   // Cuplikan pendek untuk daftar.
   const list = items.map((d) => {
-    const o = d.toObject();
-    o.cuplikan = String(o.isi).replace(/[#*_>`\-]/g, "").replace(/\s+/g, " ").slice(0, 220);
+    const o = card(d, req.user);
+    o.cuplikan = String(o.isi).replace(/[#*_>`]/g, "").replace(/\s+/g, " ").trim().slice(0, 280);
+    o.terpotong = String(o.isi).length > 280;
     delete o.isi;
     return o;
   });
@@ -54,7 +83,7 @@ router.get("/:id", async (req, res) => {
   await d.populate("author", USER_PUBLIC);
   await d.populate("book", "judul cover penulis ratingAvg");
   const comments = await Comment.find({ discussion: d._id }).sort({ createdAt: 1 }).limit(500).populate("author", USER_PUBLIC);
-  const out = d.toObject();
+  const out = card(d, req.user);
   out.canEdit = isAdmin(req.user) || isOwner(req.user, d.author);
   res.json({ discussion: out, comments });
 });
@@ -102,6 +131,7 @@ router.post("/:id/comments", requireAuth, async (req, res) => {
   if (!isi) throw new HttpError(400, "Balasan tidak boleh kosong.");
   const c = await Comment.create({ discussion: d._id, author: req.user._id, isi });
   await Discussion.updateOne({ _id: d._id }, { $inc: { balasanCount: 1 }, lastActivityAt: new Date() });
+  await recalcScore(d._id);
   await c.populate("author", USER_PUBLIC);
   res.status(201).json({ comment: c });
 });
@@ -113,7 +143,23 @@ router.delete("/:id/comments/:commentId", requireAuth, async (req, res) => {
   if (!isAdmin(req.user) && !isOwner(req.user, c.author)) throw new HttpError(403, "Kamu tidak bisa menghapus balasan ini.");
   await c.deleteOne();
   await Discussion.updateOne({ _id: c.discussion }, { $inc: { balasanCount: -1 } });
+  await recalcScore(c.discussion);
   res.json({ ok: true });
 });
+
+// Suka & repost (tekan sekali lagi untuk membatalkan).
+async function toggle(req, res, field, countField) {
+  const d = await findDiscussion(req.params.id);
+  const me = req.user._id;
+  const has = d[field].some((id) => String(id) === String(me));
+  const update = has ? { $pull: { [field]: me }, $inc: { [countField]: -1 } } : { $addToSet: { [field]: me }, $inc: { [countField]: 1 } };
+  if (field === "reposts" && !has) Object.assign(update, { lastRepostBy: me, lastActivityAt: new Date() });
+  const fresh = await Discussion.findOneAndUpdate({ _id: d._id }, update, { new: true });
+  await recalcScore(d._id);
+  return res.json({ active: !has, count: fresh[countField] });
+}
+
+router.post("/:id/like", requireAuth, (req, res) => toggle(req, res, "likes", "likeCount"));
+router.post("/:id/repost", requireAuth, (req, res) => toggle(req, res, "reposts", "repostCount"));
 
 module.exports = router;

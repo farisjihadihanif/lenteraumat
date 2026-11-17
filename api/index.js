@@ -3,6 +3,14 @@ const { connect } = require("./src/db");
 const { createApp } = require("./src/app");
 const { ensureAdmin } = require("./src/seed");
 
+// Satu permintaan bermasalah tidak boleh mematikan seluruh server.
+process.on("unhandledRejection", (reason) => {
+  console.error("Kesalahan tak tertangani:", reason?.stack || reason);
+});
+process.on("uncaughtException", (error) => {
+  console.error("Kesalahan fatal tertangkap:", error?.stack || error);
+});
+
 async function main() {
   if (!config.jwtSecret || config.jwtSecret.length < 16) {
     throw new Error("JWT_SECRET di .env belum diisi (minimal 16 karakter acak).");

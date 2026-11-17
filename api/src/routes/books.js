@@ -14,6 +14,7 @@ const { str, page, escapeRegex, USER_PUBLIC } = require("../util");
 const { recomputeRating, deleteBook } = require("./cleanup");
 
 const router = express.Router();
+const BOOK_TYPE = "application/x-lentera-book";
 
 const LIST_FIELDS = "judul penulis penerbit tahunTerbit kategori cover halaman ratingAvg ratingCount dibaca createdAt status uploadedBy";
 
@@ -127,13 +128,16 @@ router.get("/:id", async (req, res) => {
 // LUMA tidak terkena aturan CORS, dan buku yang belum disetujui tetap terkunci.
 router.get("/:id/file", async (req, res) => {
   const book = await findVisible(req);
-  res.setHeader("Content-Type", "application/pdf");
+  // Sengaja BUKAN "application/pdf" dan tanpa nama file: download manager (IDM, FDM, dll)
+  // menyergap respons PDF sehingga flipbook & cuplikan gagal. pdf.js tidak peduli tipe ini.
+  res.setHeader("Content-Type", BOOK_TYPE);
   res.setHeader("Cache-Control", book.status === "disetujui" ? "public, max-age=86400" : "private, no-store");
-  res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(book.judul.slice(0, 80))}.pdf"`);
   const local = storage.localPath(book.file);
   if (local) {
     if (!fs.existsSync(local)) throw new HttpError(404, "File buku tidak ditemukan di server.");
-    return res.sendFile(local, { headers: { "Content-Type": "application/pdf" } });
+    return res.sendFile(local, { headers: { "Content-Type": BOOK_TYPE } }, (err) => {
+      if (err && !res.headersSent) res.status(err.status || 500).end();
+    });
   }
   // Penyimpanan luar (Cloudinary / sumber asli): teruskan Range supaya buku besar
   // tidak perlu diunduh penuh, pdf.js hanya meminta halaman yang dibaca.

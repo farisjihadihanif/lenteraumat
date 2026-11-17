@@ -65,8 +65,18 @@ test("unggahan user menunggu persetujuan, admin langsung tayang", async () => {
   assert.equal(list.body.total, 1);
   assert.equal(list.body.items[0].judul, "Fikih Dasar");
 
-  const file = await guest.get(`/api/books/${adm.body.book._id}/file`).expect(200);
-  assert.equal(file.headers["content-type"], "application/pdf");
+  const file = await guest
+    .get(`/api/books/${adm.body.book._id}/file`)
+    .buffer(true)
+    .parse((res, cb) => {
+      const chunks = [];
+      res.on("data", (c) => chunks.push(c));
+      res.on("end", () => cb(null, Buffer.concat(chunks)));
+    })
+    .expect(200);
+  // bukan application/pdf supaya tidak disergap download manager
+  assert.equal(file.headers["content-type"], "application/x-lentera-book");
+  assert.equal(file.headers["content-disposition"], undefined);
   assert.equal(file.body.subarray(0, 5).toString(), "%PDF-");
 });
 

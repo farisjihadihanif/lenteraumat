@@ -133,7 +133,7 @@ function Message({ m }) {
   if (m.role === "user") {
     return (
       <div className="flex justify-end">
-        <p className="max-w-[85%] whitespace-pre-line rounded-2xl rounded-br-sm bg-teal px-4 py-2.5 text-[15px] text-white">{m.content}</p>
+        <p className="max-w-[85%] whitespace-pre-line rounded-2xl rounded-br-sm bg-forest px-4 py-2.5 text-[15px] text-white">{m.content}</p>
       </div>
     );
   }
@@ -381,7 +381,7 @@ export default function Luma() {
               <img src={lumaImg} alt="" className="h-9 w-9 rounded-full bg-lamp/30" />
               <span className="flex gap-1" aria-label="LUMA sedang menulis">
                 {[0, 1, 2].map((d) => (
-                  <span key={d} className="h-2 w-2 animate-bounce rounded-full bg-teal" style={{ animationDelay: `${d * 150}ms` }} />
+                  <span key={d} className="h-2 w-2 animate-bounce rounded-full bg-forest" style={{ animationDelay: `${d * 150}ms` }} />
                 ))}
               </span>
               {mode !== "chat" && !sessionId && "Membaca buku…"}

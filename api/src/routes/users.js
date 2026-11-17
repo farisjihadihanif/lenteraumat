@@ -48,7 +48,7 @@ router.put("/me/password", requireAuth, async (req, res) => {
   user.password = await bcrypt.hash(baru, 10);
   user.tokenVersion = (user.tokenVersion || 0) + 1; // keluarkan sesi di perangkat lain
   await user.save();
-  issueToken(res, user);
+  issueToken(res, user, req);
   res.json({ ok: true });
 });
 
@@ -62,7 +62,7 @@ router.delete("/me", requireAuth, async (req, res) => {
   }
   await deleteUserContent(user._id);
   await user.deleteOne();
-  clearToken(res);
+  clearToken(res, req);
   res.json({ ok: true });
 });
 
@@ -70,11 +70,12 @@ router.delete("/me", requireAuth, async (req, res) => {
 router.get("/:username", async (req, res) => {
   const user = await User.findOne({ username: str(req.params.username, 30).toLowerCase() });
   if (!user) throw new HttpError(404, "Pengguna tidak ditemukan.");
-  const [books, discussions] = await Promise.all([
+  const [books, discussions, reposts] = await Promise.all([
     Book.find({ uploadedBy: user._id, status: "disetujui" }).sort({ createdAt: -1 }).limit(24).select("judul penulis cover kategori ratingAvg ratingCount"),
-    Discussion.find({ author: user._id }).sort({ createdAt: -1 }).limit(10).select("judul createdAt balasanCount book").populate("book", "judul"),
+    Discussion.find({ author: user._id }).sort({ createdAt: -1 }).limit(10).select("judul createdAt balasanCount likeCount repostCount book").populate("book", "judul"),
+    Discussion.find({ reposts: user._id }).sort({ lastActivityAt: -1 }).limit(10).select("judul createdAt balasanCount likeCount repostCount book author").populate("book", "judul").populate("author", "username namaLengkap"),
   ]);
-  res.json({ user: user.toPublic(), books, discussions });
+  res.json({ user: user.toPublic(), books, discussions, reposts });
 });
 
 module.exports = router;
