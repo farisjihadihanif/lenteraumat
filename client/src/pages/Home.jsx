@@ -1,0 +1,207 @@
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, BookOpenText, FileQuestion, MessageCircle, ScrollText, Search } from "lucide-react";
+import { api } from "../lib/api";
+import { useAuth } from "../context/Auth";
+import { BookRow } from "../components/BookGrid";
+import BookCover from "../components/BookCover";
+import { Spinner, Avatar, UserLink } from "../components/ui";
+import { timeAgo } from "../lib/format";
+import luma from "../assets/Maskot/luma-wave.webp";
+
+function Section({ title, link, children }) {
+  return (
+    <section className="container-page mt-14">
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <h2 className="text-xl font-bold sm:text-2xl">{title}</h2>
+        {link && (
+          <Link to={link} className="shrink-0 text-sm font-semibold text-teal hover:underline">
+            Lihat semua
+          </Link>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Hero() {
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
+  return (
+    <section className="relative overflow-hidden bg-ink text-white">
+      <div className="container-page grid items-center gap-8 py-12 md:grid-cols-[1.25fr_1fr] md:py-16">
+        <div>
+          <h1 className="font-serif text-4xl font-semibold leading-[1.1] sm:text-5xl">Baca, pahami, dan diskusikan buku bersama LUMA.</h1>
+          <p className="mt-4 max-w-xl text-white/75 sm:text-lg">
+            Perpustakaan digital LenteraUmat. Buka buku dan balik halamannya seperti buku cetak, lalu minta LUMA meringkas atau membuatkan kuis.
+          </p>
+          <form
+            role="search"
+            className="mt-7 flex max-w-xl gap-2 rounded-xl bg-white p-1.5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              navigate(`/buku?q=${encodeURIComponent(q.trim())}`);
+            }}
+          >
+            <label className="flex flex-1 items-center gap-2 pl-3 text-ink">
+              <Search size={18} className="text-ink-mute" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-ink-mute" placeholder="Judul, penulis, atau ISBN" aria-label="Cari buku" />
+            </label>
+            <button className="btn-primary">Cari buku</button>
+          </form>
+        </div>
+        <div className="relative mx-auto hidden h-72 w-72 md:block" aria-hidden>
+          <div className="absolute inset-0 animate-glow rounded-full bg-[radial-gradient(circle,rgba(255,201,60,.55)_0%,rgba(247,147,25,.18)_45%,transparent_70%)]" />
+          <img src={luma} alt="" className="absolute inset-x-0 bottom-0 mx-auto h-64 w-auto drop-shadow-xl" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const LUMA_FEATURES = [
+  { icon: MessageCircle, title: "Tanya apa saja", text: "Ngobrol tentang pelajaran, ibadah, atau topik yang sedang kamu pelajari." },
+  { icon: BookOpenText, title: "Tanya isi buku", text: "Pilih buku, lalu tanyakan bagian yang belum kamu pahami. LUMA menyebut halamannya." },
+  { icon: ScrollText, title: "Ringkasan", text: "Dapatkan gambaran isi buku sebelum atau sesudah membacanya." },
+  { icon: FileQuestion, title: "Kuis", text: "Uji pemahamanmu dengan soal pilihan ganda atau isian dari buku." },
+];
+
+export default function Home() {
+  const { user } = useAuth();
+  const [data, setData] = useState(null);
+  const [cont, setCont] = useState([]);
+
+  useEffect(() => {
+    Promise.all([
+      api.get("/books?sort=terbaru&limit=12"),
+      api.get("/books?sort=populer&limit=12"),
+      api.get("/books?sort=rating&limit=12"),
+      api.get("/books/categories"),
+      api.get("/discussions?sort=aktif&limit=4"),
+    ])
+      .then(([baru, populer, rating, cats, disk]) =>
+        setData({ baru: baru.items, populer: populer.items, rating: rating.items.filter((b) => b.ratingCount > 0), total: baru.total, cats: cats.categories, disk: disk.items }),
+      )
+      .catch(() => setData({ baru: [], populer: [], rating: [], cats: [], disk: [], total: 0 }));
+  }, []);
+
+  useEffect(() => {
+    if (user) api.get("/books/continue").then((r) => setCont(r.items)).catch(() => {});
+    else setCont([]);
+  }, [user]);
+
+  return (
+    <>
+      <Hero />
+
+      {cont.length > 0 && (
+        <Section title="Lanjut membaca" link="/rak">
+          <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+            {cont.slice(0, 6).map(({ book, page, totalPages }) => (
+              <Link key={book._id} to={`/buku/${book._id}/baca`} className="flex w-72 shrink-0 snap-start gap-4 rounded-xl border border-line bg-white p-3 hover:border-teal/40">
+                <div className="w-16 shrink-0">
+                  <BookCover book={book} />
+                </div>
+                <div className="min-w-0 flex-1 py-1">
+                  <p className="book-title line-clamp-2 text-sm">{book.judul}</p>
+                  <p className="mt-1 text-xs text-ink-mute">
+                    Halaman {page}
+                    {totalPages ? ` dari ${totalPages}` : ""}
+                  </p>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-mist">
+                    <div className="h-full rounded-full bg-lantern" style={{ width: `${totalPages ? Math.min(100, (page / totalPages) * 100) : 5}%` }} />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {!data ? (
+        <div className="container-page py-16">
+          <Spinner />
+        </div>
+      ) : data.total === 0 ? (
+        <section className="container-page mt-14">
+          <div className="panel p-8 text-center">
+            <p className="font-semibold">Rak masih kosong.</p>
+            <p className="mt-1 text-sm text-ink-mute">Jadilah yang pertama menyumbang buku ke perpustakaan ini.</p>
+            <Link to="/unggah" className="btn-primary mt-4">
+              Unggah buku
+            </Link>
+          </div>
+        </section>
+      ) : (
+        <>
+          <Section title="Baru ditambahkan" link="/buku">
+            <BookRow books={data.baru} />
+          </Section>
+          {data.populer.some((b) => b.dibaca > 0) && (
+            <Section title="Paling banyak dibaca" link="/buku?sort=populer">
+              <BookRow books={data.populer} />
+            </Section>
+          )}
+          {data.rating.length > 2 && (
+            <Section title="Rating tertinggi" link="/buku?sort=rating">
+              <BookRow books={data.rating} />
+            </Section>
+          )}
+          <Section title="Kategori">
+            <div className="flex flex-wrap gap-2">
+              {data.cats
+                .filter((c) => c.count > 0)
+                .map((c) => (
+                  <Link key={c.name} to={`/buku?kategori=${encodeURIComponent(c.name)}`} className="rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold hover:border-teal hover:text-teal">
+                    {c.name} <span className="ml-1 font-normal text-ink-mute">{c.count}</span>
+                  </Link>
+                ))}
+            </div>
+          </Section>
+        </>
+      )}
+
+      <section className="container-page mt-16">
+        <div className="grid gap-8 rounded-2xl bg-teal p-6 text-white sm:p-10 lg:grid-cols-[1fr_1.4fr]">
+          <div>
+            <h2 className="font-serif text-3xl font-semibold">Belajar bersama LUMA</h2>
+            <p className="mt-3 text-white/80">LUMA adalah teman belajar berbasis AI di LenteraUmat. Ia membaca buku di perpustakaan ini supaya bisa menjawab pertanyaanmu tentang isinya.</p>
+            <Link to="/luma" className="btn mt-6 bg-white text-teal hover:bg-teal-soft">
+              Ngobrol dengan LUMA <ArrowRight size={16} />
+            </Link>
+          </div>
+          <ul className="grid gap-5 sm:grid-cols-2">
+            {LUMA_FEATURES.map(({ icon: Icon, title, text }) => (
+              <li key={title} className="flex gap-3">
+                <Icon size={22} className="mt-0.5 shrink-0 text-lamp" />
+                <div>
+                  <p className="font-bold">{title}</p>
+                  <p className="mt-1 text-sm text-white/75">{text}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {data?.disk?.length > 0 && (
+        <Section title="Diskusi terbaru" link="/diskusi">
+          <div className="grid gap-4 md:grid-cols-2">
+            {data.disk.map((d) => (
+              <Link key={d._id} to={`/diskusi/${d._id}`} className="panel block p-5 hover:border-teal/40">
+                {d.book && <p className="mb-1 truncate text-xs font-semibold text-teal">Tentang: {d.book.judul}</p>}
+                <p className="font-bold">{d.judul}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-ink-soft">{d.cuplikan}</p>
+                <div className="mt-3 flex items-center gap-2 text-xs text-ink-mute">
+                  <Avatar user={d.author} size={20} />
+                  <UserLink user={d.author} className="text-ink-soft" /> · {timeAgo(d.createdAt)} · {d.balasanCount} balasan
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Section>
+      )}
+    </>
+  );
+}

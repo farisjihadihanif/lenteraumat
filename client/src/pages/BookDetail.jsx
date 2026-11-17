@@ -1,230 +1,355 @@
-import React, { useState, useEffect, useContext } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { axiosInstance } from "../config";
-import BookCardSkeleton from "../components/UmmahBook/BookCardSkeleton";
-import { UserContext } from "../context/UserContext";
-import Swal from "sweetalert2"; // Import SweetAlert2
+import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
+import { Bookmark, BookmarkCheck, BookOpen, Pencil, Share2, Sparkles, Trash2, MessagesSquare } from "lucide-react";
+import { api } from "../lib/api";
+import { useAuth } from "../context/Auth";
+import BookCover from "../components/BookCover";
+import PdfPreview from "../components/PdfPreview";
+import { Avatar, ConfirmModal, Empty, ErrorBox, PageLoader, Pagination, StarInput, Stars, StatusBadge, UserLink } from "../components/ui";
+import { displayName, formatDate, formatSize, timeAgo } from "../lib/format";
 
-function BookDetail() {
-  const { user } = useContext(UserContext); // Menggunakan user dari context
-  const [book, setBook] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const { id } = useParams();
-  const navigate = useNavigate();
+function Reviews({ book, onRating }) {
+  const { user, isAdmin } = useAuth();
+  const [data, setData] = useState(null);
+  const [page, setPage] = useState(1);
+  const [form, setForm] = useState({ rating: 0, komentar: "" });
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [del, setDel] = useState(null);
 
-  useEffect(() => {
-    const fetchBookDetails = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await axiosInstance.get(`/materi/get/${id}`);
-        setBook(response.data);
-      } catch (err) {
-        console.error("Gagal mengambil detail buku:", err);
-        if (err.response && err.response.status === 404) {
-          setError("Buku tidak ditemukan.");
-        } else {
-          setError("Terjadi kesalahan saat memuat detail buku.");
-        }
-        setBook(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchBookDetails();
-    } else {
-      setLoading(false);
-      setError("ID buku tidak valid.");
-    }
-  }, [id]);
-
-  const handleDelete = async () => {
-    // Konfirmasi penghapusan dengan SweetAlert2
-    Swal.fire({
-      title: "Apakah Anda yakin?",
-      text: "Anda tidak akan bisa mengembalikan ini!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Ya, hapus!",
-      cancelButtonText: "Batal",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          setLoading(true); // Set loading saat proses penghapusan
-          await axiosInstance.delete(`/materi/delete/${id}`);
-
-          // Tampilkan pesan sukses dengan SweetAlert2
-          Swal.fire("Dihapus!", "Postingan Anda telah dihapus.", "success").then(() => {
-            navigate("/ummah-book"); // Redirect setelah SweetAlert ditutup
-          });
-        } catch (err) {
-          console.error("Gagal menghapus postingan:", err);
-          // Tampilkan pesan error dengan SweetAlert2
-          Swal.fire("Gagal!", "Gagal menghapus postingan. Silakan coba lagi.", "error");
-          setError("Gagal menghapus postingan. Silakan coba lagi.");
-          setLoading(false); // Matikan loading jika gagal
-        }
-      }
+  const load = useCallback(() => {
+    api.get(`/books/${book._id}/reviews?page=${page}`).then((d) => {
+      setData(d);
+      if (d.mine) setForm({ rating: d.mine.rating, komentar: d.mine.komentar });
     });
-  };
+  }, [book._id, page]);
+  useEffect(load, [load]);
 
-  const downloadFile = async (url, fileName) => {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const blobURL = window.URL.createObjectURL(blob);
+  const isUploader = user && book.uploadedBy?._id === user._id && !isAdmin;
+  const canWrite = user && book.status === "disetujui" && !isUploader;
 
-    const link = document.createElement("a");
-    link.href = blobURL;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const formattedDate = book?.createdAt
-    ? new Date(book.createdAt).toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-    : "-";
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50 p-8">
-        <div className="max-w-4xl w-full bg-white rounded-2xl p-8 shadow-lg">
-          <BookCardSkeleton />
-          <BookCardSkeleton />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-20 bg-gray-50 min-h-screen">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">{error}</h2>
-        <Link to="/ummah-book" className="text-teal-600 hover:underline mt-4 inline-block px-4 py-2 border border-teal-600 rounded-md transition-colors hover:bg-teal-50">
-          Kembali ke Daftar Buku
-        </Link>
-      </div>
-    );
-  }
-
-  if (!book) {
-    return (
-      <div className="text-center py-20 bg-gray-50 min-h-screen">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Buku Tidak Ditemukan</h2>
-        <Link to="/ummah-book" className="text-teal-600 hover:underline mt-4 inline-block px-4 py-2 border border-teal-600 rounded-md transition-colors hover:bg-teal-50">
-          Kembali ke Daftar Buku
-        </Link>
-      </div>
-    );
-  }
-
-  const getFileNameFromUrl = (url) => {
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.rating) return setError("Pilih jumlah bintang dulu.");
+    setBusy(true);
+    setError("");
     try {
-      const urlObj = new URL(url);
-      const pathSegments = urlObj.pathname.split("/");
-      return pathSegments[pathSegments.length - 1];
-    } catch (e) {
-      console.error("Invalid URL for file name:", url, e);
-      return "materi.pdf";
+      const r = await api.put(`/books/${book._id}/reviews`, form);
+      onRating(r.ratingAvg, r.ratingCount);
+      setEditing(false);
+      toast.success("Ulasan tersimpan.");
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
     }
   };
 
-  const fileName = book.linkMateri ? getFileNameFromUrl(book.linkMateri) : "materi.pdf";
+  const remove = async () => {
+    setBusy(true);
+    try {
+      await api.del(isAdmin && del.user?._id !== user._id ? `/admin/reviews/${del._id}` : `/reviews/${del._id}`);
+      toast.success("Ulasan dihapus.");
+      setDel(null);
+      if (del._id === data.mine?._id) setForm({ rating: 0, komentar: "" });
+      const b = await api.get(`/books/${book._id}`);
+      onRating(b.book.ratingAvg, b.book.ratingCount);
+      load();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
-  // Menggunakan user._id dari UserContext untuk perbandingan
-  const isOwner = user && book.materiUid === user._id;
-
+  if (!data) return null;
+  const showForm = canWrite && (!data.mine || editing);
   return (
-    <main className="bg-white py-8 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-sm text-gray-500 mb-6">
-          <Link to="/ummah-book" className="hover:underline text-orange-500">
-            Ummah Book
-          </Link>
-          <span className="mx-2">&gt;</span>
-          <span>{book.judulMateri}</span>
+    <section className="mt-12" aria-labelledby="ulasan">
+      <h2 id="ulasan" className="text-xl font-bold">
+        Ulasan pembaca
+      </h2>
+      <div className="mt-5 grid gap-8 md:grid-cols-[220px_1fr]">
+        <div>
+          <p className="font-serif text-5xl font-semibold">{data.count ? data.avg.toFixed(1) : "–"}</p>
+          <Stars value={data.avg} size={18} className="mt-1" />
+          <p className="mt-1 text-sm text-ink-mute">{data.count} ulasan</p>
+          <div className="mt-4 space-y-1.5">
+            {data.distribution.map((d) => (
+              <div key={d.star} className="flex items-center gap-2 text-xs text-ink-mute">
+                <span className="w-3">{d.star}</span>
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-line/60">
+                  <div className="h-full rounded-full bg-lamp" style={{ width: `${data.count ? (d.count / data.count) * 100 : 0}%` }} />
+                </div>
+                <span className="w-6 text-right">{d.count}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="bg-[#E6F6F6] rounded-2xl p-5 md:p-8 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-1 flex justify-center items-start">
-              <img src={book.coverMateri || "https://placehold.co/200x280/cccccc/333333?text=No+Cover"} alt={book.judulMateri} className="w-full max-w-xs h-auto object-cover rounded-lg shadow-lg" />
-            </div>
+        <div>
+          {!user && (
+            <p className="mb-6 rounded-lg bg-white p-4 text-sm text-ink-soft">
+              <Link to={`/masuk?next=/buku/${book._id}`} className="font-semibold text-teal hover:underline">
+                Masuk
+              </Link>{" "}
+              untuk memberi rating dan ulasan.
+            </p>
+          )}
+          {isUploader && <p className="mb-6 text-sm text-ink-mute">Kamu pengunggah buku ini, jadi tidak bisa mengulasnya.</p>}
 
-            <div className="md:col-span-2">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">{book.judulMateri}</h1>
-              {book.penulis && <p className="text-lg text-gray-700 mb-4">Oleh: {book.penulis}</p>}
-              <div className="flex flex-wrap items-center gap-4 mt-4 mb-8">
-                {book.linkMateri && (
-                  <>
-                    <a onClick={() => downloadFile(book.linkMateri, book.judulMateri)} className="cursor-pointer inline-flex items-center bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-orange-600 transition-colors">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      Unduh PDF
-                    </a>
-                    <a
-                      href={book.linkMateri}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center bg-white text-teal-600 border border-teal-600 px-4 py-2 rounded-lg font-semibold hover:bg-teal-50 transition-colors"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      Baca Online
-                    </a>
-                  </>
-                )}
-                {isOwner && (
-                  <button onClick={handleDelete} className="inline-flex items-center bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Hapus Postingan
+          {showForm && (
+            <form onSubmit={submit} className="panel mb-6 space-y-3 p-4">
+              <p className="text-sm font-semibold">{data.mine ? "Ubah ulasanmu" : "Bagaimana menurutmu buku ini?"}</p>
+              <StarInput value={form.rating} onChange={(rating) => setForm((f) => ({ ...f, rating }))} />
+              <textarea className="field min-h-[90px]" maxLength={2000} placeholder="Ceritakan apa yang kamu dapat dari buku ini (opsional)" value={form.komentar} onChange={(e) => setForm((f) => ({ ...f, komentar: e.target.value }))} />
+              <ErrorBox>{error}</ErrorBox>
+              <div className="flex gap-2">
+                <button className="btn-primary" disabled={busy}>
+                  {busy ? "Menyimpan…" : "Kirim ulasan"}
+                </button>
+                {editing && (
+                  <button type="button" className="btn-ghost" onClick={() => setEditing(false)}>
+                    Batal
                   </button>
                 )}
               </div>
+            </form>
+          )}
 
-              <h2 className="text-lg font-bold text-gray-700 border-b pb-2 mb-4">DETAIL BUKU</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
-                <div>
-                  <h3 className="font-semibold text-gray-500">Kategori</h3>
-                  <p className="text-gray-800 mt-1">{book.kategori || "-"}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-500">Penerbit</h3>
-                  <p className="text-gray-800 mt-1">{book.penerbit || "-"}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-500">ISBN</h3>
-                  <p className="text-gray-800 mt-1">{book.judulISBN || "-"}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-500">Edisi</h3>
-                  <p className="text-gray-800 mt-1">{book.edisi || "-"}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-500">Tanggal Unggah</h3>
-                  <p className="text-gray-800 mt-1">{formattedDate}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          {data.items.length === 0 ? (
+            <Empty title="Belum ada ulasan">Ulasan pertama akan membantu pembaca lain memilih buku.</Empty>
+          ) : (
+            <ul className="divide-y divide-line">
+              {data.items.map((r) => {
+                const mine = r._id === data.mine?._id;
+                return (
+                  <li key={r._id} className="flex gap-3 py-4">
+                    <Avatar user={r.user} size={36} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 text-sm">
+                        <UserLink user={r.user} />
+                        <span className="text-xs text-ink-mute">{timeAgo(r.updatedAt)}</span>
+                      </div>
+                      <Stars value={r.rating} size={13} className="mt-0.5" />
+                      {r.komentar && <p className="mt-1.5 whitespace-pre-line text-sm text-ink-soft">{r.komentar}</p>}
+                      {(mine || isAdmin) && (
+                        <div className="mt-2 flex gap-3 text-xs font-semibold">
+                          {mine && (
+                            <button className="text-teal hover:underline" onClick={() => setEditing(true)}>
+                              Ubah
+                            </button>
+                          )}
+                          <button className="text-red-600 hover:underline" onClick={() => setDel(r)}>
+                            Hapus
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <Pagination page={data.page} pages={data.pages} onChange={setPage} />
         </div>
       </div>
-    </main>
+      <ConfirmModal open={Boolean(del)} title="Hapus ulasan?" message="Ulasan dan ratingnya akan dihapus." busy={busy} onConfirm={remove} onClose={() => setDel(null)} />
+    </section>
   );
 }
 
-export default BookDetail;
+function BookDiscussions({ book }) {
+  const [items, setItems] = useState(null);
+  useEffect(() => {
+    api.get(`/discussions?book=${book._id}&limit=5&sort=aktif`).then((r) => setItems(r.items)).catch(() => setItems([]));
+  }, [book._id]);
+  if (!items) return null;
+  return (
+    <section className="mt-12">
+      <div className="flex items-end justify-between gap-4">
+        <h2 className="text-xl font-bold">Diskusi tentang buku ini</h2>
+        <Link to={`/diskusi/baru?book=${book._id}`} className="btn-outline btn-sm">
+          <MessagesSquare size={14} /> Mulai diskusi
+        </Link>
+      </div>
+      {items.length === 0 ? (
+        <p className="mt-4 text-sm text-ink-mute">Belum ada diskusi. Punya pertanyaan atau catatan tentang buku ini? Ajak pembaca lain berdiskusi.</p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {items.map((d) => (
+            <li key={d._id}>
+              <Link to={`/diskusi/${d._id}`} className="panel block p-4 hover:border-teal/40">
+                <p className="font-bold">{d.judul}</p>
+                <p className="mt-1 text-xs text-ink-mute">
+                  {displayName(d.author)} · {timeAgo(d.lastActivityAt)} · {d.balasanCount} balasan
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+export default function BookDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [book, setBook] = useState(null);
+  const [error, setError] = useState("");
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setBook(null);
+    api
+      .get(`/books/${id}`)
+      .then((r) => setBook(r.book))
+      .catch((e) => setError(e.message));
+  }, [id, user?._id]);
+
+  if (error) return <div className="container-page py-16"><Empty title="Buku tidak ditemukan">{error}</Empty></div>;
+  if (!book) return <PageLoader />;
+
+  const toggleSave = async () => {
+    if (!user) return navigate(`/masuk?next=/buku/${id}`);
+    const r = await api.post(`/books/${id}/save`).catch((e) => toast.error(e.message));
+    if (r) {
+      setBook((b) => ({ ...b, saved: r.saved, savedCount: b.savedCount + (r.saved ? 1 : -1) }));
+      toast.success(r.saved ? "Disimpan ke rak." : "Dihapus dari rak.");
+    }
+  };
+  const share = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) await navigator.share({ title: book.judul, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Tautan disalin.");
+      }
+    } catch {
+      /* dibatalkan */
+    }
+  };
+  const remove = async () => {
+    setBusy(true);
+    try {
+      await api.del(`/books/${id}`);
+      toast.success("Buku dihapus.");
+      navigate("/rak?tab=unggahan");
+    } catch (e) {
+      toast.error(e.message);
+      setBusy(false);
+    }
+  };
+
+  const meta = [
+    ["Penerbit", book.penerbit],
+    ["Tahun terbit", book.tahunTerbit],
+    ["Edisi", book.edisi],
+    ["ISBN", book.isbn],
+    ["Bahasa", book.bahasa],
+    ["Halaman", book.halaman || null],
+    ["Ukuran file", book.file?.size ? formatSize(book.file.size) : null],
+    ["Ditambahkan", formatDate(book.createdAt)],
+  ].filter(([, v]) => v);
+
+  return (
+    <div className="container-page py-8">
+      {book.status !== "disetujui" && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
+          <div className="flex items-center gap-2">
+            <StatusBadge status={book.status} />
+            <span className="text-ink-soft">Buku ini hanya terlihat olehmu dan admin sampai disetujui.</span>
+          </div>
+          {book.catatanReview && <p className="mt-2 text-ink">Catatan admin: {book.catatanReview}</p>}
+        </div>
+      )}
+
+      <div className="grid gap-8 md:grid-cols-[240px_1fr] lg:gap-12">
+        <div className="mx-auto w-48 md:w-full">
+          <BookCover book={book} sizes="lg" />
+        </div>
+        <div>
+          <Link to={`/buku?kategori=${encodeURIComponent(book.kategori)}`} className="text-sm font-semibold text-teal hover:underline">
+            {book.kategori}
+          </Link>
+          <h1 className="mt-1 font-serif text-3xl font-semibold leading-tight sm:text-4xl">{book.judul}</h1>
+          <p className="mt-2 text-lg text-ink-soft">{book.penulis}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-mute">
+            {book.ratingCount > 0 ? (
+              <a href="#ulasan" className="flex items-center gap-1.5 hover:text-ink">
+                <Stars value={book.ratingAvg} /> <span className="font-semibold text-ink">{book.ratingAvg.toFixed(1)}</span> ({book.ratingCount} ulasan)
+              </a>
+            ) : (
+              <span>Belum ada ulasan</span>
+            )}
+            <span>{book.dibaca} kali dibaca</span>
+            <span>{book.savedCount} disimpan</span>
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Link to={`/buku/${id}/baca`} className="btn-primary px-6">
+              <BookOpen size={18} /> Baca buku
+            </Link>
+            <button className="btn-outline" onClick={toggleSave} aria-pressed={book.saved}>
+              {book.saved ? <BookmarkCheck size={18} className="text-teal" /> : <Bookmark size={18} />}
+              {book.saved ? "Tersimpan" : "Simpan"}
+            </button>
+            <Link to={`/luma?book=${id}`} className="btn-outline">
+              <Sparkles size={18} className="text-lantern" /> Tanya LUMA
+            </Link>
+            <button className="btn-ghost" onClick={share} aria-label="Bagikan">
+              <Share2 size={18} />
+            </button>
+          </div>
+
+          {book.deskripsi && <p className="mt-6 max-w-2xl whitespace-pre-line leading-relaxed text-ink-soft">{book.deskripsi}</p>}
+
+          <dl className="mt-6 grid max-w-2xl grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+            {meta.map(([k, v]) => (
+              <div key={k}>
+                <dt className="text-ink-mute">{k}</dt>
+                <dd className="font-semibold">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-5 flex items-center gap-2 text-sm text-ink-mute">
+            Diunggah oleh <Avatar user={book.uploadedBy} size={22} /> <UserLink user={book.uploadedBy} className="text-ink" />
+          </p>
+
+          {book.canEdit && (
+            <div className="mt-4 flex gap-2">
+              <Link to={`/buku/${id}/ubah`} className="btn-outline btn-sm">
+                <Pencil size={14} /> Ubah
+              </Link>
+              <button className="btn-outline btn-sm text-red-600" onClick={() => setConfirmDel(true)}>
+                <Trash2 size={14} /> Hapus
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <section className="mt-12">
+        <div className="mb-4 flex items-end justify-between">
+          <h2 className="text-xl font-bold">Cuplikan</h2>
+          <Link to={`/buku/${id}/baca`} className="text-sm font-semibold text-teal hover:underline">
+            Buka semua halaman
+          </Link>
+        </div>
+        <PdfPreview bookId={id} onOpen={(p) => navigate(`/buku/${id}/baca?hal=${p}`)} />
+      </section>
+
+      <Reviews book={book} onRating={(ratingAvg, ratingCount) => setBook((b) => ({ ...b, ratingAvg, ratingCount }))} />
+      {book.status === "disetujui" && <BookDiscussions book={book} />}
+
+      <ConfirmModal open={confirmDel} title="Hapus buku?" message={`“${book.judul}” beserta ulasannya akan dihapus permanen.`} busy={busy} onConfirm={remove} onClose={() => setConfirmDel(false)} />
+    </div>
+  );
+}

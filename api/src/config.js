@@ -1,5 +1,5 @@
 // Semua pengaturan dibaca dari .env (lihat .env.example).
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
 
 const list = (v, fallback) =>
   (v || fallback)

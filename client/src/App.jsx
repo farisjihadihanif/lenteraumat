@@ -1,146 +1,62 @@
-import { React, useEffect, useState } from "react";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
-import { UserContextProvider } from "./context/UserContext";
-
-import Beranda from "./pages/Beranda";
-import Daftar from "./pages/Daftar";
-import Masuk from "./pages/Masuk";
-import LihatDonasi from "./pages/LihatDonasi";
-import UploadDonasi from "./pages/UploadDonasi";
-import Artikel from "./pages/Artikel";
-import DetailArtikel from "./components/Artikel/DetailArtikel";
-import ListDonasiLengkap from "./components/LihatDonasi/ListDonasiLengkap";
-import DetailBarang from "./components/LihatDonasi/DetailBarang";
-import DonasiSaya from "./pages/DonasiSaya";
-import DetailDonasiSaya from "./components/DonasiSaya/DetailDonasiSaya";
-import PermohonanSaya from "./pages/PermohonanSaya";
-import ArtikelSaya from "./pages/ArtikelSaya";
-import EdiProfil from "./pages/EditProfil";
-import Navbar from "./components/Navbar/Navbar";
-import Navbar2 from "./components/Navbar/Navbar2";
-import Footer from "./components/Footer/Footer";
-import ProtectedRoute from "./components/Protected/ProtectedRoute";
-import ViewProfil from "./pages/ViewProfil";
-import NotFound from "./pages/NotFound";
-import BukuSaya from "./pages/BukuSaya";
-import FloatingMaskot from "./components/FloatingMaskot/FloatingMaskot";
-import UmmahBook from "./pages/UmmahBook";
-import UmmahPartner from "./pages/UmmahPatner";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { AuthProvider } from "./context/Auth";
+import Layout from "./components/Layout";
+import RequireAuth from "./components/RequireAuth";
+import { PageLoader } from "./components/ui";
+import Home from "./pages/Home";
+import Catalog from "./pages/Catalog";
 import BookDetail from "./pages/BookDetail";
-import AdminDashboard from "./pages/AdminDashboard";
+import { Login, Register } from "./pages/Auth";
+import { NotFound, Terms } from "./pages/Static";
 
-function ScrollToTop() {
-  const { pathname } = useLocation();
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-  return null;
-}
+// Halaman berat dimuat terpisah supaya beranda cepat terbuka.
+const Reader = lazy(() => import("./pages/Reader"));
+const Luma = lazy(() => import("./pages/Luma"));
+const Discussions = lazy(() => import("./pages/Discussions"));
+const DiscussionDetail = lazy(() => import("./pages/DiscussionDetail"));
+const DiscussionForm = lazy(() => import("./pages/DiscussionForm"));
+const Shelf = lazy(() => import("./pages/Shelf"));
+const UploadBook = lazy(() => import("./pages/UploadBook"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Admin = lazy(() => import("./pages/Admin"));
 
-function NavbarWrapper() {
-  const location = useLocation();
-  const [scrolling, setScrolling] = useState(false);
-  useEffect(() => {
-    function handleScroll() {
-      if (window.scrollY > 1) {
-        setScrolling(true);
-      } else {
-        setScrolling(false);
-      }
-    }
-    if (location.pathname === "/" || location.pathname === "/lihat-donasi") {
-      window.addEventListener("scroll", handleScroll);
-    } else {
-      setScrolling(false);
-    }
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, [location.pathname]);
+const auth = (el, admin) => <RequireAuth admin={admin}>{el}</RequireAuth>;
 
-  if (location.pathname === "/" || location.pathname === "/lihat-donasi") {
-    return scrolling ? <Navbar /> : <Navbar2 />;
-  }
-  return <Navbar />;
-}
-
-function App() {
-  const location = useLocation();
-  const hideMaskotOnPaths = ["/daftar", "/masuk", "/ummah-partner"];
-  const shouldHideMaskot = hideMaskotOnPaths.includes(location.pathname);
+export default function App() {
   return (
-    <>
-      <NavbarWrapper />
-      <ScrollToTop />
-      {!shouldHideMaskot && <FloatingMaskot />}
-      <Routes>
-        <Route path="/" element={<Beranda />} />
-        <Route path="/ummah-book" element={<UmmahBook />} />
-        <Route path="/book/:id" element={<BookDetail />} />
-        <Route path="/ummah-partner" element={<UmmahPartner />} />
-        <Route path="/daftar" element={<Daftar />} />
-        <Route path="/masuk" element={<Masuk />} />
-        <Route path="/artikel" element={<Artikel />} />
-        <Route path="/upload-donasi" element={<UploadDonasi />} />
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route
-          path="/permohonan-saya"
-          element={
-            <ProtectedRoute allowedRoles={["komunitas"]}>
-              <PermohonanSaya />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/artikel-saya"
-          element={
-            <ProtectedRoute allowedRoles={["komunitas"]}>
-              <ArtikelSaya />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/donasi-saya" element={<DonasiSaya />} />
-        <Route
-          path="/donasi-saya"
-          element={
-            <ProtectedRoute allowedRoles={["donatur"]}>
-              <DonasiSaya />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/donasi-saya/detail-donasi/:id"
-          element={
-            <ProtectedRoute allowedRoles={["donatur"]}>
-              <DetailDonasiSaya />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/lihat-donasi" element={<LihatDonasi />} />
-        <Route path="/lihat-semua-donasi" element={<ListDonasiLengkap />} />
-        <Route path="/lihat-donasi/donasi-kategori/detail-barang/:id" element={<DetailBarang />} />
-        <Route path="/lihat-donasi/donasi-semua/detail-barang/:id" element={<DetailBarang />} />
-        <Route path="/lihat-donasi/donasi-tersedia/detail-barang/:id" element={<DetailBarang />} />
-        <Route path="/lihat-donasi/donasi-disalurkan/detail-barang/:id" element={<DetailBarang />} />
-        <Route path="/buku-saya" element={<BukuSaya />} />
-        <Route path="/artikel/detail-artikel/:id" element={<DetailArtikel />} />
-        <Route path="/view-profil/:id" element={<ViewProfil />} />
-        <Route path="/edit-profil" element={<EdiProfil />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Footer />
-    </>
-  );
-}
-
-function AppWrapper() {
-  return (
-    <UserContextProvider>
+    <AuthProvider>
       <BrowserRouter>
-        <App />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/buku/:id/baca" element={<Reader />} />
+            <Route element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="buku" element={<Catalog />} />
+              <Route path="buku/:id" element={<BookDetail />} />
+              <Route path="buku/:id/ubah" element={auth(<UploadBook />)} />
+              <Route path="unggah" element={auth(<UploadBook />)} />
+              <Route path="luma" element={auth(<Luma />)} />
+              <Route path="diskusi" element={<Discussions />} />
+              <Route path="diskusi/baru" element={auth(<DiscussionForm />)} />
+              <Route path="diskusi/:id" element={<DiscussionDetail />} />
+              <Route path="diskusi/:id/ubah" element={auth(<DiscussionForm />)} />
+              <Route path="rak" element={auth(<Shelf />)} />
+              <Route path="profil/:username" element={<Profile />} />
+              <Route path="pengaturan" element={auth(<Settings />)} />
+              <Route path="admin" element={auth(<Admin />, true)} />
+              <Route path="masuk" element={<Login />} />
+              <Route path="daftar" element={<Register />} />
+              <Route path="ketentuan" element={<Terms />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Routes>
+        </Suspense>
+        <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar theme="colored" />
       </BrowserRouter>
-    </UserContextProvider>
+    </AuthProvider>
   );
 }
-
-export default AppWrapper;

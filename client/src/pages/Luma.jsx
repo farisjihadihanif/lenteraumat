@@ -1,0 +1,480 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { toast } from "react-toastify";
+import { BookOpenText, Check, Copy, FileQuestion, History, MessageCircle, Plus, ScrollText, Send, Trash2, X, Search, RotateCcw } from "lucide-react";
+import { api } from "../lib/api";
+import { useAuth } from "../context/Auth";
+import Markdown from "../components/Markdown";
+import BookCover from "../components/BookCover";
+import { ConfirmModal, Modal, Spinner } from "../components/ui";
+import { timeAgo } from "../lib/format";
+import lumaImg from "../assets/Maskot/Luma1.png";
+
+const MODES = [
+  { id: "chat", label: "Chat", icon: MessageCircle },
+  { id: "ask", label: "Tanya buku", icon: BookOpenText },
+  { id: "summary", label: "Ringkasan", icon: ScrollText },
+  { id: "quiz", label: "Kuis", icon: FileQuestion },
+];
+
+const SUGGEST = {
+  chat: ["Apa beda sabar dan pasrah?", "Tips membaca buku lebih fokus", "Jelaskan arti tawakal dengan contoh"],
+  ask: ["Apa gagasan utama buku ini?", "Jelaskan isi bab pertama", "Siapa saja tokoh yang dibahas?"],
+};
+
+function BookPicker({ open, onClose, onPick }) {
+  const [q, setQ] = useState("");
+  const [items, setItems] = useState(null);
+  useEffect(() => {
+    if (!open) return;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => {
+      api
+        .get(`/books?limit=18&q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
+        .then((r) => setItems(r.items))
+        .catch(() => {});
+    }, 250);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [q, open]);
+  return (
+    <Modal open={open} onClose={onClose} title="Pilih buku untuk LUMA" width="max-w-2xl">
+      <label className="relative block">
+        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute" />
+        <input autoFocus className="field pl-9" placeholder="Cari judul atau penulis" value={q} onChange={(e) => setQ(e.target.value)} />
+      </label>
+      <div className="mt-4 grid max-h-[55vh] grid-cols-3 gap-4 overflow-y-auto p-1 sm:grid-cols-4">
+        {!items && <Spinner />}
+        {items?.length === 0 && <p className="col-span-full text-sm text-ink-mute">Buku tidak ditemukan.</p>}
+        {items?.map((b) => (
+          <button key={b._id} onClick={() => onPick(b)} className="text-left">
+            <BookCover book={b} />
+            <p className="mt-2 line-clamp-2 font-serif text-xs font-semibold">{b.judul}</p>
+          </button>
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
+function QuizCard({ quiz }) {
+  const [answers, setAnswers] = useState({});
+  const [checked, setChecked] = useState(false);
+  const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9À-ɏ]+/g, " ").trim();
+  const correct = (q, i) => (quiz.type === "pilihan" ? answers[i] === q.answer : norm(answers[i]) && norm(answers[i]) === norm(q.answer));
+  const score = quiz.questions.filter((q, i) => correct(q, i)).length;
+  return (
+    <div className="space-y-5">
+      <p className="text-sm text-ink-soft">
+        Kuis {quiz.type === "pilihan" ? "pilihan ganda" : "isian"} · tingkat {quiz.level} · <span className="font-semibold">{quiz.book?.judul}</span>
+      </p>
+      {quiz.questions.map((q, i) => (
+        <fieldset key={i} className="rounded-lg border border-line bg-mist/50 p-4">
+          <legend className="sr-only">Soal {i + 1}</legend>
+          <p className="font-semibold">
+            {i + 1}. {q.question}
+          </p>
+          {quiz.type === "pilihan" ? (
+            <div className="mt-3 grid gap-2">
+              {q.options.map((opt) => {
+                const picked = answers[i] === opt;
+                const state = checked ? (opt === q.answer ? "border-emerald-500 bg-emerald-50" : picked ? "border-red-400 bg-red-50" : "border-line bg-white") : picked ? "border-teal bg-teal-soft" : "border-line bg-white hover:border-teal/50";
+                return (
+                  <label key={opt} className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2 text-sm ${state}`}>
+                    <input type="radio" name={`q${i}`} className="mt-1 accent-teal" checked={picked} disabled={checked} onChange={() => setAnswers((a) => ({ ...a, [i]: opt }))} />
+                    {opt}
+                  </label>
+                );
+              })}
+            </div>
+          ) : (
+            <input className={`field mt-3 ${checked ? (correct(q, i) ? "border-emerald-500" : "border-red-400") : ""}`} disabled={checked} placeholder="Jawabanmu" value={answers[i] || ""} onChange={(e) => setAnswers((a) => ({ ...a, [i]: e.target.value }))} />
+          )}
+          {checked && (
+            <div className="mt-3 text-sm">
+              <p className={correct(q, i) ? "font-semibold text-emerald-700" : "font-semibold text-red-700"}>
+                {correct(q, i) ? "Benar." : `Jawaban: ${q.answer}`}
+              </p>
+              {q.explanation && <p className="mt-1 text-ink-soft">{q.explanation}</p>}
+            </div>
+          )}
+        </fieldset>
+      ))}
+      <div className="flex flex-wrap items-center gap-3">
+        {!checked ? (
+          <button className="btn-teal" onClick={() => setChecked(true)} disabled={Object.keys(answers).length === 0}>
+            <Check size={16} /> Periksa jawaban
+          </button>
+        ) : (
+          <>
+            <p className="font-serif text-xl font-semibold">
+              Skor {score}/{quiz.questions.length}
+            </p>
+            <button
+              className="btn-outline btn-sm"
+              onClick={() => {
+                setAnswers({});
+                setChecked(false);
+              }}
+            >
+              <RotateCcw size={14} /> Ulangi
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Message({ m }) {
+  const [copied, setCopied] = useState(false);
+  if (m.role === "user") {
+    return (
+      <div className="flex justify-end">
+        <p className="max-w-[85%] whitespace-pre-line rounded-2xl rounded-br-sm bg-teal px-4 py-2.5 text-[15px] text-white">{m.content}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="flex gap-3">
+      <img src={lumaImg} alt="" className="mt-1 h-9 w-9 shrink-0 rounded-full bg-lamp/30 object-contain" />
+      <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm border border-line bg-white px-4 py-3">
+        {m.kind === "quiz" && m.data ? <QuizCard quiz={m.data} /> : <Markdown>{m.content}</Markdown>}
+        {m.kind !== "quiz" && (
+          <button
+            className="mt-2 inline-flex items-center gap-1 text-xs text-ink-mute hover:text-ink"
+            onClick={() => {
+              navigator.clipboard.writeText(m.content);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            }}
+          >
+            {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Disalin" : "Salin"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function Luma() {
+  const { user } = useAuth();
+  const [params, setParams] = useSearchParams();
+  const [status, setStatus] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [sessionId, setSessionId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [mode, setMode] = useState(params.get("book") ? "ask" : "chat");
+  const [book, setBook] = useState(null);
+  const [picker, setPicker] = useState(false);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [opts, setOpts] = useState({ length: "sedang", type: "pilihan", count: 5, level: "sedang" });
+  const [showHistory, setShowHistory] = useState(false);
+  const [del, setDel] = useState(null);
+  const endRef = useRef(null);
+
+  const loadSessions = useCallback(() => api.get("/ai/sessions").then((r) => setSessions(r.items)).catch(() => {}), []);
+
+  useEffect(() => {
+    api.get("/ai/status").then(setStatus).catch(() => setStatus({ enabled: false }));
+    loadSessions();
+  }, [loadSessions]);
+
+  useEffect(() => {
+    const id = params.get("book");
+    if (id && id !== book?._id) api.get(`/books/${id}`).then((r) => setBook(r.book)).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, busy]);
+
+  const newSession = () => {
+    setSessionId(null);
+    setMessages([]);
+    setShowHistory(false);
+  };
+
+  const openSession = async (id) => {
+    setShowHistory(false);
+    try {
+      const { session } = await api.get(`/ai/sessions/${id}`);
+      setSessionId(session._id);
+      setMessages(session.messages);
+      setBook(session.book || null);
+      const last = session.messages.at(-1)?.kind;
+      setMode(session.book ? (last === "chat" ? "ask" : last) || "ask" : "chat");
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const pickBook = (b) => {
+    setBook(b);
+    setPicker(false);
+    setParams(b ? { book: b._id } : {}, { replace: true });
+    newSession();
+  };
+
+  const changeMode = (m) => {
+    if (m === mode) return;
+    setMode(m);
+    if (m === "chat" || (sessionId && messages.length)) newSession();
+  };
+
+  const run = async (kind, payload) => {
+    setBusy(true);
+    const pending = payload.preview ? [{ role: "user", content: payload.preview, kind }] : [];
+    setMessages((m) => [...m, ...pending]);
+    try {
+      if (kind === "summary") {
+        const r = await api.post("/ai/summary", { bookId: book._id, length: opts.length, sessionId });
+        setSessionId(r.sessionId);
+        setMessages((m) => [...m, { role: "model", content: r.reply, kind }]);
+      } else if (kind === "quiz") {
+        const r = await api.post("/ai/quiz", { bookId: book._id, type: opts.type, count: opts.count, level: opts.level, sessionId });
+        setSessionId(r.sessionId);
+        setMessages((m) => [...m, { role: "model", content: "Kuis", kind, data: r.quiz }]);
+      } else {
+        const r = await api.post("/ai/chat", { message: payload.message, sessionId, bookId: mode === "ask" && !sessionId ? book?._id : undefined });
+        setSessionId(r.sessionId);
+        setMessages((m) => [...m, { role: "model", content: r.reply, kind }]);
+      }
+      loadSessions();
+    } catch (e) {
+      setMessages((m) => m.slice(0, m.length - pending.length));
+      if (payload.message) setInput(payload.message);
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const send = (text) => {
+    const message = (text ?? input).trim();
+    if (!message || busy) return;
+    if (mode === "ask" && !book) return setPicker(true);
+    setInput("");
+    run(mode === "ask" ? "ask" : "chat", { message, preview: message });
+  };
+
+  const needsBook = mode !== "chat";
+  const disabled = status && !status.enabled;
+
+  return (
+    <div className="container-page grid gap-6 py-6 lg:grid-cols-[260px_1fr]">
+      {/* Riwayat */}
+      <aside className={`${showHistory ? "fixed inset-0 z-40 bg-ink/40 p-4" : "hidden"} lg:static lg:block lg:bg-transparent lg:p-0`} onClick={(e) => e.target === e.currentTarget && setShowHistory(false)}>
+        <div className="flex h-full max-h-[calc(100vh-7rem)] flex-col rounded-xl border border-line bg-white p-3 lg:sticky lg:top-20">
+          <div className="flex items-center justify-between px-1 pb-2">
+            <p className="font-bold">Riwayat</p>
+            <button className="rounded p-1 hover:bg-mist lg:hidden" onClick={() => setShowHistory(false)} aria-label="Tutup riwayat">
+              <X size={18} />
+            </button>
+          </div>
+          <button onClick={newSession} className="btn-outline btn-sm mb-2 w-full">
+            <Plus size={14} /> Percakapan baru
+          </button>
+          <ul className="-mx-1 flex-1 overflow-y-auto">
+            {sessions.length === 0 && <li className="px-2 py-4 text-sm text-ink-mute">Belum ada percakapan.</li>}
+            {sessions.map((s) => (
+              <li key={s._id} className={`group flex items-center rounded-lg ${s._id === sessionId ? "bg-teal-soft" : "hover:bg-mist"}`}>
+                <button onClick={() => openSession(s._id)} className="min-w-0 flex-1 px-2 py-2 text-left">
+                  <p className="truncate text-sm font-semibold">{s.title}</p>
+                  <p className="truncate text-xs text-ink-mute">
+                    {s.book ? `${s.book.judul} · ` : ""}
+                    {timeAgo(s.updatedAt)}
+                  </p>
+                </button>
+                <button onClick={() => setDel(s)} className="mr-1 rounded p-1.5 text-ink-mute opacity-0 hover:text-red-600 focus:opacity-100 group-hover:opacity-100" aria-label={`Hapus ${s.title}`}>
+                  <Trash2 size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+
+      <section className="flex min-h-[calc(100vh-8rem)] flex-col rounded-xl border border-line bg-white">
+        <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
+          <button className="btn-ghost btn-sm lg:hidden" onClick={() => setShowHistory(true)}>
+            <History size={16} /> Riwayat
+          </button>
+          <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Mode LUMA">
+            {MODES.map(({ id, label, icon: Icon }) => (
+              <button key={id} role="tab" aria-selected={mode === id} onClick={() => changeMode(id)} className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold ${mode === id ? "bg-ink text-white" : "text-ink-soft hover:bg-mist"}`}>
+                <Icon size={16} /> {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {needsBook && (
+          <div className="flex items-center gap-3 border-b border-line bg-mist/60 px-4 py-3">
+            {book ? (
+              <>
+                <div className="w-9 shrink-0">
+                  <BookCover book={book} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-serif text-sm font-semibold">{book.judul}</p>
+                  <p className="truncate text-xs text-ink-mute">{book.penulis}</p>
+                </div>
+                <button className="btn-outline btn-sm" onClick={() => setPicker(true)}>
+                  Ganti buku
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="flex-1 text-sm text-ink-soft">Pilih buku dari perpustakaan dulu.</p>
+                <button className="btn-teal btn-sm" onClick={() => setPicker(true)}>
+                  Pilih buku
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
+          {disabled && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">LUMA belum aktif di server ini. Admin perlu mengisi GEMINI_API_KEY.</p>
+          )}
+          {messages.length === 0 && (
+            <div className="mx-auto max-w-lg py-8 text-center">
+              <img src={lumaImg} alt="" className="mx-auto h-28 w-28" />
+              <h1 className="mt-3 font-serif text-2xl font-semibold">Halo{user?.namaLengkap ? `, ${user.namaLengkap.split(" ")[0]}` : ""}! Aku LUMA.</h1>
+              <p className="mt-2 text-sm text-ink-soft">
+                {mode === "chat" && "Tanyakan apa saja. Kalau mau membahas buku tertentu, pilih mode Tanya buku."}
+                {mode === "ask" && "Aku akan membaca buku pilihanmu, lalu menjawab pertanyaan tentang isinya."}
+                {mode === "summary" && "Pilih panjang ringkasan, lalu aku rangkum isi bukunya."}
+                {mode === "quiz" && "Atur jenis dan jumlah soal, lalu uji pemahamanmu."}
+              </p>
+              {SUGGEST[mode] && (mode === "chat" || book) && (
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                  {SUGGEST[mode].map((s) => (
+                    <button key={s} onClick={() => send(s)} disabled={busy || disabled} className="rounded-full border border-line px-3 py-1.5 text-sm hover:border-teal hover:text-teal">
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {messages.map((m, i) => (
+            <Message key={m._id || i} m={m} />
+          ))}
+          {busy && (
+            <div className="flex items-center gap-3 text-sm text-ink-mute">
+              <img src={lumaImg} alt="" className="h-9 w-9 rounded-full bg-lamp/30" />
+              <span className="flex gap-1" aria-label="LUMA sedang menulis">
+                {[0, 1, 2].map((d) => (
+                  <span key={d} className="h-2 w-2 animate-bounce rounded-full bg-teal" style={{ animationDelay: `${d * 150}ms` }} />
+                ))}
+              </span>
+              {mode !== "chat" && !sessionId && "Membaca buku…"}
+            </div>
+          )}
+          <div ref={endRef} />
+        </div>
+
+        <div className="border-t border-line p-3 sm:p-4">
+          {mode === "summary" ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-sm font-semibold" htmlFor="len">
+                Panjang
+              </label>
+              <select id="len" className="field w-auto" value={opts.length} onChange={(e) => setOpts((o) => ({ ...o, length: e.target.value }))}>
+                <option value="singkat">Singkat (poin penting)</option>
+                <option value="sedang">Sedang</option>
+                <option value="lengkap">Lengkap per bab</option>
+              </select>
+              <button className="btn-primary ml-auto" disabled={!book || busy || disabled} onClick={() => run("summary", { preview: `Ringkas buku “${book.judul}”` })}>
+                <ScrollText size={16} /> Buat ringkasan
+              </button>
+            </div>
+          ) : mode === "quiz" ? (
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="label text-xs">Jenis</label>
+                <select className="field w-auto" value={opts.type} onChange={(e) => setOpts((o) => ({ ...o, type: e.target.value }))}>
+                  <option value="pilihan">Pilihan ganda</option>
+                  <option value="isian">Isian singkat</option>
+                </select>
+              </div>
+              <div>
+                <label className="label text-xs">Jumlah</label>
+                <select className="field w-auto" value={opts.count} onChange={(e) => setOpts((o) => ({ ...o, count: Number(e.target.value) }))}>
+                  {[3, 5, 10, 15].map((n) => (
+                    <option key={n} value={n}>
+                      {n} soal
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label text-xs">Tingkat</label>
+                <select className="field w-auto" value={opts.level} onChange={(e) => setOpts((o) => ({ ...o, level: e.target.value }))}>
+                  <option value="mudah">Mudah</option>
+                  <option value="sedang">Sedang</option>
+                  <option value="sulit">Sulit</option>
+                </select>
+              </div>
+              <button className="btn-primary ml-auto" disabled={!book || busy || disabled} onClick={() => run("quiz", { preview: `Buat ${opts.count} soal ${opts.type === "pilihan" ? "pilihan ganda" : "isian"} (${opts.level}) dari “${book.judul}”` })}>
+                <FileQuestion size={16} /> Buat kuis
+              </button>
+            </div>
+          ) : (
+            <form
+              className="flex items-end gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                send();
+              }}
+            >
+              <textarea
+                rows={1}
+                className="field max-h-40 min-h-[44px] resize-none"
+                value={input}
+                maxLength={4000}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    send();
+                  }
+                }}
+                placeholder={mode === "ask" ? (book ? `Tanya tentang “${book.judul}”` : "Pilih buku dulu") : "Tulis pesan untuk LUMA"}
+                aria-label="Pesan"
+                disabled={disabled}
+              />
+              <button className="btn-primary h-11 w-11 shrink-0 p-0" disabled={!input.trim() || busy || disabled} aria-label="Kirim">
+                <Send size={18} />
+              </button>
+            </form>
+          )}
+          <p className="mt-2 text-center text-[11px] text-ink-mute">
+            LUMA bisa keliru. Periksa kembali jawaban penting ke buku sumbernya atau ke guru. {book && <Link to={`/buku/${book._id}/baca`} className="underline">Buka bukunya</Link>}
+          </p>
+        </div>
+      </section>
+
+      <BookPicker open={picker} onClose={() => setPicker(false)} onPick={pickBook} />
+      <ConfirmModal
+        open={Boolean(del)}
+        title="Hapus percakapan?"
+        message={`“${del?.title}” akan dihapus dari riwayat.`}
+        onClose={() => setDel(null)}
+        onConfirm={async () => {
+          await api.del(`/ai/sessions/${del._id}`).catch((e) => toast.error(e.message));
+          if (del._id === sessionId) newSession();
+          setDel(null);
+          loadSessions();
+        }}
+      />
+    </div>
+  );
+}

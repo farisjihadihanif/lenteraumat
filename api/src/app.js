@@ -11,7 +11,26 @@ function createApp() {
   const app = express();
   app.set("trust proxy", 1);
   app.disable("x-powered-by");
-  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+      contentSecurityPolicy: {
+        directives: {
+          "default-src": ["'self'"],
+          "script-src": ["'self'"],
+          "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          "font-src": ["'self'", "data:", "https://fonts.gstatic.com"],
+          // sampul & foto bisa dari Cloudinary; blob: untuk pratinjau sampul sebelum unggah
+          "img-src": ["'self'", "data:", "blob:", "https:"],
+          // pdf.js memakai web worker & mengambil PDF dari Cloudinary bila dipakai
+          "worker-src": ["'self'", "blob:"],
+          "connect-src": ["'self'", "https:"],
+          "object-src": ["'none'"],
+          "frame-ancestors": ["'self'"],
+        },
+      },
+    }),
+  );
   app.use(
     cors({
       origin(origin, cb) {

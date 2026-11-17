@@ -1,40 +1,29 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
       colors: {
-        primary: {
-          700: "#143752",
-          DEFAULT: "#F79319",
-          dark: "#07A5A8",
-          light: "#2c7bb7",
-        },
-        grey: {
-          500: "#ffffff",
-        },
+        // Warna LenteraUmat
+        ink: { DEFAULT: "#143752", soft: "#3E5A72", mute: "#6B8094" },
+        lantern: { DEFAULT: "#F79319", dark: "#D97A06", soft: "#FFF1DE" },
+        teal: { DEFAULT: "#316B6C", bright: "#07A5A8", soft: "#E3F1F0", deep: "#1F4D4E" },
+        lamp: "#FFC93C",
+        mist: "#F3F6F6",
+        line: "#DCE4E6",
       },
-      screens: {
-        940: "940px",
+      fontFamily: {
+        sans: ['"Manrope"', "system-ui", "sans-serif"],
+        serif: ['"Literata"', "Georgia", "serif"],
       },
-      fontSize: {
-        "heading-xl": "64px",
-        "heading-lg": "48px",
-        "heading-md": "40px",
-        "heading-sm": "32px",
-        "heading-xs": "24px",
-        "body-xl": "20px",
-        "body-lg": "18px",
-        "body-md": "16px",
-        "body-sm": "14px",
-        "body-xs": "12px",
+      boxShadow: {
+        book: "0 1px 2px rgba(20,55,82,.18), 0 8px 18px -8px rgba(20,55,82,.45)",
+        lift: "0 12px 32px -12px rgba(20,55,82,.35)",
       },
-      borderRadius: {
-        "radius-xs": "4px",
-        "radius-sm": "8px",
-        DEFAULT: "12px",
-        "radius-lg": "16px",
+      keyframes: {
+        glow: { "0%,100%": { opacity: ".55" }, "50%": { opacity: "1" } },
       },
+      animation: { glow: "glow 3s ease-in-out infinite" },
     },
   },
   plugins: [],

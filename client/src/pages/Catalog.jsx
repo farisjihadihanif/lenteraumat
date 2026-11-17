@@ -1,0 +1,109 @@
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Search, X } from "lucide-react";
+import { api } from "../lib/api";
+import { CATEGORIES } from "../lib/format";
+import BookGrid from "../components/BookGrid";
+import { Empty, ErrorBox, Pagination, Spinner } from "../components/ui";
+
+const SORTS = [
+  ["terbaru", "Terbaru"],
+  ["populer", "Paling banyak dibaca"],
+  ["rating", "Rating tertinggi"],
+  ["judul", "Judul A–Z"],
+];
+
+export default function Catalog() {
+  const [params, setParams] = useSearchParams();
+  const q = params.get("q") || "";
+  const kategori = params.get("kategori") || "";
+  const sort = params.get("sort") || "terbaru";
+  const page = Number(params.get("page")) || 1;
+  const [input, setInput] = useState(q);
+  const [res, setRes] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setInput(q);
+  }, [q]);
+  useEffect(() => {
+    const ctrl = new AbortController();
+    setRes(null);
+    setError("");
+    const qs = new URLSearchParams({ q, kategori, sort, page, limit: 24 });
+    api
+      .get(`/books?${qs}`, { signal: ctrl.signal })
+      .then(setRes)
+      .catch((e) => e.name !== "AbortError" && setError(e.message));
+    return () => ctrl.abort();
+  }, [q, kategori, sort, page]);
+
+  const update = (patch) => {
+    const next = new URLSearchParams(params);
+    for (const [k, v] of Object.entries(patch)) v ? next.set(k, v) : next.delete(k);
+    if (!("page" in patch)) next.delete("page");
+    setParams(next);
+  };
+
+  return (
+    <div className="container-page py-8">
+      <h1 className="font-serif text-3xl font-semibold">Katalog buku</h1>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+        <form
+          role="search"
+          className="relative flex-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            update({ q: input.trim() });
+          }}
+        >
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute" />
+          <input className="field pl-9" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Cari judul, penulis, penerbit, atau ISBN" aria-label="Cari buku" />
+        </form>
+        <select className="field sm:w-56" value={sort} onChange={(e) => update({ sort: e.target.value === "terbaru" ? "" : e.target.value })} aria-label="Urutkan">
+          {SORTS.map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+        {["", ...CATEGORIES].map((c) => (
+          <button
+            key={c || "semua"}
+            onClick={() => update({ kategori: c })}
+            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold ${kategori === c ? "border-teal bg-teal text-white" : "border-line bg-white text-ink-soft hover:border-teal/50"}`}
+          >
+            {c || "Semua"}
+          </button>
+        ))}
+      </div>
+
+      {q && (
+        <p className="mt-5 flex items-center gap-2 text-sm text-ink-soft">
+          Hasil pencarian “{q}”
+          <button onClick={() => update({ q: "" })} className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-ink-mute hover:text-ink">
+            <X size={12} /> hapus
+          </button>
+        </p>
+      )}
+
+      <div className="mt-8">
+        <ErrorBox>{error}</ErrorBox>
+        {!res && !error && <Spinner />}
+        {res &&
+          (res.items.length ? (
+            <>
+              <p className="mb-6 text-sm text-ink-mute">{res.total} buku</p>
+              <BookGrid books={res.items} />
+              <Pagination page={res.page} pages={res.pages} onChange={(p) => update({ page: String(p) })} />
+            </>
+          ) : (
+            <Empty title="Buku tidak ditemukan">Coba kata kunci lain atau pilih kategori yang berbeda.</Empty>
+          ))}
+      </div>
+    </div>
+  );
+}
