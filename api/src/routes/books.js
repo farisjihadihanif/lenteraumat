@@ -1,7 +1,6 @@
 const express = require("express");
 const fs = require("fs");
 const Book = require("../models/Book");
-const BookText = require("../models/BookText");
 const Review = require("../models/Review");
 const ReadingProgress = require("../models/ReadingProgress");
 const Discussion = require("../models/Discussion");
@@ -9,12 +8,12 @@ const { requireAuth, isAdmin, isOwner } = require("../middleware/auth");
 const { upload, checkImageSize, isRealPdf } = require("../middleware/upload");
 const { HttpError, isId } = require("../middleware/errors");
 const storage = require("../services/storage");
-const { extractText, countPages } = require("../services/pdfText");
+const categories = require("../services/categories");
+const { storePdf: storePdfBuffer, indexText: indexTextFor } = require("../services/bookFiles");
 const { str, page, escapeRegex, USER_PUBLIC } = require("../util");
 const { recomputeRating, deleteBook } = require("./cleanup");
 
 const router = express.Router();
-const CATEGORIES = Book.CATEGORIES;
 
 const LIST_FIELDS = "judul penulis penerbit tahunTerbit kategori cover halaman ratingAvg ratingCount dibaca createdAt status uploadedBy";
 
@@ -30,7 +29,9 @@ async function findVisible(req) {
   return book;
 }
 
-function bookFields(body, { partial = false } = {}) {
+const URL_OK = (v) => !v || /^https?:\/\/[^\s"'<>]+$/.test(v);
+
+async function bookFields(body, { partial = false, createCategory = false } = {}) {
   const out = {};
   const set = (key, value) => {
     if (!partial || key in body) out[key] = value;
@@ -42,43 +43,22 @@ function bookFields(body, { partial = false } = {}) {
   set("edisi", str(body.edisi, 50));
   set("bahasa", str(body.bahasa, 40) || "Indonesia");
   set("deskripsi", str(body.deskripsi, 3000));
+  set("sumber", str(body.sumber, 150));
+  set("sumberUrl", str(body.sumberUrl, 500));
+  set("lisensi", str(body.lisensi, 150));
+  if (!URL_OK(out.sumberUrl)) throw new HttpError(400, "Tautan sumber harus diawali http:// atau https://");
   if (!partial || "tahunTerbit" in body) {
     const y = parseInt(body.tahunTerbit, 10);
     out.tahunTerbit = Number.isFinite(y) ? y : undefined;
   }
-  if (!partial || "kategori" in body) {
-    const k = str(body.kategori, 60) || "Umum";
-    if (!CATEGORIES.includes(k)) throw new HttpError(400, "Kategori tidak dikenal.");
-    out.kategori = k;
-  }
+  if (!partial || "kategori" in body) out.kategori = await categories.resolve(body.kategori, { create: createCategory });
   if (!partial || "judul" in body) if (!out.judul) throw new HttpError(400, "Judul wajib diisi.");
   if (!partial || "penulis" in body) if (!out.penulis) throw new HttpError(400, "Penulis wajib diisi.");
   return out;
 }
 
-// Ekstraksi teks untuk LUMA dijalankan di belakang supaya upload cepat.
-function indexText(book, buffer) {
-  setImmediate(async () => {
-    try {
-      const { text, pages } = await extractText(buffer);
-      await BookText.findOneAndUpdate({ book: book._id }, { text, pages, error: "" }, { upsert: true });
-    } catch (error) {
-      await BookText.findOneAndUpdate({ book: book._id }, { text: "", error: error.message }, { upsert: true }).catch(() => {});
-    }
-  });
-}
-
-async function storePdf(file) {
-  if (!isRealPdf(file.buffer)) throw new HttpError(400, "File bukan PDF yang valid.");
-  let halaman = 0;
-  try {
-    halaman = await countPages(file.buffer);
-  } catch {
-    throw new HttpError(400, "PDF rusak atau terkunci password, tidak bisa dibuka.");
-  }
-  const stored = await storage.save(file, "buku");
-  return { stored, halaman };
-}
+const indexText = (book, buffer) => indexTextFor(book._id, buffer);
+const storePdf = (file) => storePdfBuffer(file.buffer, file.originalname);
 
 // ---------- Daftar & pencarian ----------
 router.get("/", async (req, res) => {
@@ -89,7 +69,8 @@ router.get("/", async (req, res) => {
     const rx = new RegExp(escapeRegex(q), "i");
     filter.$or = [{ judul: rx }, { penulis: rx }, { penerbit: rx }, { isbn: rx }];
   }
-  if (req.query.kategori && CATEGORIES.includes(req.query.kategori)) filter.kategori = req.query.kategori;
+  const kategori = str(req.query.kategori, 60);
+  if (kategori) filter.kategori = kategori;
   const sort =
     {
       populer: { dibaca: -1, createdAt: -1 },
@@ -106,7 +87,8 @@ router.get("/", async (req, res) => {
 router.get("/categories", async (req, res) => {
   const counts = await Book.aggregate([{ $match: { status: "disetujui" } }, { $group: { _id: "$kategori", n: { $sum: 1 } } }]);
   const map = Object.fromEntries(counts.map((c) => [c._id, c.n]));
-  res.json({ categories: CATEGORIES.map((name) => ({ name, count: map[name] || 0 })) });
+  const list = await categories.list();
+  res.json({ categories: list.map((c) => ({ _id: c._id, name: c.nama, count: map[c.nama] || 0 })) });
 });
 
 router.get("/mine", requireAuth, async (req, res) => {
@@ -153,9 +135,13 @@ router.get("/:id/file", async (req, res) => {
     if (!fs.existsSync(local)) throw new HttpError(404, "File buku tidak ditemukan di server.");
     return res.sendFile(local, { headers: { "Content-Type": "application/pdf" } });
   }
-  const buffer = await storage.read(book.file);
-  res.setHeader("Content-Length", buffer.length);
-  res.end(buffer);
+  const upstream = await storage.open(book.file);
+  const len = upstream.headers.get("content-length");
+  if (len) res.setHeader("Content-Length", len);
+  const { Readable } = require("stream");
+  Readable.fromWeb(upstream.body)
+    .on("error", () => res.destroy())
+    .pipe(res);
 });
 
 // ---------- Unggah & ubah ----------
@@ -167,7 +153,7 @@ const files = upload.fields([
 router.post("/", requireAuth, files, checkImageSize("cover"), async (req, res) => {
   const pdf = req.files?.file?.[0];
   if (!pdf) throw new HttpError(400, "File PDF buku wajib diunggah.");
-  const data = bookFields(req.body);
+  const data = await bookFields(req.body);
   const { stored, halaman } = await storePdf(pdf);
   let coverStored = null;
   if (req.files?.cover?.[0]) coverStored = await storage.save(req.files.cover[0], "sampul");
@@ -191,7 +177,7 @@ router.patch("/:id", requireAuth, files, checkImageSize("cover"), async (req, re
   const book = await findVisible(req);
   const admin = isAdmin(req.user);
   if (!admin && !isOwner(req.user, book.uploadedBy)) throw new HttpError(403, "Kamu tidak bisa mengubah buku ini.");
-  Object.assign(book, bookFields(req.body, { partial: true }));
+  Object.assign(book, await bookFields(req.body, { partial: true }));
   const pdf = req.files?.file?.[0];
   if (pdf) {
     const old = book.file;
@@ -287,3 +273,4 @@ router.put("/:id/reviews", requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.bookFields = bookFields;

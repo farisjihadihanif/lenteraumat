@@ -16,7 +16,7 @@ function BookSearch({ value, onChange }) {
   }, [q]);
   if (value) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-line bg-white p-2">
+      <div className="flex items-center gap-3 rounded-lg border border-line bg-surface p-2">
         <div className="w-9 shrink-0">
           <BookCover book={value} />
         </div>
@@ -31,7 +31,7 @@ function BookSearch({ value, onChange }) {
     <div className="relative">
       <input className="field" placeholder="Ketik judul buku (opsional)" value={q} onChange={(e) => setQ(e.target.value)} />
       {items.length > 0 && (
-        <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-line bg-white shadow-lift">
+        <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-line bg-surface shadow-lift">
           {items.map((b) => (
             <li key={b._id}>
               <button type="button" className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-mist" onClick={() => { onChange(b); setQ(""); }}>

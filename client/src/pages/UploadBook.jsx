@@ -7,9 +7,10 @@ import { coverFromPdf } from "../lib/pdf";
 import { useAuth } from "../context/Auth";
 import BookCover from "../components/BookCover";
 import { ErrorBox, PageLoader } from "../components/ui";
-import { CATEGORIES, formatSize } from "../lib/format";
+import { formatSize } from "../lib/format";
+import { useCategories } from "../lib/categories";
 
-const EMPTY = { judul: "", penulis: "", penerbit: "", tahunTerbit: "", isbn: "", edisi: "", bahasa: "Indonesia", kategori: "Umum", deskripsi: "" };
+const EMPTY = { judul: "", penulis: "", penerbit: "", tahunTerbit: "", isbn: "", edisi: "", bahasa: "Indonesia", kategori: "Umum", deskripsi: "", sumber: "", sumberUrl: "", lisensi: "" };
 const MAX_MB = 40;
 
 export default function UploadBook() {
@@ -26,6 +27,7 @@ export default function UploadBook() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [rights, setRights] = useState(Boolean(id));
+  const categories = useCategories();
 
   useEffect(() => {
     if (!id) return;
@@ -103,7 +105,7 @@ export default function UploadBook() {
         {isAdmin ? "Sebagai admin, buku yang kamu simpan langsung tayang." : id ? "Setelah disimpan, buku akan ditinjau ulang oleh admin." : "Buku akan tayang setelah ditinjau admin."}
       </p>
       {existing?.catatanReview && existing.status !== "disetujui" && (
-        <p className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm">Catatan admin: {existing.catatanReview}</p>
+        <p className="mt-4 rounded-lg border border-sky-300/50 bg-sky-500/10 px-4 py-3 text-sm">Catatan admin: {existing.catatanReview}</p>
       )}
 
       <form onSubmit={submit} className="mt-6 grid gap-8 md:grid-cols-[220px_1fr]">
@@ -125,7 +127,7 @@ export default function UploadBook() {
         <div className="space-y-5">
           <div>
             <span className="label">File buku (PDF){id && " — kosongkan bila tidak diganti"}</span>
-            <label className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed px-4 py-5 ${pdf ? "border-teal bg-teal-soft/50" : "border-line bg-white hover:border-teal/50"}`}>
+            <label className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed px-4 py-5 ${pdf ? "border-teal bg-teal-soft/50" : "border-line bg-surface hover:border-teal/50"}`}>
               <FileText size={28} className="shrink-0 text-teal" />
               <span className="min-w-0 text-sm">
                 {pdf ? (
@@ -156,7 +158,8 @@ export default function UploadBook() {
             <div>
               <label className="label" htmlFor="kategori">Kategori</label>
               <select id="kategori" className="field" value={form.kategori} onChange={set("kategori")}>
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                {categories.map((c) => <option key={c.name}>{c.name}</option>)}
+                {!categories.some((c) => c.name === form.kategori) && <option>{form.kategori}</option>}
               </select>
             </div>
             <div>
@@ -174,6 +177,18 @@ export default function UploadBook() {
             <div>
               <label className="label" htmlFor="edisi">Edisi</label>
               <input id="edisi" className="field" maxLength={50} value={form.edisi} onChange={set("edisi")} />
+            </div>
+            <div>
+              <label className="label" htmlFor="sumber">Sumber <span className="font-normal text-ink-mute">(opsional)</span></label>
+              <input id="sumber" className="field" maxLength={150} value={form.sumber} onChange={set("sumber")} placeholder="Mis. Karya sendiri, SIBI Kemendikdasmen" />
+            </div>
+            <div>
+              <label className="label" htmlFor="lisensi">Lisensi <span className="font-normal text-ink-mute">(opsional)</span></label>
+              <input id="lisensi" className="field" maxLength={150} value={form.lisensi} onChange={set("lisensi")} placeholder="Mis. CC BY 4.0, Domain publik" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label" htmlFor="sumberUrl">Tautan sumber <span className="font-normal text-ink-mute">(opsional)</span></label>
+              <input id="sumberUrl" type="url" className="field" maxLength={500} value={form.sumberUrl} onChange={set("sumberUrl")} placeholder="https://" />
             </div>
             <div className="sm:col-span-2">
               <label className="label" htmlFor="deskripsi">Deskripsi</label>

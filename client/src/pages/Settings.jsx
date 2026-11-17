@@ -115,7 +115,7 @@ export default function Settings() {
         <button className="btn-teal" disabled={busy === "pw"}>Ganti password</button>
       </form>
 
-      <section className="rounded-xl border border-red-200 bg-white p-5">
+      <section className="rounded-xl border border-red-200 bg-surface p-5">
         <h2 className="font-bold text-red-700">Hapus akun</h2>
         <p className="mt-1 text-sm text-ink-soft">Akun, buku unggahan, ulasan, diskusi, dan riwayat LUMA milikmu akan dihapus permanen.</p>
         <button className="btn-outline mt-3 text-red-600" onClick={() => setDelOpen(true)}>Hapus akun saya</button>

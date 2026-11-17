@@ -10,7 +10,8 @@ Perpustakaan digital Islami dengan maskot **LUMA** (AI). Versi pribadi Faris, ta
 - **Diskusi:** pengganti Artikel. Diskusi bisa dikaitkan ke buku tertentu dan dibalas pembaca lain.
 - **LUMA AI** (Google Gemini, lewat server): chat, tanya isi buku (LUMA membaca teks PDF), ringkasan, kuis pilihan ganda/isian yang bisa langsung dikerjakan. Riwayat percakapan tersimpan.
 - **Rak saya:** lanjut membaca, buku disimpan, status unggahan.
-- **Dasbor admin:** ringkasan, buku masuk, semua buku, ulasan, pengguna (ubah peran / hapus).
+- **Dasbor admin:** ringkasan, buku masuk, semua buku, impor buku, kategori, ulasan, pengguna (ubah peran / hapus).
+- **Mode terang/gelap** (tombol matahari/bulan di navbar, tersimpan di browser).
 
 ## Struktur
 ```
@@ -48,6 +49,24 @@ Server API otomatis menyajikan `client/dist`, jadi web & API cukup satu domain (
 - `GEMINI_MODEL` default `gemini-flash-latest` (selalu mengikuti model Flash terbaru).
 - LUMA hanya bisa membaca PDF yang berisi teks. PDF hasil scan (gambar) tetap bisa dibaca manusia di flipbook, tapi LUMA akan memberi tahu bahwa teksnya tidak terbaca.
 
+## Mengisi buku dari sumber terbuka
+Hanya buku yang memang boleh disebarkan ulang: domain publik, lisensi terbuka (Creative Commons), atau buku pemerintah yang dibagikan gratis. **Jangan** salin skripsi/tesis dari repositori kampus atau buku dari layanan pinjam (iPusnas, dll).
+
+- **Satu per satu:** Dasbor admin → **Impor buku**. Tempel tautan PDF (mis. dari SIBI Kemendikdasmen), isi judul, penulis, kategori, **sumber** dan **lisensi**. Buku langsung tayang dengan atribusi dan sampul dibuat otomatis dari halaman pertama.
+- **Banyak sekaligus (domain publik, Internet Archive):** di folder `api`
+  ```bash
+  npm run impor:arsip -- --jumlah 50                      # campuran, terpopuler
+  npm run impor:arsip -- --topik islam --jumlah 50
+  npm run impor:arsip -- --topik "natural history" --jumlah 30
+  npm run impor:arsip -- --bahasa melayu --jumlah 20       # inggris | indonesia | melayu | arab | belanda
+  npm run impor:arsip -- --topik islam --kering            # lihat daftar dulu, tidak menyimpan
+  ```
+  Skrip hanya mengambil dari koleksi lembaga tepercaya (Smithsonian Libraries, Library of Congress, perpustakaan universitas), terbit 1500–1928 (domain publik), konten dewasa dikecualikan. Kategori ditentukan otomatis dari subjek buku; sumber & lisensi dicatat. Aman dijalankan berulang (tidak ada duplikat).
+- **Sampul otomatis:** Dasbor admin → Semua buku → **Sampul otomatis** (untuk buku yang belum bersampul).
+- **Kategori:** Dasbor admin → **Kategori** (tambah, ganti nama, hapus — buku di kategori yang dihapus pindah ke "Umum").
+
+**Catatan Cloudinary gratis:** batas 10 MB per file. PDF hasil impor yang lebih besar otomatis *ditautkan* ke sumber aslinya (tidak disalin). Aktifkan juga **Settings → Security → Allow delivery of PDF and ZIP files** di Cloudinary supaya PDF bisa dibaca.
+
 ## Pindah data dari versi lama
 ```bash
 cd api
@@ -57,6 +76,6 @@ Komunitas/donatur → user, admin tetap admin, password lama tetap bisa dipakai,
 
 ## Tes
 ```bash
-cd api && npm test        # 21 tes API (MongoDB di memori, LUMA tiruan)
+cd api && npm test        # 28 tes API (MongoDB di memori, LUMA tiruan)
 cd client && npm run lint && npm run build
 ```

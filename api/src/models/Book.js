@@ -1,20 +1,5 @@
 const { Schema, model } = require("mongoose");
 
-const CATEGORIES = [
-  "Al-Qur'an & Tafsir",
-  "Hadis",
-  "Fikih",
-  "Akidah & Akhlak",
-  "Sejarah Islam",
-  "Pendidikan",
-  "Sains & Teknologi",
-  "Bahasa",
-  "Sastra",
-  "Pengembangan Diri",
-  "Anak",
-  "Umum",
-];
-
 // Alur status: user mengunggah -> "menunggu" -> admin "disetujui" / "ditolak" /
 // "revisi" (minta diperbaiki). Buku yang diunggah admin langsung "disetujui".
 const STATUSES = ["menunggu", "disetujui", "ditolak", "revisi"];
@@ -28,7 +13,13 @@ const BookSchema = new Schema(
     isbn: { type: String, default: "", trim: true, maxlength: 30 },
     edisi: { type: String, default: "", trim: true, maxlength: 50 },
     bahasa: { type: String, default: "Indonesia", trim: true, maxlength: 40 },
-    kategori: { type: String, enum: CATEGORIES, default: "Umum" },
+    kategori: { type: String, default: "Umum", trim: true, maxlength: 60, index: true },
+    // Asal buku (untuk buku dari perpustakaan/arsip terbuka) & lisensinya.
+    sumber: { type: String, default: "", trim: true, maxlength: 150 },
+    sumberUrl: { type: String, default: "", trim: true, maxlength: 500 },
+    lisensi: { type: String, default: "", trim: true, maxlength: 150 },
+    // Tautan PDF asal kalau buku diimpor (untuk mencegah impor ganda).
+    asalPdf: { type: String, default: "", index: true },
     deskripsi: { type: String, default: "", maxlength: 3000 },
     cover: { type: String, default: "" },
     coverStored: { url: String, storage: String, key: String },
@@ -54,7 +45,6 @@ const BookSchema = new Schema(
 
 BookSchema.index({ judul: "text", penulis: "text", deskripsi: "text" });
 
-BookSchema.statics.CATEGORIES = CATEGORIES;
 BookSchema.statics.STATUSES = STATUSES;
 
 module.exports = model("Book", BookSchema);

@@ -7,6 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const config = require("../config");
+const { HttpError } = require("../middleware/errors");
 
 let cloudinary = null;
 if (config.cloudinaryUrl) {
@@ -14,14 +15,30 @@ if (config.cloudinaryUrl) {
   cloudinary.config({ cloudinary_url: config.cloudinaryUrl, secure: true });
 }
 
+// Paket gratis Cloudinary membatasi file "raw" (PDF) 10 MB.
+const CLOUDINARY_MAX = (Number(process.env.CLOUDINARY_MAX_MB) || 10) * 1024 * 1024;
+const maxBytes = () => (cloudinary ? CLOUDINARY_MAX : Infinity);
+
 const EXT = { "application/pdf": ".pdf", "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif" };
 
 async function save(file, folder) {
+  if (file.size > maxBytes()) {
+    throw new HttpError(400, `Ukuran file melebihi batas penyimpanan Cloudinary (${Math.round(CLOUDINARY_MAX / 1048576)} MB). Kecilkan PDF-nya dulu (mis. di ilovepdf.com/compress_pdf).`);
+  }
   const ext = EXT[file.mimetype] || "";
   const name = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}${ext}`;
 
   if (cloudinary) {
     const result = await new Promise((resolve, reject) => {
+      const fail = (err) => {
+        console.error("Cloudinary:", err?.message || err);
+        const msg = String(err?.message || "");
+        if (/Invalid Signature|api_secret|Invalid api_key|Unknown API key|cloud_name/i.test(msg)) {
+          return reject(new HttpError(500, "Penyimpanan Cloudinary salah atur: cek CLOUDINARY_URL di .env (API secret harus yang asli, bukan *****)."));
+        }
+        if (/File size too large/i.test(msg)) return reject(new HttpError(400, "File terlalu besar untuk paket Cloudinary-mu."));
+        reject(new HttpError(502, "Gagal menyimpan file ke Cloudinary. Coba lagi."));
+      };
       const stream = cloudinary.uploader.upload_stream(
         {
           folder: `lentera-umat/${folder}`,
@@ -29,7 +46,7 @@ async function save(file, folder) {
           resource_type: file.mimetype === "application/pdf" ? "raw" : "image",
           ...(file.mimetype === "application/pdf" ? { format: "pdf" } : {}),
         },
-        (err, res) => (err ? reject(err) : resolve(res)),
+        (err, res) => (err ? fail(err) : resolve(res)),
       );
       stream.end(file.buffer);
     });
@@ -62,13 +79,26 @@ async function read(stored) {
     const file = path.join(config.uploadDir, stored.key);
     return fs.promises.readFile(file);
   }
-  const res = await fetch(stored.url, { signal: AbortSignal.timeout(60000) });
-  if (!res.ok) throw new Error(`Gagal mengambil file (${res.status})`);
+  const res = await fetch(stored.url, { signal: AbortSignal.timeout(5 * 60 * 1000), headers: { "User-Agent": "LenteraUmat/2.0" } });
+  if (res.status === 401 && stored.storage === "cloudinary") {
+    throw new HttpError(502, "Cloudinary memblokir pengiriman PDF. Di Cloudinary buka Settings > Security, centang 'Allow delivery of PDF and ZIP files', lalu simpan.");
+  }
+  if (!res.ok) throw new HttpError(502, `Gagal mengambil file buku dari penyimpanan (${res.status}).`);
   return Buffer.from(await res.arrayBuffer());
+}
+
+// Buka file dari penyimpanan luar sebagai stream (untuk dikirim ke pembaca).
+async function open(stored) {
+  const res = await fetch(stored.url, { signal: AbortSignal.timeout(5 * 60 * 1000), headers: { "User-Agent": "LenteraUmat/2.0" } });
+  if (res.status === 401 && stored.storage === "cloudinary") {
+    throw new HttpError(502, "Cloudinary memblokir pengiriman PDF. Di Cloudinary buka Settings > Security, centang 'Allow delivery of PDF and ZIP files', lalu simpan.");
+  }
+  if (!res.ok) throw new HttpError(502, `Gagal mengambil file buku dari penyimpanan (${res.status}).`);
+  return res;
 }
 
 function localPath(stored) {
   return stored.storage === "local" ? path.join(config.uploadDir, stored.key) : null;
 }
 
-module.exports = { save, remove, read, localPath, usingCloudinary: Boolean(cloudinary) };
+module.exports = { save, remove, read, open, localPath, maxBytes, usingCloudinary: Boolean(cloudinary) };

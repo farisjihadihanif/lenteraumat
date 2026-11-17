@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, Home, Instagram, Library, LogOut, MessagesSquare, Search, Settings, Shield, Sparkles, Upload, User, ChevronDown } from "lucide-react";
+import { BookOpen, Home, Instagram, Moon, Sun, Library, LogOut, MessagesSquare, Search, Settings, Shield, Sparkles, Upload, User, ChevronDown } from "lucide-react";
 import { useAuth } from "../context/Auth";
 import { Avatar } from "./ui";
 import FloatingLuma from "./FloatingLuma";
@@ -43,7 +43,7 @@ function UserMenu() {
         <ChevronDown size={16} className="text-ink-mute" />
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 top-12 z-40 w-60 rounded-xl border border-line bg-white p-1.5 shadow-lift">
+        <div role="menu" className="absolute right-0 top-12 z-40 w-60 rounded-xl border border-line bg-surface p-1.5 shadow-lift">
           <div className="border-b border-line px-3 pb-2.5 pt-1.5">
             <p className="truncate text-sm font-bold">{displayName(user)}</p>
             <p className="truncate text-xs text-ink-mute">@{user.username}{isAdmin && " · admin"}</p>
@@ -61,7 +61,7 @@ function UserMenu() {
               await logout();
               navigate("/");
             }}
-            className="flex w-full items-center gap-3 rounded-lg border-t border-line px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+            className="flex w-full items-center gap-3 rounded-lg border-t border-line px-3 py-2 text-sm text-red-600 hover:bg-red-500/10"
           >
             <LogOut size={16} /> Keluar
           </button>
@@ -89,10 +89,31 @@ function SearchBox({ className = "" }) {
   );
 }
 
+// Mode terang/gelap. Ikon: matahari saat terang, bulan saat gelap (sama seperti project HNI).
+function ThemeToggle() {
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
+  const toggle = () => {
+    const next = !dark;
+    document.documentElement.classList.toggle("dark", next);
+    try {
+      localStorage.setItem("theme", next ? "dark" : "light");
+    } catch {
+      /* penyimpanan tidak tersedia */
+    }
+    setDark(next);
+  };
+  const label = dark ? "Ganti ke mode terang" : "Ganti ke mode gelap";
+  return (
+    <button onClick={toggle} className="rounded-full p-2 text-ink-soft hover:bg-ink/5 hover:text-ink" aria-label={label} title={label}>
+      {dark ? <Moon size={19} /> : <Sun size={19} />}
+    </button>
+  );
+}
+
 export function Navbar() {
   const { user, ready } = useAuth();
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-line/70 bg-surface/75 backdrop-blur-md">
       <div className="container-page flex h-16 items-center gap-6">
         <Link to="/" className="shrink-0" aria-label="LenteraUmat, ke beranda">
           <img src={logo} alt="LenteraUmat" className="h-11 w-auto" />
@@ -111,6 +132,7 @@ export function Navbar() {
         </nav>
         <SearchBox className="ml-auto hidden w-64 lg:block" />
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          <ThemeToggle />
           {ready &&
             (user ? (
               <>
@@ -137,7 +159,7 @@ export function Navbar() {
 
 function MobileNav() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Navigasi bawah">
+    <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Navigasi bawah">
       {NAV.map(({ to, label, icon: Icon, end }) => (
         <NavLink key={to} to={to} end={end} className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${isActive ? "text-teal" : "text-ink-mute"}`}>
           <Icon size={20} />
@@ -150,7 +172,7 @@ function MobileNav() {
 
 function Footer() {
   return (
-    <footer className="mt-20 bg-ink pb-16 text-white/70 md:pb-0">
+    <footer className="mt-20 bg-night pb-16 text-white/70 md:pb-0 dark:border-t dark:border-line">
       <div className="container-page flex flex-col items-center justify-center gap-1.5 py-3 text-xs sm:flex-row sm:gap-3">
         <span>Lentera Umat © 2025</span>
         <span className="hidden sm:inline" aria-hidden>·</span>

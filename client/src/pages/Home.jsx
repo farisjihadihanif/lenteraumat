@@ -27,12 +27,15 @@ function Section({ title, link, children }) {
 
 function Hero() {
   return (
-    <section className="relative isolate overflow-hidden bg-neutral-900 text-white">
+    <section
+      className="relative isolate -mt-16 overflow-hidden bg-neutral-900 text-white"
+      style={{ WebkitMaskImage: "linear-gradient(#000 85%, transparent)", maskImage: "linear-gradient(#000 85%, transparent)" }}
+    >
       <img src={heroBg} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover grayscale" />
-      <div className="absolute inset-0 -z-10 bg-black/60" aria-hidden />
-      <div className="container-page flex min-h-[calc(100svh-4rem)] flex-col items-center justify-center py-16 text-center">
-        <h1 className="font-serif text-6xl font-semibold leading-none sm:text-7xl md:text-8xl">Lentera Umat</h1>
-        <p className="mt-6 max-w-2xl text-white/85 sm:text-lg">
+      <div className="absolute inset-0 -z-10 bg-black/65" aria-hidden />
+      <div className="container-page flex min-h-svh flex-col items-center justify-center pb-16 pt-28 text-center">
+        <h1 className="font-serif text-6xl font-semibold leading-none [text-shadow:1px_1px_4px_rgba(0,0,0,.8)] sm:text-7xl md:text-8xl">Lentera Umat</h1>
+        <p className="mt-6 max-w-2xl text-white/90 [text-shadow:1px_1px_3px_rgba(0,0,0,.8)] sm:text-lg">
           Lentera Umat Digital Library ~ read the book, discuss, summary and create a Quiz with Luma
         </p>
       </div>
@@ -79,7 +82,7 @@ export default function Home() {
         <Section title="Lanjut membaca" link="/rak">
           <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
             {cont.slice(0, 6).map(({ book, page, totalPages }) => (
-              <Link key={book._id} to={`/buku/${book._id}/baca`} className="flex w-72 shrink-0 snap-start gap-4 rounded-xl border border-line bg-white p-3 hover:border-teal/40">
+              <Link key={book._id} to={`/buku/${book._id}/baca`} className="flex w-72 shrink-0 snap-start gap-4 rounded-xl border border-line bg-surface p-3 hover:border-teal/40">
                 <div className="w-16 shrink-0">
                   <BookCover book={book} />
                 </div>
@@ -137,7 +140,7 @@ export default function Home() {
           <div>
             <h2 className="font-serif text-3xl font-semibold">Belajar bersama LUMA</h2>
             <p className="mt-3 text-white/80">LUMA adalah teman belajar berbasis AI di LenteraUmat. Ia membaca buku di perpustakaan ini supaya bisa menjawab pertanyaanmu tentang isinya.</p>
-            <Link to="/luma" className="btn mt-6 bg-white text-teal hover:bg-teal-soft">
+            <Link to="/luma" className="btn mt-6 bg-white text-[#316B6C] hover:bg-white/90">
               Ngobrol dengan LUMA <ArrowRight size={16} />
             </Link>
           </div>
@@ -165,7 +168,7 @@ export default function Home() {
               {data.cats
                 .filter((c) => c.count > 0)
                 .map((c) => (
-                  <Link key={c.name} to={`/buku?kategori=${encodeURIComponent(c.name)}`} className="rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold hover:border-teal hover:text-teal">
+                  <Link key={c.name} to={`/buku?kategori=${encodeURIComponent(c.name)}`} className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold hover:border-teal hover:text-teal">
                     {c.name} <span className="ml-1 font-normal text-ink-mute">{c.count}</span>
                   </Link>
                 ))}

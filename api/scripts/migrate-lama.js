@@ -11,6 +11,7 @@ const config = require("../src/config");
 const User = require("../src/models/User");
 const Book = require("../src/models/Book");
 const Discussion = require("../src/models/Discussion");
+const categories = require("../src/services/categories");
 
 async function migrate(oldUrl, newUrl, log = console.log) {
   const old = await mongoose.createConnection(oldUrl).asPromise();
@@ -55,7 +56,7 @@ async function migrate(oldUrl, newUrl, log = console.log) {
       penerbit: e.penerbit || "",
       isbn: String(e.judulISBN || "").slice(0, 30),
       edisi: String(e.edisi || "").slice(0, 50),
-      kategori: Book.CATEGORIES.find((c) => c.toLowerCase() === String(e.kategori || "").toLowerCase()) || "Umum",
+      kategori: await categories.resolve(e.kategori).catch(() => "Umum"),
       cover: e.coverMateri || "",
       file: { url: e.linkMateri, storage: "external" },
       uploadedBy: owner,

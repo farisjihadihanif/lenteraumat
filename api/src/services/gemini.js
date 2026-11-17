@@ -14,6 +14,25 @@ function setFetch(fn) {
   fetchImpl = fn;
 }
 
+const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function callModel(model, body) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  try {
+    const res = await fetchImpl(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": config.geminiApiKey },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60000),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { status: res.status, data };
+  } catch (error) {
+    return { status: 0, error };
+  }
+}
+
 async function generate(contents, { json = null, temperature = 0.6 } = {}) {
   if (!config.geminiApiKey) throw new HttpError(503, "LUMA belum aktif: GEMINI_API_KEY belum diisi di server.");
   const body = {
@@ -24,28 +43,31 @@ async function generate(contents, { json = null, temperature = 0.6 } = {}) {
       ...(json ? { responseMimeType: "application/json", responseSchema: json } : {}),
     },
   };
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent`;
-  let res;
-  try {
-    res = await fetchImpl(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": config.geminiApiKey },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(90000),
-    });
-  } catch (error) {
-    console.error("Gemini:", error.message);
-    throw new HttpError(502, "LUMA sedang tidak bisa dihubungi. Coba lagi sebentar.");
+  // Model utama dicoba 2x, lalu model cadangan, karena server Google kadang sibuk/lambat.
+  const fallback = config.geminiFallbackModel;
+  const attempts = [config.geminiModel, config.geminiModel, ...(fallback && fallback !== config.geminiModel ? [fallback] : [])];
+  let last;
+  for (let i = 0; i < attempts.length; i++) {
+    if (i > 0) await wait(i === 1 ? 1200 : 300);
+    last = await callModel(attempts[i], body);
+    if (last.status === 200) {
+      const cand = last.data?.candidates?.[0];
+      const text = cand?.content?.parts?.map((p) => p.text || "").join("") || "";
+      if (text) return text;
+      if (cand?.finishReason === "SAFETY" || last.data?.promptFeedback?.blockReason) {
+        throw new HttpError(422, "LUMA tidak bisa menjawab pertanyaan itu. Coba ubah kalimatnya.");
+      }
+      continue;
+    }
+    const msg = last.error ? last.error.cause?.code || last.error.message : last.data?.error?.message;
+    console.error(`Gemini (${attempts[i]}) gagal:`, last.status || "koneksi", String(msg || "").slice(0, 300));
+    if (last.status === 400 && /API key/i.test(msg || "")) throw new HttpError(503, "GEMINI_API_KEY di server tidak valid.");
+    if (last.status === 403) throw new HttpError(503, "GEMINI_API_KEY ditolak Google (cek key di AI Studio).");
+    if (last.status && !RETRYABLE.has(last.status) && last.status !== 404) break;
   }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    console.error("Gemini error", res.status, data?.error?.message);
-    if (res.status === 429) throw new HttpError(429, "LUMA sedang sibuk (batas pemakaian). Coba lagi sebentar.");
-    throw new HttpError(502, "LUMA gagal menjawab. Coba lagi.");
-  }
-  const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
-  if (!text) throw new HttpError(502, "LUMA tidak memberi jawaban. Coba ubah pertanyaanmu.");
-  return text;
+  if (last?.status === 429) throw new HttpError(429, "LUMA sedang sibuk (batas pemakaian Gemini). Coba lagi sebentar.");
+  if (!last?.status) throw new HttpError(502, "LUMA tidak bisa menghubungi Google. Cek koneksi internet server lalu coba lagi.");
+  throw new HttpError(502, "LUMA gagal menjawab. Coba lagi.");
 }
 
 module.exports = { generate, setFetch };

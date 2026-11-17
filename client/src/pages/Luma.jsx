@@ -80,7 +80,7 @@ function QuizCard({ quiz }) {
             <div className="mt-3 grid gap-2">
               {q.options.map((opt) => {
                 const picked = answers[i] === opt;
-                const state = checked ? (opt === q.answer ? "border-emerald-500 bg-emerald-50" : picked ? "border-red-400 bg-red-50" : "border-line bg-white") : picked ? "border-teal bg-teal-soft" : "border-line bg-white hover:border-teal/50";
+                const state = checked ? (opt === q.answer ? "border-emerald-500 bg-emerald-500/10" : picked ? "border-red-400 bg-red-500/10" : "border-line bg-surface") : picked ? "border-teal bg-teal-soft" : "border-line bg-surface hover:border-teal/50";
                 return (
                   <label key={opt} className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2 text-sm ${state}`}>
                     <input type="radio" name={`q${i}`} className="mt-1 accent-teal" checked={picked} disabled={checked} onChange={() => setAnswers((a) => ({ ...a, [i]: opt }))} />
@@ -140,7 +140,7 @@ function Message({ m }) {
   return (
     <div className="flex gap-3">
       <img src={lumaImg} alt="" className="mt-1 h-9 w-9 shrink-0 rounded-full bg-lamp/30 object-contain" />
-      <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm border border-line bg-white px-4 py-3">
+      <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm border border-line bg-surface px-4 py-3">
         {m.kind === "quiz" && m.data ? <QuizCard quiz={m.data} /> : <Markdown>{m.content}</Markdown>}
         {m.kind !== "quiz" && (
           <button
@@ -268,9 +268,17 @@ export default function Luma() {
   return (
     <div className="container-page grid gap-6 py-6 lg:grid-cols-[260px_1fr]">
       {/* Riwayat */}
-      <aside className={`${showHistory ? "fixed inset-0 z-40 bg-ink/40 p-4" : "hidden"} lg:static lg:block lg:bg-transparent lg:p-0`} onClick={(e) => e.target === e.currentTarget && setShowHistory(false)}>
-        <div className="flex h-full max-h-[calc(100vh-7rem)] flex-col rounded-xl border border-line bg-white p-3 lg:sticky lg:top-20">
-          <div className="flex items-center justify-between px-1 pb-2">
+      <aside className={`${showHistory ? "fixed inset-0 z-40 bg-black/40 p-4" : "hidden"} lg:static lg:block lg:bg-transparent lg:p-0`} onClick={(e) => e.target === e.currentTarget && setShowHistory(false)}>
+        <div className="flex h-full max-h-[calc(100vh-7rem)] flex-col overflow-hidden rounded-xl border border-line bg-surface p-3 lg:sticky lg:top-20">
+          {/* Mode LUMA (layar lebar) */}
+          <div className="hidden flex-col gap-1 border-b border-line pb-3 lg:flex" role="tablist" aria-label="Mode LUMA">
+            {MODES.map(({ id, label, icon: Icon }) => (
+              <button key={id} role="tab" aria-selected={mode === id} onClick={() => changeMode(id)} className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-semibold ${mode === id ? "bg-night text-white" : "text-ink-soft hover:bg-mist"}`}>
+                <Icon size={16} /> {label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center justify-between px-1 pb-2 pt-3">
             <p className="font-bold">Riwayat</p>
             <button className="rounded p-1 hover:bg-mist lg:hidden" onClick={() => setShowHistory(false)} aria-label="Tutup riwayat">
               <X size={18} />
@@ -299,14 +307,15 @@ export default function Luma() {
         </div>
       </aside>
 
-      <section className="flex min-h-[calc(100vh-8rem)] flex-col rounded-xl border border-line bg-white">
-        <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-          <button className="btn-ghost btn-sm lg:hidden" onClick={() => setShowHistory(true)}>
+      <section className="flex min-h-[calc(100vh-8rem)] flex-col rounded-xl border border-line bg-surface">
+        {/* Mode LUMA (HP & tablet); di layar lebar pindah ke kolom kiri */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-line p-3 lg:hidden">
+          <button className="btn-ghost btn-sm" onClick={() => setShowHistory(true)}>
             <History size={16} /> Riwayat
           </button>
           <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Mode LUMA">
             {MODES.map(({ id, label, icon: Icon }) => (
-              <button key={id} role="tab" aria-selected={mode === id} onClick={() => changeMode(id)} className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold ${mode === id ? "bg-ink text-white" : "text-ink-soft hover:bg-mist"}`}>
+              <button key={id} role="tab" aria-selected={mode === id} onClick={() => changeMode(id)} className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold ${mode === id ? "bg-night text-white" : "text-ink-soft hover:bg-mist"}`}>
                 <Icon size={16} /> {label}
               </button>
             ))}

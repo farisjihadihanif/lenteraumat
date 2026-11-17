@@ -1,16 +1,20 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
       colors: {
-        // Warna LenteraUmat
-        ink: { DEFAULT: "#143752", soft: "#3E5A72", mute: "#6B8094" },
-        lantern: { DEFAULT: "#F79319", dark: "#D97A06", soft: "#FFF1DE" },
-        teal: { DEFAULT: "#316B6C", bright: "#07A5A8", soft: "#E3F1F0", deep: "#1F4D4E" },
+        // Warna LenteraUmat. Nilainya dari variabel CSS (lihat index.css) supaya
+        // mode gelap cukup mengganti variabel, tanpa mengubah tiap halaman.
+        ink: { DEFAULT: "rgb(var(--ink) / <alpha-value>)", soft: "rgb(var(--ink-soft) / <alpha-value>)", mute: "rgb(var(--ink-mute) / <alpha-value>)" },
+        lantern: { DEFAULT: "#F79319", dark: "#D97A06", soft: "rgb(var(--lantern-soft) / <alpha-value>)" },
+        teal: { DEFAULT: "rgb(var(--teal) / <alpha-value>)", bright: "#07A5A8", soft: "rgb(var(--teal-soft) / <alpha-value>)", deep: "rgb(var(--teal-deep) / <alpha-value>)" },
         lamp: "#FFC93C",
-        mist: "#F3F6F6",
-        line: "#DCE4E6",
+        mist: "rgb(var(--mist) / <alpha-value>)",
+        line: "rgb(var(--line) / <alpha-value>)",
+        surface: "rgb(var(--surface) / <alpha-value>)",
+        night: "rgb(var(--night) / <alpha-value>)",
       },
       fontFamily: {
         sans: ['"Manrope"', "system-ui", "sans-serif"],

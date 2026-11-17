@@ -3,9 +3,23 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --ink: 20 55 82; --ink-soft: 62 90 114; --ink-mute: 107 128 148;
+    --mist: 243 246 246; --line: 220 228 230; --surface: 255 255 255;
+    --teal: 49 107 108; --teal-soft: 227 241 240; --teal-deep: 31 77 78;
+    --lantern-soft: 255 241 222; --night: 20 55 82;
+    color-scheme: light;
+  }
+  .dark {
+    --ink: 230 237 243; --ink-soft: 192 205 216; --ink-mute: 138 156 173;
+    --mist: 10 18 26; --line: 37 51 64; --surface: 18 29 39;
+    --teal: 64 150 150; --teal-soft: 21 50 52; --teal-deep: 46 118 118;
+    --lantern-soft: 61 41 16; --night: 27 52 74;
+    color-scheme: dark;
+  }
   html { -webkit-text-size-adjust: 100%; }
   body {
-    @apply bg-mist font-sans text-ink antialiased;
+    @apply bg-mist font-sans text-ink antialiased transition-colors duration-200;
     font-feature-settings: "ss01";
   }
   h1, h2, h3 { text-wrap: balance; }
@@ -20,15 +34,15 @@
   .btn-primary { @apply btn bg-lantern text-white hover:bg-lantern-dark; }
   .btn-teal { @apply btn bg-teal text-white hover:bg-teal-deep; }
   .btn-ghost { @apply btn text-ink hover:bg-ink/5; }
-  .btn-outline { @apply btn border border-line bg-white text-ink hover:border-ink/30; }
+  .btn-outline { @apply btn border border-line bg-surface text-ink hover:border-ink/30; }
   .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
   .btn-sm { @apply px-3 py-1.5 text-xs; }
 
-  .field { @apply block w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-mute focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20; }
+  .field { @apply block w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-mute focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20; }
   .label { @apply mb-1.5 block text-sm font-semibold text-ink; }
   .hint { @apply mt-1 text-xs text-ink-mute; }
 
-  .panel { @apply rounded-xl border border-line bg-white; }
+  .panel { @apply rounded-xl border border-line bg-surface; }
   .container-page { @apply mx-auto w-full max-w-6xl px-4 sm:px-6; }
 
   .book-title { @apply font-serif font-semibold leading-snug text-ink; }

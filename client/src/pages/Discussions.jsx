@@ -53,13 +53,13 @@ export default function Discussions() {
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute" />
           <input className="field pl-9" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Cari diskusi" aria-label="Cari diskusi" />
         </form>
-        <div className="flex rounded-lg border border-line bg-white p-1 text-sm font-semibold">
+        <div className="flex rounded-lg border border-line bg-surface p-1 text-sm font-semibold">
           {[
             ["aktif", "Aktif"],
             ["terbaru", "Terbaru"],
             ["ramai", "Ramai"],
           ].map(([v, l]) => (
-            <button key={v} onClick={() => update({ sort: v })} className={`rounded-md px-3 py-1.5 ${sort === v ? "bg-ink text-white" : "text-ink-soft"}`}>
+            <button key={v} onClick={() => update({ sort: v })} className={`rounded-md px-3 py-1.5 ${sort === v ? "bg-night text-white" : "text-ink-soft"}`}>
               {l}
             </button>
           ))}

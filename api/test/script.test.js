@@ -1,0 +1,48 @@
+const { test, before, after } = require("node:test");
+const assert = require("node:assert/strict");
+const h = require("./helpers");
+const importer = require("../src/services/importer");
+const script = require("../scripts/impor-arsip");
+
+let app;
+before(async () => (app = await h.start()));
+after(h.stop);
+
+test("skrip impor arsip: domain publik, kategori dari subjek, lewati duplikat & PDF besar", async () => {
+  await h.makeAdmin(app);
+  const docs = [
+    { identifier: "kitabislam1900", title: "The spirit of Islam", creator: "Ameer Ali", subject: ["Islam"], year: "1902", language: "eng" },
+    { identifier: "birds1890", title: "Birds of Java", creator: ["Vorderman"], subject: "Birds", year: "1890", language: "dut", description: "<p>Burung</p>" },
+    { identifier: "besar1910", title: "Atlas besar", subject: "Maps", year: "1910" },
+  ];
+  const queries = [];
+  script.setFetchJson(async (url) => {
+    if (url.includes("advancedsearch")) {
+      queries.push(decodeURIComponent(url).replace(/\+/g, " "));
+      return { response: { numFound: docs.length, docs: url.includes("page=1") ? docs : [] } };
+    }
+    const id = url.split("/metadata/")[1];
+    if (id === "besar1910") return { files: [{ name: "besar.pdf", format: "Text PDF", size: String(900 * 1024 * 1024) }] };
+    return { files: [{ name: `${id}_bw.pdf`, format: "Grayscale PDF", size: "100" }, { name: `${id}.pdf`, format: "Text PDF", size: "2000" }] };
+  });
+  importer.setLookup(async () => [{ address: "207.241.224.2" }]);
+  importer.setFetch(async () => new Response(h.makePdf(["Isi buku domain publik tentang burung dan Islam."])));
+  const logs = [];
+  const n = await script.run({ jumlah: 5, topik: "", bahasa: "", kering: false, tautan: false }, (l) => logs.push(l));
+  assert.equal(n, 2);
+  assert.match(queries[0], /year:\[1500 TO 1928\]/);
+  assert.match(queries[0], /-collection:bannedbooks/);
+  const books = (await h.request(app).get("/api/books?limit=10")).body.items;
+  const byTitle = Object.fromEntries(books.map((b) => [b.judul, b]));
+  assert.equal(byTitle["The spirit of Islam"].kategori, "Akidah & Akhlak");
+  assert.equal(byTitle["Birds of Java"].kategori, "Sains & Teknologi");
+  assert.ok(logs.some((l) => /lewati "Atlas besar"/.test(l)));
+  const detail = (await h.request(app).get(`/api/books/${byTitle["Birds of Java"]._id}`)).body.book;
+  assert.equal(detail.sumber, "Internet Archive");
+  assert.equal(detail.sumberUrl, "https://archive.org/details/birds1890");
+  assert.match(detail.lisensi, /Domain publik/);
+  assert.equal(detail.bahasa, "Belanda");
+  assert.equal(detail.deskripsi, "Burung");
+  // dijalankan lagi: tidak ada duplikat
+  assert.equal(await script.run({ jumlah: 5, topik: "", bahasa: "" }, () => {}), 0);
+});

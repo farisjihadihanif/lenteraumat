@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { BookCheck, Inbox, LayoutDashboard, Library, Search, Star, Trash2, Users, Check, X, PencilLine, ExternalLink, Upload } from "lucide-react";
+import { BookCheck, Inbox, LayoutDashboard, Library, Search, Star, Trash2, Users, Check, X, PencilLine, ExternalLink, Upload, Link2, Tags } from "lucide-react";
+import { AutoCoverButton, CategoriesTab, ImportBooks } from "./AdminLibrary";
 import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
 import BookCover from "../components/BookCover";
@@ -12,6 +13,8 @@ const TABS = [
   { id: "ringkasan", label: "Ringkasan", icon: LayoutDashboard },
   { id: "masuk", label: "Buku masuk", icon: Inbox },
   { id: "buku", label: "Semua buku", icon: Library },
+  { id: "impor", label: "Impor buku", icon: Link2 },
+  { id: "kategori", label: "Kategori", icon: Tags },
   { id: "ulasan", label: "Ulasan", icon: Star },
   { id: "pengguna", label: "Pengguna", icon: Users },
 ];
@@ -104,6 +107,7 @@ function Overview({ go }) {
       </div>
       <div className="flex flex-wrap gap-2">
         <Link to="/unggah" className="btn-outline"><Upload size={16} /> Unggah buku (langsung tayang)</Link>
+        <button onClick={() => go("impor")} className="btn-outline"><Link2 size={16} /> Impor dari tautan</button>
         <Link to="/diskusi" className="btn-outline">Moderasi diskusi</Link>
       </div>
     </div>
@@ -181,9 +185,10 @@ function AllBooks() {
           <option value="revisi">Perlu revisi</option>
           <option value="ditolak">Ditolak</option>
         </select>
+        <AutoCoverButton onDone={load} />
       </div>
       {!res ? <Spinner /> : res.items.length === 0 ? <Empty title="Tidak ada buku" /> : (
-        <div className="overflow-x-auto rounded-xl border border-line bg-white">
+        <div className="overflow-x-auto rounded-xl border border-line bg-surface">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="bg-mist text-left text-xs text-ink-mute">
               <tr>
@@ -258,7 +263,7 @@ function Reviews() {
     <>
       <div className="mb-4 flex flex-wrap gap-1">
         {["", "5", "4", "3", "2", "1"].map((r) => (
-          <button key={r} onClick={() => { setPage(1); setRating(r); }} className={`rounded-full border px-3 py-1 text-sm font-semibold ${rating === r ? "border-teal bg-teal text-white" : "border-line bg-white"}`}>
+          <button key={r} onClick={() => { setPage(1); setRating(r); }} className={`rounded-full border px-3 py-1 text-sm font-semibold ${rating === r ? "border-teal bg-teal text-white" : "border-line bg-surface"}`}>
             {r ? `${r} bintang` : "Semua"}
           </button>
         ))}
@@ -337,13 +342,13 @@ function UsersTab() {
         </select>
       </div>
       {!res ? <Spinner /> : (
-        <ul className="divide-y divide-line rounded-xl border border-line bg-white">
+        <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
           {res.items.map((u) => (
             <li key={u._id} className="flex flex-wrap items-center gap-3 p-4">
               <Avatar user={u} size={38} />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">
-                  <UserLink user={u} /> {u.role === "admin" && <span className="ml-1 rounded bg-ink px-1.5 py-0.5 text-[10px] font-bold text-white">ADMIN</span>}
+                  <UserLink user={u} /> {u.role === "admin" && <span className="ml-1 rounded bg-night px-1.5 py-0.5 text-[10px] font-bold text-white">ADMIN</span>}
                 </p>
                 <p className="truncate text-xs text-ink-mute">@{u.username} · {u.email} · {u.bukuCount} buku · bergabung {formatDate(u.createdAt)}</p>
               </div>
@@ -389,7 +394,7 @@ export default function Admin() {
         <p className="mb-3 flex items-center gap-2 font-serif text-xl font-semibold"><BookCheck size={20} className="text-teal" /> Admin</p>
         <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 md:mx-0 md:flex-col md:px-0" aria-label="Menu admin">
           {TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => go(id)} aria-current={tab === id ? "page" : undefined} className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold ${tab === id ? "bg-ink text-white" : "text-ink-soft hover:bg-white"}`}>
+            <button key={id} onClick={() => go(id)} aria-current={tab === id ? "page" : undefined} className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold ${tab === id ? "bg-night text-white" : "text-ink-soft hover:bg-surface"}`}>
               <Icon size={16} /> {label}
             </button>
           ))}
@@ -400,6 +405,8 @@ export default function Admin() {
         {tab === "ringkasan" && <Overview go={go} />}
         {tab === "masuk" && <Incoming />}
         {tab === "buku" && <AllBooks />}
+        {tab === "impor" && <ImportBooks />}
+        {tab === "kategori" && <CategoriesTab />}
         {tab === "ulasan" && <Reviews />}
         {tab === "pengguna" && <UsersTab />}
       </section>

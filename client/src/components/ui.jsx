@@ -22,7 +22,7 @@ export function PageLoader() {
 
 export function Empty({ title, children, action }) {
   return (
-    <div className="rounded-xl border border-dashed border-line bg-white/60 px-6 py-12 text-center">
+    <div className="rounded-xl border border-dashed border-line bg-surface/60 px-6 py-12 text-center">
       <p className="font-semibold text-ink">{title}</p>
       {children && <p className="mx-auto mt-1 max-w-md text-sm text-ink-mute">{children}</p>}
       {action && <div className="mt-4">{action}</div>}
@@ -138,8 +138,8 @@ export function Modal({ open, onClose, title, children, width = "max-w-lg" }) {
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/50 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div role="dialog" aria-modal="true" aria-label={title} className={`w-full ${width} max-h-[90vh] overflow-y-auto rounded-xl bg-white p-5 shadow-lift`}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
+      <div role="dialog" aria-modal="true" aria-label={title} className={`w-full ${width} max-h-[90vh] overflow-y-auto rounded-xl bg-surface p-5 shadow-lift`}>
         <div className="mb-4 flex items-start justify-between gap-4">
           <h2 className="text-lg font-bold">{title}</h2>
           <button className="rounded p-1 text-ink-mute hover:bg-mist" onClick={onClose} aria-label="Tutup">

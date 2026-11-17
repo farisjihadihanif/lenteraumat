@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import { api } from "../lib/api";
-import { CATEGORIES } from "../lib/format";
+import { useCategories } from "../lib/categories";
 import BookGrid from "../components/BookGrid";
 import { Empty, ErrorBox, Pagination, Spinner } from "../components/ui";
 
@@ -20,6 +20,7 @@ export default function Catalog() {
   const sort = params.get("sort") || "terbaru";
   const page = Number(params.get("page")) || 1;
   const [input, setInput] = useState(q);
+  const categories = useCategories();
   const [res, setRes] = useState(null);
   const [error, setError] = useState("");
 
@@ -62,9 +63,9 @@ export default function Catalog() {
         </form>
         <select className="field sm:w-56" value={kategori} onChange={(e) => update({ kategori: e.target.value })} aria-label="Kategori">
           <option value="">Semua kategori</option>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
+          {categories.map((c) => (
+            <option key={c.name} value={c.name}>
+              {c.name} ({c.count})
             </option>
           ))}
         </select>
@@ -80,7 +81,7 @@ export default function Catalog() {
       {q && (
         <p className="mt-5 flex items-center gap-2 text-sm text-ink-soft">
           Hasil pencarian “{q}”
-          <button onClick={() => update({ q: "" })} className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-ink-mute hover:text-ink">
+          <button onClick={() => update({ q: "" })} className="inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-xs font-semibold text-ink-mute hover:text-ink">
             <X size={12} /> hapus
           </button>
         </p>

@@ -31,6 +31,8 @@ module.exports = {
   geminiApiKey: process.env.GEMINI_API_KEY || "",
   // "gemini-flash-latest" otomatis mengikuti model Flash terbaru dari Google.
   geminiModel: process.env.GEMINI_MODEL || "gemini-flash-latest",
+  // Dipakai otomatis bila model utama sibuk/gagal.
+  geminiFallbackModel: process.env.GEMINI_FALLBACK_MODEL ?? "gemini-2.5-flash",
 
   // Penyimpanan file: Cloudinary kalau CLOUDINARY_URL diisi, selain itu disk lokal.
   cloudinaryUrl: process.env.CLOUDINARY_URL || "",

@@ -139,7 +139,7 @@ export default function DiscussionDetail() {
             </div>
           </form>
         ) : (
-          <p className="mt-6 rounded-lg bg-white p-4 text-sm text-ink-soft">
+          <p className="mt-6 rounded-lg bg-surface p-4 text-sm text-ink-soft">
             <Link to={`/masuk?next=/diskusi/${id}`} className="font-semibold text-teal hover:underline">
               Masuk
             </Link>{" "}

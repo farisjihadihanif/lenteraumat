@@ -92,7 +92,7 @@ function Reviews({ book, onRating }) {
 
         <div>
           {!user && (
-            <p className="mb-6 rounded-lg bg-white p-4 text-sm text-ink-soft">
+            <p className="mb-6 rounded-lg bg-surface p-4 text-sm text-ink-soft">
               <Link to={`/masuk?next=/buku/${book._id}`} className="font-semibold text-teal hover:underline">
                 Masuk
               </Link>{" "}
@@ -257,12 +257,24 @@ export default function BookDetail() {
     ["Halaman", book.halaman || null],
     ["Ukuran file", book.file?.size ? formatSize(book.file.size) : null],
     ["Ditambahkan", formatDate(book.createdAt)],
+    ["Lisensi", book.lisensi],
+    [
+      "Sumber",
+      book.sumber &&
+        (book.sumberUrl ? (
+          <a href={book.sumberUrl} target="_blank" rel="noopener noreferrer" className="text-teal hover:underline">
+            {book.sumber}
+          </a>
+        ) : (
+          book.sumber
+        )),
+    ],
   ].filter(([, v]) => v);
 
   return (
     <div className="container-page py-8">
       {book.status !== "disetujui" && (
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
+        <div className="mb-6 rounded-xl border border-amber-300/50 bg-amber-500/10 p-4 text-sm">
           <div className="flex items-center gap-2">
             <StatusBadge status={book.status} />
             <span className="text-ink-soft">Buku ini hanya terlihat olehmu dan admin sampai disetujui.</span>

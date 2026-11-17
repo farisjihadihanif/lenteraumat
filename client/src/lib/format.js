@@ -17,21 +17,6 @@ export const formatSize = (b) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB`
 
 export const displayName = (u) => u?.namaLengkap || u?.username || "Pengguna";
 
-export const CATEGORIES = [
-  "Al-Qur'an & Tafsir",
-  "Hadis",
-  "Fikih",
-  "Akidah & Akhlak",
-  "Sejarah Islam",
-  "Pendidikan",
-  "Sains & Teknologi",
-  "Bahasa",
-  "Sastra",
-  "Pengembangan Diri",
-  "Anak",
-  "Umum",
-];
-
 export const STATUS = {
   menunggu: { label: "Menunggu tinjauan", cls: "bg-amber-100 text-amber-800" },
   disetujui: { label: "Tayang", cls: "bg-emerald-100 text-emerald-800" },
