@@ -62,12 +62,15 @@ function issueToken(res, user, req = null) {
   const token = sign(user);
   res.cookie(COOKIE, token, cookieOptions());
   if (req) {
-    const others = readAccounts(req).filter((t) => subOf(t) !== String(user._id));
+    // Akun yang sedang dipakai sebelum ini ikut diingat, supaya bisa dipilih lagi lewat "Ganti akun".
+    const current = req.cookies?.[COOKIE];
+    const others = [...readAccounts(req), ...(current ? [current] : [])].filter((t) => subOf(t) !== String(user._id));
     writeAccounts(res, [...others, token]);
   }
   return token;
 }
 
+// forget=false: keluar tapi akun tetap ada di daftar perangkat (masuk lagi sekali klik).
 function clearToken(res, req = null, { forget = true } = {}) {
   const { maxAge, ...opts } = cookieOptions();
   res.clearCookie(COOKIE, opts);

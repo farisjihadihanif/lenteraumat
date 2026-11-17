@@ -26,7 +26,7 @@ function cleanQuiz(raw) {
     judul: str(raw.judul, 200),
     level: str(raw.level, 20),
     jenjang: str(raw.jenjang, 80),
-    soal: qs.map((q) => ({ type: type(q.type), question: str(q.question, 2000), options: (q.options || []).slice(0, 6).map((o) => str(o, 500)) })),
+    soal: qs.map((q) => ({ type: type(q.type || raw.type), question: str(q.question, 2000), options: (q.options || []).slice(0, 6).map((o) => str(o, 500)) })),
     kunci: qs.map((q) => ({ answer: str(q.answer, 2000), explanation: str(q.explanation, 2000) })),
     kunciPublik: Boolean(raw.kunciPublik),
   };

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PenSquare, Repeat2, Search, FileQuestion } from "lucide-react";
 import { api } from "../lib/api";
-import { Avatar, Empty, ErrorBox, Pagination, Spinner } from "../components/ui";
+import { AdminBadge, Avatar, Empty, ErrorBox, Pagination, Spinner } from "../components/ui";
 import BookCover from "../components/BookCover";
 import PostActions from "../components/PostActions";
 import { displayName, timeAgo } from "../lib/format";
@@ -38,6 +38,7 @@ export function PostCard({ post, onChange }) {
               {displayName(post.author)}
             </Link>
             <span className="text-ink-mute">@{post.author?.username}</span>
+            <AdminBadge user={post.author} />
             <span className="text-ink-mute" aria-hidden>
               ·
             </span>

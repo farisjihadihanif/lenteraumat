@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { BookCheck, Inbox, LayoutDashboard, Library, Search, Star, Trash2, Users, Check, X, PencilLine, ExternalLink, Upload, Link2, Tags } from "lucide-react";
+import { BookCheck, Inbox, LayoutDashboard, Library, Search, Star, Trash2, Users, Check, X, PencilLine, ExternalLink, Upload, Link2, Tags, Flag } from "lucide-react";
 import { AutoCoverButton, CategoriesTab, ImportBooks } from "./AdminLibrary";
 import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
@@ -15,6 +15,7 @@ const TABS = [
   { id: "buku", label: "Semua buku", icon: Library },
   { id: "impor", label: "Impor buku", icon: Link2 },
   { id: "kategori", label: "Kategori", icon: Tags },
+  { id: "laporan", label: "Laporan", icon: Flag },
   { id: "ulasan", label: "Ulasan", icon: Star },
   { id: "pengguna", label: "Pengguna", icon: Users },
 ];
@@ -81,6 +82,13 @@ function Overview({ go }) {
   ];
   return (
     <div className="space-y-6">
+      {s.laporan > 0 && (
+        <button onClick={() => go("laporan")} className="flex w-full items-center gap-4 rounded-xl border border-danger/30 bg-red-500/5 p-4 text-left hover:border-danger/60">
+          <Flag className="text-danger" />
+          <span className="flex-1 font-bold">{s.laporan} laporan baru dari pengguna.</span>
+          <span className="btn-outline btn-sm">Lihat</span>
+        </button>
+      )}
       {s.books.menunggu > 0 && (
         <button onClick={() => go("masuk")} className="flex w-full items-center gap-4 rounded-xl bg-lantern-soft p-4 text-left hover:ring-2 hover:ring-lantern/40">
           <Inbox className="text-lantern-text" />
@@ -348,7 +356,7 @@ function UsersTab() {
               <Avatar user={u} size={38} />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">
-                  <UserLink user={u} /> {u.role === "admin" && <span className="ml-1 rounded bg-night px-1.5 py-0.5 text-[10px] font-bold text-white">ADMIN</span>}
+                  <UserLink user={u} />
                 </p>
                 <p className="truncate text-xs text-ink-mute">@{u.username} · {u.email} · {u.bukuCount} buku · bergabung {formatDate(u.createdAt)}</p>
               </div>
@@ -383,6 +391,121 @@ function UsersTab() {
   );
 }
 
+const REPORT_REASON = { spam: "Spam", tidak_pantas: "Tidak pantas", hak_cipta: "Hak cipta", salah_informasi: "Informasi keliru", lainnya: "Lainnya" };
+const REPORT_TYPE = { book: "Buku", discussion: "Diskusi", comment: "Balasan", review: "Ulasan" };
+
+function ReportsTab() {
+  const [status, setStatus] = useState("baru");
+  const [pageNum, setPageNum] = useState(1);
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [remove, setRemove] = useState(null);
+  const load = useCallback(() => {
+    setError("");
+    api.get(`/reports?status=${status}&page=${pageNum}`).then(setData).catch((e) => setError(e.message));
+  }, [status, pageNum]);
+  useEffect(() => {
+    setData(null);
+    load();
+  }, [load]);
+  const mark = async (r, s) => {
+    try {
+      await api.patch(`/reports/${r._id}`, { status: s });
+      toast.success(s === "diabaikan" ? "Laporan diabaikan." : s === "baru" ? "Laporan dibuka lagi." : "Laporan ditandai selesai.");
+      load();
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 rounded-lg bg-mist p-1 text-sm font-semibold w-fit" role="tablist">
+        {[["baru", "Baru"], ["selesai", "Selesai"], ["diabaikan", "Diabaikan"]].map(([v, l]) => (
+          <button key={v} role="tab" aria-selected={status === v} onClick={() => { setStatus(v); setPageNum(1); }} className={`rounded-md px-3 py-1.5 ${status === v ? "bg-surface text-ink shadow-sm" : "text-ink-soft hover:text-ink"}`}>
+            {l}
+          </button>
+        ))}
+      </div>
+      <ErrorBox>{error}</ErrorBox>
+      {!data ? (
+        <Spinner />
+      ) : data.items.length === 0 ? (
+        <Empty title={status === "baru" ? "Tidak ada laporan baru" : "Belum ada"}>{status === "baru" ? "Laporan dari pengguna akan muncul di sini." : ""}</Empty>
+      ) : (
+        <ul className="space-y-3">
+          {data.items.map((r) => (
+            <li key={r._id} className="panel p-4">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="rounded bg-mist px-2 py-0.5 font-semibold">{REPORT_TYPE[r.targetType]}</span>
+                <span className="rounded bg-red-500/10 px-2 py-0.5 font-semibold text-danger">{REPORT_REASON[r.alasan]}</span>
+                <span className="text-ink-mute">
+                  dilaporkan oleh <UserLink user={r.reporter} handle={false} /> · {timeAgo(r.createdAt)}
+                </span>
+              </div>
+              {r.targetInfo ? (
+                <div className="mt-3 rounded-lg border-l-4 border-line bg-mist/50 px-3 py-2">
+                  <Link to={r.targetInfo.link} target="_blank" className="font-semibold hover:underline">
+                    {r.targetInfo.title} <ExternalLink size={12} className="inline" />
+                  </Link>
+                  {r.targetInfo.author && (
+                    <p className="text-xs text-ink-mute">
+                      oleh <UserLink user={r.targetInfo.author} />
+                    </p>
+                  )}
+                  {r.targetInfo.sub && <p className="mt-1 line-clamp-3 text-sm text-ink-soft">{r.targetInfo.sub}</p>}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-ink-mute">Konten sudah dihapus.</p>
+              )}
+              {r.catatan && <p className="mt-2 text-sm"><span className="text-ink-mute">Keterangan:</span> {r.catatan}</p>}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {r.status === "baru" ? (
+                  <>
+                    {r.targetInfo && (
+                      <button className="btn-outline btn-sm text-danger" onClick={() => setRemove(r)}>
+                        <Trash2 size={14} /> Hapus konten
+                      </button>
+                    )}
+                    <button className="btn-outline btn-sm" onClick={() => mark(r, "selesai")}>
+                      <Check size={14} /> Tandai selesai
+                    </button>
+                    <button className="btn-ghost btn-sm" onClick={() => mark(r, "diabaikan")}>
+                      Abaikan
+                    </button>
+                  </>
+                ) : (
+                  <button className="btn-ghost btn-sm" onClick={() => mark(r, "baru")}>
+                    Buka lagi
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {data && data.pages > 1 && <Pagination page={pageNum} pages={data.pages} onChange={setPageNum} />}
+      <ConfirmModal
+        open={Boolean(remove)}
+        title="Hapus konten yang dilaporkan?"
+        message={remove ? `${REPORT_TYPE[remove.targetType]} "${remove.targetInfo?.title}" akan dihapus permanen. Semua laporan untuk konten ini ditandai selesai.` : ""}
+        confirmLabel="Hapus"
+        danger
+        onClose={() => setRemove(null)}
+        onConfirm={async () => {
+          try {
+            await api.post(`/reports/${remove._id}/remove-content`);
+            toast.success("Konten dihapus.");
+            setRemove(null);
+            load();
+          } catch (e) {
+            toast.error(e.message);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
 export default function Admin() {
   const [params, setParams] = useSearchParams();
   const tab = TABS.some((t) => t.id === params.get("tab")) ? params.get("tab") : "ringkasan";
@@ -407,6 +530,7 @@ export default function Admin() {
         {tab === "buku" && <AllBooks />}
         {tab === "impor" && <ImportBooks />}
         {tab === "kategori" && <CategoriesTab />}
+        {tab === "laporan" && <ReportsTab />}
         {tab === "ulasan" && <Reviews />}
         {tab === "pengguna" && <UsersTab />}
       </section>

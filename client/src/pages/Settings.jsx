@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import AvatarCropper from "../components/AvatarCropper";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { api } from "../lib/api";
@@ -10,6 +11,8 @@ export default function Settings() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ namaLengkap: user.namaLengkap, bio: user.bio, instagramUrl: user.instagramUrl, linkedinUrl: user.linkedinUrl });
   const [foto, setFoto] = useState(null);
+  const [raw, setRaw] = useState(null);
+  const preview = useMemo(() => (foto ? URL.createObjectURL(foto) : ""), [foto]);
   const [pw, setPw] = useState({ passwordLama: "", passwordBaru: "" });
   const [err, setErr] = useState({});
   const [busy, setBusy] = useState("");
@@ -72,11 +75,32 @@ export default function Settings() {
       <form onSubmit={saveProfile} className="panel space-y-4 p-5">
         <h2 className="font-bold">Profil</h2>
         <div className="flex items-center gap-4">
-          {foto ? <img src={URL.createObjectURL(foto)} alt="" className="h-16 w-16 rounded-full object-cover" /> : <Avatar user={user} size={64} />}
+          {foto ? <img src={preview} alt="" className="h-16 w-16 rounded-full object-cover" /> : <Avatar user={user} size={64} />}
           <label className="btn-outline btn-sm cursor-pointer">
             Ganti foto
-            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => setFoto(e.target.files[0] || null)} />
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              onChange={(e) => {
+                setRaw(e.target.files[0] || null);
+                e.target.value = "";
+              }}
+            />
           </label>
+          {foto && (
+            <button type="button" className="btn-ghost btn-sm" onClick={() => setFoto(null)}>
+              Batal ganti
+            </button>
+          )}
+          <AvatarCropper
+            file={raw}
+            onCancel={() => setRaw(null)}
+            onDone={(f) => {
+              setFoto(f);
+              setRaw(null);
+            }}
+          />
         </div>
         <div>
           <label className="label" htmlFor="nama">Nama lengkap</label>

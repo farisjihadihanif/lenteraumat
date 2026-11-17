@@ -9,7 +9,7 @@ import { PageLoader } from "./components/ui";
 import Home from "./pages/Home";
 import Catalog from "./pages/Catalog";
 import BookDetail from "./pages/BookDetail";
-import { Login, Register } from "./pages/Auth";
+import { ForgotPassword, Login, Register, ResetPassword } from "./pages/Auth";
 import { NotFound, Terms } from "./pages/Static";
 
 // Halaman berat dimuat terpisah supaya beranda cepat terbuka.
@@ -50,6 +50,8 @@ export default function App() {
               <Route path="admin" element={auth(<Admin />, true)} />
               <Route path="masuk" element={<Login />} />
               <Route path="daftar" element={<Register />} />
+              <Route path="lupa-password" element={<ForgotPassword />} />
+              <Route path="reset-password" element={<ResetPassword />} />
               <Route path="ketentuan" element={<Terms />} />
               <Route path="*" element={<NotFound />} />
             </Route>

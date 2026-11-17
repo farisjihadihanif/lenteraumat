@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Copy, Eye, EyeOff, Printer } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, Printer, Share2 } from "lucide-react";
 
 const LETTERS = "ABCDEF";
 const TYPE = { pilihan: "Pilihan ganda", isian: "Isian", esai: "Esai" };
@@ -126,7 +126,7 @@ export default function QuizSheet({ quiz, onPost }) {
         </button>
         {onPost && (
           <button className="btn-teal btn-sm" onClick={onPost}>
-            Posting ke Discussion
+            <Share2 size={14} /> Bagikan ke Discussion
           </button>
         )}
       </div>

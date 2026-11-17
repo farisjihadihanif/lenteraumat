@@ -39,4 +39,18 @@ module.exports = {
   uploadDir: process.env.UPLOAD_DIR || require("path").join(__dirname, "..", "uploads"),
   publicApiUrl: (process.env.PUBLIC_API_URL || "").replace(/\/+$/, ""),
   maxPdfMb: Number(process.env.MAX_PDF_MB) || 40,
+
+  // Batas pemakaian LUMA per user per hari (admin tidak dibatasi). 0 = tanpa batas.
+  lumaDailyLimit: Number(process.env.LUMA_DAILY_LIMIT ?? 40),
+
+  // Email (lupa password). Gmail: SMTP_USER = alamat Gmail, SMTP_PASS = App Password 16 huruf.
+  smtp: {
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT) || 465,
+    user: process.env.SMTP_USER || "",
+    pass: process.env.SMTP_PASS || "",
+    from: process.env.SMTP_FROM || "",
+  },
+  // Alamat web yang dibuka user (untuk link reset password di email).
+  appUrl: (process.env.APP_URL || (process.env.CLIENT_ORIGIN || "http://localhost:5173").split(",")[0]).trim().replace(/\/+$/, ""),
 };

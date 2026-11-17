@@ -5,6 +5,7 @@ const Review = require("../models/Review");
 const Discussion = require("../models/Discussion");
 const Comment = require("../models/Comment");
 const Category = require("../models/Category");
+const Report = require("../models/Report");
 const categories = require("../services/categories");
 const importer = require("../services/importer");
 const { storePdf, indexText } = require("../services/bookFiles");
@@ -18,7 +19,7 @@ const router = express.Router();
 router.use(requireAdmin);
 
 router.get("/stats", async (req, res) => {
-  const [menunggu, disetujui, ditolak, revisi, users, reviews, discussions, reads] = await Promise.all([
+  const [menunggu, disetujui, ditolak, revisi, users, reviews, discussions, reads, laporan] = await Promise.all([
     Book.countDocuments({ status: "menunggu" }),
     Book.countDocuments({ status: "disetujui" }),
     Book.countDocuments({ status: "ditolak" }),
@@ -27,8 +28,9 @@ router.get("/stats", async (req, res) => {
     Review.countDocuments(),
     Discussion.countDocuments(),
     Book.aggregate([{ $group: { _id: null, n: { $sum: "$dibaca" } } }]),
+    Report.countDocuments({ status: "baru" }),
   ]);
-  res.json({ books: { menunggu, disetujui, ditolak, revisi }, users, reviews, discussions, reads: reads[0]?.n || 0 });
+  res.json({ books: { menunggu, disetujui, ditolak, revisi }, users, reviews, discussions, reads: reads[0]?.n || 0, laporan });
 });
 
 // Semua buku (semua status) untuk dikelola admin.

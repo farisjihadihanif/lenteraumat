@@ -8,6 +8,7 @@ import Markdown from "../components/Markdown";
 import PostActions from "../components/PostActions";
 import { DiscussionQuiz } from "../components/quiz/QuizSheet";
 import BookCover from "../components/BookCover";
+import ReportButton from "../components/ReportButton";
 import { Avatar, ConfirmModal, Empty, ErrorBox, PageLoader, Stars, UserLink } from "../components/ui";
 import { formatDate, timeAgo } from "../lib/format";
 
@@ -76,8 +77,8 @@ export default function DiscussionDetail() {
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-mute">
           <Avatar user={d.author} size={28} />
           <UserLink user={d.author} className="text-ink" />
-          <span className="text-ink-mute">@{d.author?.username}</span>
-          <time dateTime={d.createdAt}>{formatDate(d.createdAt)}</time>
+          <time dateTime={d.createdAt}>· {formatDate(d.createdAt)}</time>
+          <ReportButton type="discussion" id={d._id} ownerId={d.author?._id} className="ml-auto text-xs" />
         </div>
 
         {d.book && (
@@ -136,11 +137,14 @@ export default function DiscussionDetail() {
                   <UserLink user={c.author} /> <span className="text-xs text-ink-mute">· {timeAgo(c.createdAt)}</span>
                 </p>
                 <p className="mt-1 whitespace-pre-line text-[15px] text-ink-soft">{c.isi}</p>
-                {user && (c.author?._id === user._id || isAdmin) && (
-                  <button className="mt-1 text-xs font-semibold text-danger hover:underline" onClick={() => setDel(c)}>
-                    Hapus
-                  </button>
-                )}
+                <div className="mt-1 flex gap-3 text-xs">
+                  <ReportButton type="comment" id={c._id} ownerId={c.author?._id} />
+                  {user && (c.author?._id === user._id || isAdmin) && (
+                    <button className="font-semibold text-danger hover:underline" onClick={() => setDel(c)}>
+                      Hapus
+                    </button>
+                  )}
+                </div>
               </div>
             </li>
           ))}

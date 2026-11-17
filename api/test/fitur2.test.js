@@ -56,8 +56,14 @@ test("ganti akun: akun tersimpan di perangkat, pindah tanpa password", async () 
   assert.equal((await agent.get("/api/auth/me")).body.user.username, "satu");
   // perangkat lain tidak bisa pindah ke akun yang tidak tersimpan di perangkatnya
   await h.request(app).post("/api/auth/switch").send({ userId: satuId }).expect(401);
-  // keluar dari "satu": hanya akun itu yang dilupakan
+  // keluar dari "satu": akun tetap tersimpan, bisa dipilih lagi tanpa password
   await agent.post("/api/auth/logout").expect(200);
+  assert.equal((await agent.get("/api/auth/me")).body.user, null);
+  const saved = (await agent.get("/api/auth/accounts")).body.accounts;
+  assert.deepEqual(saved.map((x) => x.username).sort(), ["dua", "satu"]);
+  await agent.post("/api/auth/switch").send({ userId: satuId }).expect(200);
+  // keluar sambil melupakan akun
+  await agent.post("/api/auth/logout").send({ forget: true }).expect(200);
   const left = (await agent.get("/api/auth/accounts")).body.accounts;
   assert.deepEqual(left.map((x) => x.username), ["dua"]);
   await agent.post("/api/auth/switch").send({ userId: left[0]._id }).expect(200);
@@ -67,6 +73,18 @@ test("ganti akun: akun tersimpan di perangkat, pindah tanpa password", async () 
   await other.put("/api/users/me/password").send({ passwordLama: "rahasia123", passwordBaru: "barubaru123" }).expect(200);
   assert.equal((await agent.get("/api/auth/accounts")).body.accounts.length, 0);
   await agent.post("/api/auth/logout-all").expect(200);
+});
+
+test("ganti akun: sesi lama (sebelum ada daftar akun) ikut diingat saat tambah akun", async () => {
+  await h.request(app).post("/api/auth/register").send({ username: "lama", email: "lama@lu.id", password: "rahasia123", namaLengkap: "Lama" }).expect(201);
+  await h.request(app).post("/api/auth/register").send({ username: "baru", email: "baru@lu.id", password: "rahasia123", namaLengkap: "Baru" }).expect(201);
+  const login = await h.request(app).post("/api/auth/login").send({ identifier: "lama", password: "rahasia123" }).expect(200);
+  const token = login.headers["set-cookie"].find((c) => c.startsWith("token=")).split(";")[0];
+  // hanya cookie token, tanpa cookie accounts
+  const res = await h.request(app).post("/api/auth/login").set("Cookie", token).send({ identifier: "baru", password: "rahasia123" }).expect(200);
+  const cookies = res.headers["set-cookie"].map((c) => c.split(";")[0]).join("; ");
+  const acc = (await h.request(app).get("/api/auth/accounts").set("Cookie", cookies)).body.accounts;
+  assert.deepEqual(acc.map((x) => x.username).sort(), ["baru", "lama"]);
 });
 
 test("LUMA: lampiran dikirim lewat Files API, nama pengguna di system prompt", async () => {

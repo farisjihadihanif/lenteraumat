@@ -72,7 +72,7 @@ function UserMenu() {
   };
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen((v) => !v)} className="block rounded-full ring-offset-2 ring-offset-surface hover:ring-2 hover:ring-line" aria-expanded={open} aria-haspopup="menu" aria-label="Menu akun">
+      <button onClick={() => setOpen((v) => !v)} className="block shrink-0 rounded-full ring-offset-2 ring-offset-surface hover:ring-2 hover:ring-line" aria-expanded={open} aria-haspopup="menu" aria-label="Menu akun">
         <Avatar user={user} size={34} />
       </button>
       {open && (

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, X } from "lucide-react";
 import { useAuth } from "../context/Auth";
+import { api } from "../lib/api";
 import { Avatar, ErrorBox } from "../components/ui";
 import { displayName } from "../lib/format";
 import luma from "../assets/Maskot/Luma1.png";
@@ -112,6 +113,9 @@ export function Login() {
           <input id="identifier" className="field" autoComplete="username" required value={form.identifier} onChange={(e) => setForm((f) => ({ ...f, identifier: e.target.value }))} />
         </div>
         <PasswordField id="password" autoComplete="current-password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
+        <div className="-mt-2 text-right">
+          <Link to="/lupa-password" className="text-sm text-teal hover:underline">Lupa password?</Link>
+        </div>
         <ErrorBox>{error}</ErrorBox>
         <button className="btn-primary w-full" disabled={busy}>{busy ? "Masuk…" : "Masuk"}</button>
       </form>
@@ -164,6 +168,82 @@ export function Register() {
         <ErrorBox>{error}</ErrorBox>
         <button className="btn-primary w-full" disabled={busy}>{busy ? "Membuat akun…" : "Daftar"}</button>
       </form>
+    </Shell>
+  );
+}
+
+export function ForgotPassword() {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [done, setDone] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const r = await api.post("/auth/forgot", { email: email.trim() });
+      setDone(r.message);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Shell title="Lupa password" footer={<Link to="/masuk" className="font-semibold text-teal hover:underline">Kembali ke halaman masuk</Link>}>
+      {done ? (
+        <p className="text-ink-soft">{done}</p>
+      ) : (
+        <form onSubmit={submit} className="space-y-4">
+          <p className="text-sm text-ink-soft">Masukkan email akunmu. Kami kirim link untuk membuat password baru.</p>
+          <div>
+            <label className="label" htmlFor="email">Email</label>
+            <input id="email" type="email" className="field" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <ErrorBox>{error}</ErrorBox>
+          <button className="btn-primary w-full" disabled={busy}>{busy ? "Mengirim…" : "Kirim link"}</button>
+        </form>
+      )}
+    </Shell>
+  );
+}
+
+export function ResetPassword() {
+  const { setUser } = useAuth();
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const token = params.get("token") || "";
+  const [pw, setPw] = useState({ a: "", b: "" });
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault();
+    if (pw.a.length < 8) return setError("Password minimal 8 karakter.");
+    if (pw.a !== pw.b) return setError("Kedua password tidak sama.");
+    setBusy(true);
+    setError("");
+    try {
+      const { user } = await api.post("/auth/reset", { token, password: pw.a });
+      setUser(user);
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
+  };
+  return (
+    <Shell title="Buat password baru" footer={<Link to="/lupa-password" className="font-semibold text-teal hover:underline">Minta link baru</Link>}>
+      {!token ? (
+        <p className="text-ink-soft">Link tidak lengkap. Buka lagi link dari email, atau minta link baru.</p>
+      ) : (
+        <form onSubmit={submit} className="space-y-4">
+          <PasswordField id="pw-a" label="Password baru" autoComplete="new-password" value={pw.a} onChange={(e) => setPw((p) => ({ ...p, a: e.target.value }))} />
+          <PasswordField id="pw-b" label="Ulangi password baru" autoComplete="new-password" value={pw.b} onChange={(e) => setPw((p) => ({ ...p, b: e.target.value }))} />
+          <ErrorBox>{error}</ErrorBox>
+          <button className="btn-primary w-full" disabled={busy}>{busy ? "Menyimpan…" : "Simpan password"}</button>
+        </form>
+      )}
     </Shell>
   );
 }

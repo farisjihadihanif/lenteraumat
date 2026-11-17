@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { BookOpenText, Check, Copy, FileQuestion, FileText, Film, History, Image as ImageIcon, MessageCircle, Music, Paperclip, Plus, ScrollText, Send, Trash2, X, Search, RotateCcw } from "lucide-react";
+import { BookOpenText, Check, Copy, FileQuestion, FileText, Film, History, Image as ImageIcon, MessageCircle, Music, Paperclip, Plus, ScrollText, Send, Trash2, X, Search, RotateCcw, Share2 } from "lucide-react";
 import QuizSheet from "../components/quiz/QuizSheet";
 import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
@@ -17,11 +17,6 @@ const MODES = [
   { id: "summary", label: "Ringkasan", icon: ScrollText },
   { id: "quiz", label: "Kuis", icon: FileQuestion },
 ];
-
-const SUGGEST = {
-  chat: ["Apa beda sabar dan pasrah?", "Tips membaca buku lebih fokus", "Jelaskan arti tawakal dengan contoh"],
-  ask: ["Apa gagasan utama buku ini?", "Jelaskan isi bab pertama", "Siapa saja tokoh yang dibahas?"],
-};
 
 function BookPicker({ open, onClose, onPick }) {
   const [q, setQ] = useState("");
@@ -60,7 +55,7 @@ function BookPicker({ open, onClose, onPick }) {
   );
 }
 
-function QuizCard({ quiz }) {
+function QuizCard({ quiz, onPost }) {
   const [answers, setAnswers] = useState({});
   const [checked, setChecked] = useState(false);
   const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9À-ɏ]+/g, " ").trim();
@@ -124,6 +119,11 @@ function QuizCard({ quiz }) {
             </button>
           </>
         )}
+        {onPost && (
+          <button className="btn-outline btn-sm sm:ml-auto" onClick={onPost}>
+            <Share2 size={14} /> Bagikan ke Discussion
+          </button>
+        )}
       </div>
     </div>
   );
@@ -169,7 +169,7 @@ function PostQuizModal({ quiz, onClose }) {
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     if (!quiz) return;
-    setJudul(`Latihan soal: ${quiz.judul}`.slice(0, 200));
+    setJudul(`${quiz.untuk === "guru" ? "Latihan soal" : "Kuis"}: ${quiz.judul || quiz.book?.judul || ""}`.slice(0, 200));
     setIsi(`Kerjakan ${quiz.questions.length} soal berikut${quiz.jenjang ? ` (${quiz.jenjang})` : ""}. Tulis jawabanmu di kolom balasan, misalnya "1. B, 2. C, ...".`);
     setShare(false);
   }, [quiz]);
@@ -181,7 +181,7 @@ function PostQuizModal({ quiz, onClose }) {
         judul,
         isi,
         book: quiz.book?._id || "",
-        kuis: { judul: quiz.judul, level: quiz.level, jenjang: quiz.jenjang, questions: quiz.questions, kunciPublik: share },
+        kuis: { judul: quiz.judul, type: quiz.type, level: quiz.level, jenjang: quiz.jenjang, questions: quiz.questions, kunciPublik: share },
       });
       toast.success("Soal diposting ke Discussion.");
       navigate(`/diskusi/${discussion._id}`);
@@ -191,14 +191,14 @@ function PostQuizModal({ quiz, onClose }) {
     }
   };
   return (
-    <Modal open onClose={onClose} title="Posting soal ke Discussion">
+    <Modal open onClose={onClose} title="Bagikan soal ke Discussion">
       <div className="space-y-4">
         <div>
           <label className="label" htmlFor="pq-judul">Judul</label>
           <input id="pq-judul" className="field" maxLength={200} value={judul} onChange={(e) => setJudul(e.target.value)} />
         </div>
         <div>
-          <label className="label" htmlFor="pq-isi">Petunjuk untuk murid</label>
+          <label className="label" htmlFor="pq-isi">Petunjuk</label>
           <textarea id="pq-isi" className="field min-h-[90px]" maxLength={2000} value={isi} onChange={(e) => setIsi(e.target.value)} />
         </div>
         <label className="flex items-start gap-2 text-sm text-ink-soft">
@@ -241,7 +241,7 @@ function Message({ m, onPostQuiz }) {
           m.data.untuk === "guru" ? (
             <QuizSheet quiz={m.data} onPost={() => onPostQuiz?.(m.data)} />
           ) : (
-            <QuizCard quiz={m.data} />
+            <QuizCard quiz={m.data} onPost={() => onPostQuiz?.(m.data)} />
           )
         ) : (
           <Markdown>{m.content}</Markdown>
@@ -285,11 +285,14 @@ export default function Luma() {
   const endRef = useRef(null);
 
   const loadSessions = useCallback(() => api.get("/ai/sessions").then((r) => setSessions(r.items)).catch(() => {}), []);
+  const [quota, setQuota] = useState(null);
+  const loadQuota = useCallback(() => api.get("/ai/usage").then(setQuota).catch(() => {}), []);
 
   useEffect(() => {
     api.get("/ai/status").then(setStatus).catch(() => setStatus(null));
     loadSessions();
-  }, [loadSessions]);
+    loadQuota();
+  }, [loadSessions, loadQuota]);
 
   useEffect(() => {
     const id = params.get("book");
@@ -379,6 +382,7 @@ export default function Luma() {
       toast.error(e.message);
     } finally {
       setBusy(false);
+      loadQuota();
     }
   };
 
@@ -521,15 +525,6 @@ export default function Luma() {
                 {mode === "summary" && "Pilih panjang ringkasan, lalu aku rangkum isi bukunya."}
                 {mode === "quiz" && (opts.untuk === "guru" ? "Buat lembar soal lengkap dengan kunci jawaban. Bisa dicetak atau diposting ke Discussion untuk dikerjakan murid." : "Pilih buku atau tulis topik, lalu uji pemahamanmu.")}
               </p>
-              {SUGGEST[mode] && (mode === "chat" || book) && (
-                <div className="mt-5 flex flex-wrap justify-center gap-2">
-                  {SUGGEST[mode].map((s) => (
-                    <button key={s} onClick={() => send(s)} disabled={busy || disabled} className="rounded-full border border-line px-3 py-1.5 text-sm hover:border-teal hover:text-teal">
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           )}
           {messages.map((m, i) => (
@@ -687,6 +682,11 @@ export default function Luma() {
             </form>
           )}
           <p className="mt-2 text-center text-[11px] text-ink-mute">
+            {quota?.remaining != null && (
+              <span className={quota.remaining <= 5 ? "font-semibold text-lantern-text" : ""}>
+                Sisa {quota.remaining} dari {quota.limit} permintaan hari ini.{" "}
+              </span>
+            )}
             LUMA bisa keliru. Periksa kembali jawaban penting ke buku sumbernya atau ke guru. {book && <Link to={`/buku/${book._id}/baca`} className="underline">Buka bukunya</Link>}
           </p>
         </div>

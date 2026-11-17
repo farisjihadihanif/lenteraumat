@@ -16,11 +16,8 @@ function Hero() {
     >
       <img src={heroBg} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover grayscale" />
       <div className="absolute inset-0 -z-10 bg-black/65" aria-hidden />
-      <div className="fixed inset-x-0 top-[calc(50svh-5rem)] px-6 text-center">
+      <div className="fixed inset-x-0 top-[calc(50svh-3rem)] px-6 text-center">
         <h1 className="font-serif text-6xl font-semibold leading-none [text-shadow:1px_1px_4px_rgba(0,0,0,.8)] sm:text-7xl md:text-8xl">Lentera Umat</h1>
-        <p className="mx-auto mt-6 max-w-2xl text-white/90 [text-shadow:1px_1px_3px_rgba(0,0,0,.8)] sm:text-lg">
-          Lentera Umat Digital Library ~ read the book, discuss, summary and create a Quiz with Luma
-        </p>
       </div>
     </section>
   );
@@ -112,8 +109,8 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <LibrarySection />
       <LumaSection />
+      <LibrarySection />
     </>
   );
 }

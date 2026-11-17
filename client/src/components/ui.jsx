@@ -80,7 +80,7 @@ export function StarInput({ value, onChange }) {
 export function Avatar({ user, size = 36 }) {
   const name = displayName(user);
   if (user?.fotoProfil) {
-    return <img src={user.fotoProfil} alt="" className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />;
+    return <img src={user.fotoProfil} alt="" className="max-w-none shrink-0 rounded-full object-cover" style={{ width: size, height: size, minWidth: size }} />;
   }
   return (
     <span
@@ -93,12 +93,22 @@ export function Avatar({ user, size = 36 }) {
   );
 }
 
-export function UserLink({ user, className = "" }) {
+export function AdminBadge({ user }) {
+  if (user?.role !== "admin") return null;
+  return <span className="ml-1.5 inline-block rounded bg-night px-1 py-px align-middle text-[10px] font-bold leading-tight text-white dark:bg-teal dark:text-night">admin</span>;
+}
+
+// Nama + @username, supaya dua akun bernama sama tetap bisa dibedakan.
+export function UserLink({ user, className = "", handle = true }) {
   if (!user) return <span className={className}>Pengguna dihapus</span>;
   return (
-    <Link to={`/profil/${user.username}`} className={`font-semibold hover:underline ${className}`}>
-      {displayName(user)}
-    </Link>
+    <span className="inline">
+      <Link to={`/profil/${user.username}`} className={`font-semibold hover:underline ${className}`}>
+        {displayName(user)}
+      </Link>
+      {handle && <span className="ml-1 font-normal text-ink-mute">@{user.username}</span>}
+      <AdminBadge user={user} />
+    </span>
   );
 }
 

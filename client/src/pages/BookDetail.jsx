@@ -6,6 +6,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
 import BookCover from "../components/BookCover";
 import PdfPreview from "../components/PdfPreview";
+import ReportButton from "../components/ReportButton";
 import { Avatar, ConfirmModal, Empty, ErrorBox, PageLoader, Pagination, StarInput, Stars, StatusBadge, UserLink } from "../components/ui";
 import { displayName, formatDate, formatSize, timeAgo } from "../lib/format";
 
@@ -136,8 +137,10 @@ function Reviews({ book, onRating }) {
                       </div>
                       <Stars value={r.rating} size={13} className="mt-0.5" />
                       {r.komentar && <p className="mt-1.5 whitespace-pre-line text-sm text-ink-soft">{r.komentar}</p>}
+                      <div className="mt-2 flex gap-3 text-xs font-semibold">
+                        {!mine && <ReportButton type="review" id={r._id} ownerId={r.user?._id} className="font-normal" />}
                       {(mine || isAdmin) && (
-                        <div className="mt-2 flex gap-3 text-xs font-semibold">
+                        <>
                           {mine && (
                             <button className="text-teal hover:underline" onClick={() => setEditing(true)}>
                               Ubah
@@ -146,8 +149,9 @@ function Reviews({ book, onRating }) {
                           <button className="text-danger hover:underline" onClick={() => setDel(r)}>
                             Hapus
                           </button>
-                        </div>
+                        </>
                       )}
+                      </div>
                     </div>
                   </li>
                 );
@@ -333,6 +337,7 @@ export default function BookDetail() {
           </dl>
           <p className="mt-5 flex items-center gap-2 text-sm text-ink-mute">
             Diunggah oleh <Avatar user={book.uploadedBy} size={22} /> <UserLink user={book.uploadedBy} className="text-ink" />
+            <ReportButton type="book" id={book._id} ownerId={book.uploadedBy?._id} className="ml-auto text-xs" />
           </p>
 
           {book.canEdit && (

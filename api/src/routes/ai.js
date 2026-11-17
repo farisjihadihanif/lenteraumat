@@ -10,6 +10,7 @@ const { HttpError, isId } = require("../middleware/errors");
 const storage = require("../services/storage");
 const { extractText } = require("../services/pdfText");
 const gemini = require("../services/gemini");
+const { checkQuota, usage } = require("../services/quota");
 const { str } = require("../util");
 const multer = require("multer");
 
@@ -52,6 +53,11 @@ const limiter = rateLimit({
   message: { message: "Pelan-pelan ya, LUMA butuh jeda sebentar. Coba lagi dalam 1 menit." },
 });
 
+// Sisa jatah LUMA hari ini (null = tanpa batas).
+router.get("/usage", async (req, res) => {
+  res.json(await usage(req.user));
+});
+
 const CONTEXT_CHARS = 300000;
 const HISTORY = 20;
 
@@ -64,17 +70,35 @@ async function loadBook(id, user) {
   return book;
 }
 
+// Buku dari Internet Archive sudah punya teks OCR (_djvu.txt), jauh lebih ringan dari PDF-nya.
+async function archiveText(file) {
+  const m = /^https:\/\/archive\.org\/download\/(.+)\.pdf$/i.exec(file?.url || "");
+  if (!m) return null;
+  try {
+    const res = await fetch(`https://archive.org/download/${m[1]}_djvu.txt`, { signal: AbortSignal.timeout(60 * 1000), headers: { "User-Agent": "LenteraUmat/2.0" } });
+    if (!res.ok) return null;
+    const text = (await res.text()).slice(0, 400000);
+    return text.trim().length > 50 ? { text, pages: 0 } : null;
+  } catch {
+    return null;
+  }
+}
+
 // Teks buku diekstrak sekali lalu disimpan; kalau belum ada, ekstrak sekarang.
 async function bookText(book) {
   let doc = await BookText.findOne({ book: book._id });
   if (!doc || (!doc.text && !doc.error)) {
-    try {
-      const buffer = await storage.read(book.file);
-      const { text, pages } = await extractText(buffer);
-      doc = await BookText.findOneAndUpdate({ book: book._id }, { text, pages, error: "" }, { upsert: true, new: true });
-    } catch (error) {
-      doc = await BookText.findOneAndUpdate({ book: book._id }, { text: "", error: error.message }, { upsert: true, new: true });
+    let result = await archiveText(book.file);
+    if (!result) {
+      // Gagal mengambil file (jaringan / terlalu besar) tidak disimpan, supaya bisa dicoba lagi nanti.
+      const buffer = await storage.read(book.file, { maxMb: 150 });
+      try {
+        result = await extractText(buffer);
+      } catch (error) {
+        result = { text: "", pages: 0, error: error.message };
+      }
     }
+    doc = await BookText.findOneAndUpdate({ book: book._id }, { text: result.text, pages: result.pages, error: result.error || "" }, { upsert: true, new: true });
   }
   if (!doc.text || doc.text.replace(/\[Halaman \d+\]/g, "").trim().length < 50) {
     throw new HttpError(422, "Teks buku ini tidak bisa dibaca LUMA (mungkin berupa hasil scan/gambar).");
@@ -137,7 +161,7 @@ router.delete("/sessions/:id", async (req, res) => {
 });
 
 // ---------- Chat (bisa dengan konteks buku) ----------
-router.post("/chat", limiter, withAttachments, async (req, res) => {
+router.post("/chat", limiter, checkQuota, withAttachments, async (req, res) => {
   const files = req.files || [];
   let message = str(req.body.message, 4000);
   if (!message && !files.length) throw new HttpError(400, "Tulis pertanyaanmu dulu.");
@@ -171,7 +195,7 @@ router.post("/chat", limiter, withAttachments, async (req, res) => {
 });
 
 // ---------- Ringkasan ----------
-router.post("/summary", limiter, async (req, res) => {
+router.post("/summary", limiter, checkQuota, async (req, res) => {
   const book = await loadBook(req.body.bookId, req.user);
   const panjang = { singkat: "sekitar 5 poin penting", sedang: "sekitar 3–5 paragraf dengan poin-poin utama tiap bab", lengkap: "ringkasan per bab yang lengkap" }[req.body.length] || "sekitar 3–5 paragraf dengan poin-poin utama tiap bab";
   const text = await bookText(book);
@@ -213,7 +237,7 @@ const QUIZ_SCHEMA = {
 
 const TYPE_LABEL = { pilihan: "pilihan ganda", isian: "isian singkat", esai: "esai/uraian", campuran: "campuran (pilihan ganda, isian, dan esai)" };
 
-router.post("/quiz", limiter, async (req, res) => {
+router.post("/quiz", limiter, checkQuota, async (req, res) => {
   const untuk = req.body.untuk === "guru" ? "guru" : "latihan";
   const book = req.body.bookId ? await loadBook(req.body.bookId, req.user) : null;
   const topik = str(req.body.topik, 300);

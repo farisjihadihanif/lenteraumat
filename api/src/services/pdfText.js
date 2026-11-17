@@ -7,7 +7,8 @@ const TIMEOUT = { count: 60 * 1000, text: 5 * 60 * 1000 };
 
 function run(task, buffer) {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(path.join(__dirname, "pdfWorker.js"));
+    // Batas memori worker: PDF raksasa cukup mematikan worker, bukan server.
+    const worker = new Worker(path.join(__dirname, "pdfWorker.js"), { resourceLimits: { maxOldGenerationSizeMb: 768 } });
     let done = false;
     const finish = (fn, value) => {
       if (done) return;
@@ -21,7 +22,7 @@ function run(task, buffer) {
     worker.on("error", (err) => finish(reject, err));
     worker.on("exit", (code) => finish(reject, new Error(`Pembaca PDF berhenti (kode ${code}).`)));
     // Salin buffer supaya data asli tetap bisa dipakai (mis. untuk diunggah).
-    const copy = Uint8Array.from(buffer).buffer;
+    const copy = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     worker.postMessage({ id: 1, task, data: copy }, [copy]);
   });
 }

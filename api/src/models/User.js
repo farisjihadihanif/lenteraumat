@@ -14,6 +14,9 @@ const UserSchema = new Schema(
     linkedinUrl: { type: String, default: "" },
     // Diganti saat password berubah; token lama otomatis tidak berlaku.
     tokenVersion: { type: Number, default: 0 },
+    // Lupa password: hanya hash token yang disimpan, berlaku 30 menit.
+    resetTokenHash: { type: String, select: false },
+    resetTokenExpires: { type: Date, select: false },
   },
   { timestamps: true },
 );
