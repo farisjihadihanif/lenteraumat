@@ -3,6 +3,15 @@
 const { parentPort } = require("worker_threads");
 const path = require("path");
 
+// pdf.js memuat modul native @napi-rs/canvas bila terpasang. Modul itu tidak diperlukan untuk
+// membaca teks, dan mematikan worker yang memuatnya kadang membuat seluruh proses segfault.
+const Module = require("module");
+const load = Module._load;
+Module._load = function (request, ...rest) {
+  if (request === "@napi-rs/canvas") return { DOMMatrix: class {}, ImageData: class {}, Path2D: class {} };
+  return load.call(this, request, ...rest);
+};
+
 const FONTS = path.join(require.resolve("pdfjs-dist/package.json"), "..", "standard_fonts") + path.sep;
 const MAX_CHARS = 400000;
 

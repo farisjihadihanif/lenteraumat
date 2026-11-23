@@ -92,6 +92,8 @@ async function bookText(book) {
     if (!result) {
       // Gagal mengambil file (jaringan / terlalu besar) tidak disimpan, supaya bisa dicoba lagi nanti.
       const buffer = await storage.read(book.file, { maxMb: 150 });
+      // Situs sumber kadang membalas halaman HTML (pemeliharaan, verifikasi bot) dengan status 200.
+      if (buffer.subarray(0, 1024).indexOf("%PDF-") === -1) throw new HttpError(502, "Sumber buku sedang tidak mengirimkan file PDF. Coba lagi nanti.");
       try {
         result = await extractText(buffer);
       } catch (error) {

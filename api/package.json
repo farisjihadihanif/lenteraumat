@@ -9,7 +9,8 @@
     "dev": "node --watch index.js",
     "test": "node --test --test-concurrency=1 test/*.test.js",
     "migrate:lama": "node scripts/migrate-from-old.js",
-    "impor:arsip": "node scripts/impor-arsip.js"
+    "impor:arsip": "node scripts/impor-arsip.js",
+    "impor:katalog": "node scripts/impor-katalog.js"
   },
   "author": "Faris Jihadi Hanif Lubis",
   "license": "ISC",
@@ -32,6 +33,7 @@
     "pdfjs-dist": "^4.10.38"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^0.1.100",
     "mongodb-memory-server": "^10.4.3",
     "supertest": "^7.3.2"
   }

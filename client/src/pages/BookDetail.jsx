@@ -200,6 +200,40 @@ function BookDiscussions({ book }) {
   );
 }
 
+function MaybeLink({ href, children }) {
+  if (!href) return children;
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="break-words text-teal hover:underline">
+      {children}
+    </a>
+  );
+}
+
+// Asal buku, lisensi, dan sitasi (hanya tampil kalau ada datanya).
+function SourceLicense({ book }) {
+  const rows = [
+    ["Sumber", (book.sumber || book.sumberUrl) && <MaybeLink href={book.sumberUrl}>{book.sumber || book.sumberUrl}</MaybeLink>],
+    ["Lisensi", book.lisensi && <MaybeLink href={book.lisensiUrl}>{book.lisensi}</MaybeLink>],
+    ["Sitasi", book.sitasi && <span className="break-words font-normal text-ink-soft">{book.sitasi}</span>],
+  ].filter(([, v]) => v);
+  if (!rows.length) return null;
+  return (
+    <section className="mt-6 max-w-2xl" aria-labelledby="sumber-lisensi">
+      <h2 id="sumber-lisensi" className="text-sm font-bold">
+        Sumber & lisensi
+      </h2>
+      <dl className="mt-2 space-y-2 text-sm">
+        {rows.map(([k, v]) => (
+          <div key={k} className="grid grid-cols-[72px_1fr] gap-3">
+            <dt className="text-ink-mute">{k}</dt>
+            <dd className="min-w-0 font-semibold">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 export default function BookDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -261,18 +295,6 @@ export default function BookDetail() {
     ["Halaman", book.halaman || null],
     ["Ukuran file", book.file?.size ? formatSize(book.file.size) : null],
     ["Ditambahkan", formatDate(book.createdAt)],
-    ["Lisensi", book.lisensi],
-    [
-      "Sumber",
-      book.sumber &&
-        (book.sumberUrl ? (
-          <a href={book.sumberUrl} target="_blank" rel="noopener noreferrer" className="text-teal hover:underline">
-            {book.sumber}
-          </a>
-        ) : (
-          book.sumber
-        )),
-    ],
   ].filter(([, v]) => v);
 
   return (
@@ -335,6 +357,7 @@ export default function BookDetail() {
               </div>
             ))}
           </dl>
+          <SourceLicense book={book} />
           <p className="mt-5 flex items-center gap-2 text-sm text-ink-mute">
             Diunggah oleh <Avatar user={book.uploadedBy} size={22} /> <UserLink user={book.uploadedBy} className="text-ink" />
             <ReportButton type="book" id={book._id} ownerId={book.uploadedBy?._id} className="ml-auto text-xs" />

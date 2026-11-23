@@ -47,7 +47,10 @@ async function bookFields(body, { partial = false, createCategory = false } = {}
   set("sumber", str(body.sumber, 150));
   set("sumberUrl", str(body.sumberUrl, 500));
   set("lisensi", str(body.lisensi, 150));
+  set("lisensiUrl", str(body.lisensiUrl, 300));
+  set("sitasi", str(body.sitasi, 1500));
   if (!URL_OK(out.sumberUrl)) throw new HttpError(400, "Tautan sumber harus diawali http:// atau https://");
+  if (!URL_OK(out.lisensiUrl)) throw new HttpError(400, "Tautan lisensi harus diawali http:// atau https://");
   if (!partial || "tahunTerbit" in body) {
     const y = parseInt(body.tahunTerbit, 10);
     out.tahunTerbit = Number.isFinite(y) ? y : undefined;

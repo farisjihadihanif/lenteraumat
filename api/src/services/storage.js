@@ -105,7 +105,8 @@ const FINAL_TTL = 30 * 60 * 1000;
 
 async function open(stored, { range = "", signal } = {}) {
   const sig = signal ? AbortSignal.any([signal, AbortSignal.timeout(10 * 60 * 1000)]) : AbortSignal.timeout(10 * 60 * 1000);
-  const headers = { "User-Agent": "LenteraUmat/2.0", ...(range ? { Range: range } : {}) };
+  // identity: tanpa kompresi, supaya content-length dari sumber cocok dengan isi yang diteruskan.
+  const headers = { "User-Agent": "LenteraUmat/2.0", "Accept-Encoding": "identity", ...(range ? { Range: range } : {}) };
   const cached = finalUrls.get(stored.url);
   let res;
   if (cached && cached.until > Date.now()) {

@@ -18,6 +18,9 @@ const BookSchema = new Schema(
     sumber: { type: String, default: "", trim: true, maxlength: 150 },
     sumberUrl: { type: String, default: "", trim: true, maxlength: 500 },
     lisensi: { type: String, default: "", trim: true, maxlength: 150 },
+    lisensiUrl: { type: String, default: "", trim: true, maxlength: 300 },
+    // Baris sitasi siap salin (penulis, tahun, judul, jurnal, DOI).
+    sitasi: { type: String, default: "", trim: true, maxlength: 1500 },
     // Tautan PDF asal kalau buku diimpor (untuk mencegah impor ganda).
     asalPdf: { type: String, default: "", index: true },
     deskripsi: { type: String, default: "", maxlength: 3000 },
