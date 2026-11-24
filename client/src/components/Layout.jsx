@@ -150,13 +150,13 @@ export function Navbar() {
   const { user, ready } = useAuth();
   return (
     <header className="sticky top-0 z-30 border-b border-line/70 bg-surface/80 backdrop-blur-md">
-      <div className="container-page flex h-16 items-center gap-4 lg:grid lg:grid-cols-[1fr_minmax(0,26rem)_1fr]">
+      <div className="container-page flex h-16 items-center gap-2 sm:gap-4 lg:grid lg:grid-cols-[minmax(max-content,1fr)_minmax(0,26rem)_minmax(max-content,1fr)]">
         <Link to="/" className="shrink-0 justify-self-start" aria-label="LenteraUmat, go to Home">
           <img src={logoColor} alt="LenteraUmat" className="h-11 w-auto dark:hidden" />
           <img src={logoLight} alt="LenteraUmat" className="hidden h-11 w-auto dark:block" />
         </Link>
-        <SearchBox className="hidden w-full md:block lg:justify-self-center" />
-        <div className="ml-auto flex items-center gap-1 lg:justify-self-end">
+        <SearchBox className="hidden w-full min-w-0 md:block lg:justify-self-center" />
+        <div className="ml-auto flex shrink-0 items-center gap-1 whitespace-nowrap lg:justify-self-end">
           <nav className="mr-2 hidden items-center md:flex" aria-label="Main">
             {NAV.map(({ to, label, end }) => (
               <NavLink key={to} to={to} end={end} className={({ isActive }) => `rounded-lg px-3 py-2 text-sm font-semibold ${isActive ? "text-teal" : "text-ink-soft hover:text-ink"}`}>
