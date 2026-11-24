@@ -17,21 +17,25 @@ const _tagline =
 
 const _luma = [
   (
+    'chat',
     Icons.chat_bubble_outline,
     'Ask anything',
     'Pelajaran, ibadah, atau topik yang sedang kamu pelajari. Bisa sambil kirim foto, PDF, atau video.',
   ),
   (
+    'ask',
     Icons.menu_book_outlined,
     'Ask about a book',
     'Pilih buku dari Library, lalu tanyakan bagian yang belum jelas. LUMA menyebut halamannya.',
   ),
   (
+    'summary',
     Icons.article_outlined,
     'Summary',
     'Gambaran isi buku sebelum kamu membacanya, atau pengingat setelah selesai.',
   ),
   (
+    'quiz',
     Icons.quiz_outlined,
     'Quiz',
     'Latihan soal dengan nilai otomatis, atau lembar soal lengkap dengan kunci jawaban untuk guru.',
@@ -357,7 +361,7 @@ class _LumaSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 20),
-        for (final (icon, title, body) in _luma)
+        for (final (mode, icon, title, body) in _luma)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Material(
@@ -368,7 +372,7 @@ class _LumaSection extends StatelessWidget {
               ),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
-                onTap: () => openTab(context, tabLuma),
+                onTap: () => openLuma(context, mode: mode),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(

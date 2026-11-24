@@ -42,8 +42,7 @@ class LumaTab extends StatelessWidget {
               Image.asset('assets/brand/luma.png', width: 112, height: 112),
               Empty(
                 title: "Hi! I'm LUMA.",
-                body:
-                    'Masuk untuk bertanya, merangkum buku, dan membuat kuis bersama LUMA.',
+                body: 'Masuk untuk bertanya, merangkum buku, dan membuat kuis bersama LUMA.',
                 action: FilledButton(
                   onPressed: () => requireLogin(context),
                   child: const Text('Sign in'),
@@ -142,6 +141,7 @@ class _LumaScreenState extends State<LumaScreen> {
   /// Panggil di dalam setState.
   void _reset() {
     _turn++;
+    _busy = false;
     _session = null;
     _messages = [];
     _clearLive();
@@ -176,8 +176,7 @@ class _LumaScreenState extends State<LumaScreen> {
     _frame ??= Timer(const Duration(milliseconds: 60), () {
       _frame = null;
       if (!mounted) return;
-      final follow =
-          !_scroll.hasClients || _scroll.position.extentAfter < 160;
+      final follow = !_scroll.hasClients || _scroll.position.extentAfter < 160;
       setState(() => _live = _liveNext);
       // Ikuti hanya kalau pembaca masih di bagian bawah.
       if (follow) _toEnd(jump: true);
@@ -253,10 +252,10 @@ class _LumaScreenState extends State<LumaScreen> {
           if (_files.isEmpty) _files = files;
         });
       }
-      if (mounted) toast(context, errorText(e));
+      if (here()) toast(context, errorText(e));
     }
     if (!mounted) return;
-    setState(() => _busy = false);
+    if (here()) setState(() => _busy = false);
     _loadQuota();
   }
 
@@ -567,9 +566,7 @@ class _LumaScreenState extends State<LumaScreen> {
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         children: [
           if (_disabled)
-            const ErrorBox(
-              'LUMA belum aktif di server ini. Coba lagi nanti.',
-            ),
+            const ErrorBox('LUMA belum aktif di server ini. Coba lagi nanti.'),
           if (_messages.isEmpty && !_busy) ...[
             const SizedBox(height: 12),
             Image.asset('assets/brand/luma.png', height: 104),
@@ -582,16 +579,14 @@ class _LumaScreenState extends State<LumaScreen> {
             const SizedBox(height: 6),
             Text(
               switch (_mode) {
-                'ask' =>
-                  'Pilih buku, lalu tanyakan isinya. LUMA menjawab berdasarkan buku dan menyebut halamannya.',
+                'ask' => 'Pilih buku, lalu tanyakan isinya. LUMA menjawab berdasarkan buku dan menyebut halamannya.',
                 'summary' =>
                   'Pilih panjang ringkasan, lalu aku rangkum isi bukunya.',
                 'quiz' =>
                   _for == 'guru'
                       ? 'Buat lembar soal lengkap dengan kunci jawaban, lalu posting ke Discussion untuk dikerjakan murid.'
                       : 'Pilih buku atau tulis topik, lalu uji pemahamanmu.',
-                _ =>
-                  'Tanya apa saja. Bisa juga kirim foto catatan, PDF, atau video untuk dibahas.',
+                _ => 'Tanya apa saja. Bisa juga kirim foto catatan, PDF, atau video untuk dibahas.',
               },
               textAlign: TextAlign.center,
               style: TextStyle(color: c.inkSoft, height: 1.5),
@@ -778,16 +773,11 @@ class _LumaScreenState extends State<LumaScreen> {
   Widget _summaryForm() => Row(
     children: [
       Expanded(
-        child: _select(
-          'Panjang',
-          _length,
-          const {
-            'singkat': 'Singkat',
-            'sedang': 'Sedang',
-            'lengkap': 'Lengkap per bab',
-          },
-          (v) => _length = v,
-        ),
+        child: _select('Panjang', _length, const {
+          'singkat': 'Singkat',
+          'sedang': 'Sedang',
+          'lengkap': 'Lengkap per bab',
+        }, (v) => _length = v),
       ),
       const SizedBox(width: 10),
       FilledButton(
@@ -862,9 +852,10 @@ class _LumaScreenState extends State<LumaScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _select('Jumlah', '$_count', {
-                    for (final n in guru
-                        ? const [5, 10, 15, 20, 25, 30]
-                        : const [3, 5, 10, 15])
+                    for (final n
+                        in guru
+                            ? const [5, 10, 15, 20, 25, 30]
+                            : const [3, 5, 10, 15])
                       '$n': '$n soal',
                   }, (v) => _count = int.parse(v)),
                 ),

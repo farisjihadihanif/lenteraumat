@@ -199,7 +199,10 @@ void main() {
     ev({
       'done': {'reply': 'Sabar adalah menahan diri.', 'sessionId': 's1'},
     });
-    await fake.live!.close();
+    await t.runAsync(() async {
+      await fake.live!.close();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    });
     await t.pumpAndSettle();
     expect(
       find.textContaining('menahan diri', findRichText: true),
@@ -222,16 +225,22 @@ void main() {
         })}\n\n',
       ),
     );
-    await fake.live!.close();
+    await t.runAsync(() async {
+      await fake.live!.close();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    });
     await t.pumpAndSettle();
-    expect(find.textContaining('Jawaban lama', findRichText: true), findsNothing);
+    expect(
+      find.textContaining('Jawaban lama', findRichText: true),
+      findsNothing,
+    );
   });
 
   testWidgets('kuis dari topik, dinilai otomatis (huruf besar juga aman)', (
     t,
   ) async {
     await buka(t, tabLuma, scale: 1.4);
-    await t.tap(find.widgetWithText(ChoiceChip, 'Quiz').hitTestable());
+    lumaRequest.value = (mode: 'quiz', book: null);
     await t.pumpAndSettle();
     await t.tap(find.text('From a topic'));
     await t.pumpAndSettle();

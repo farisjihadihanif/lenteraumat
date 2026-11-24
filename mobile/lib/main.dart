@@ -8,9 +8,9 @@ import 'screens/account.dart';
 import 'screens/discussions.dart';
 import 'screens/home.dart';
 import 'screens/library.dart';
+import 'screens/luma.dart';
 import 'state.dart';
 import 'theme.dart';
-import 'widgets/ui.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,7 +55,7 @@ class _ShellState extends State<Shell> {
   static const _screens = [
     HomeScreen(),
     LibraryScreen(),
-    _Soon('LUMA'),
+    LumaTab(),
     DiscussionsScreen(),
     AccountScreen(),
   ];
@@ -107,19 +107,5 @@ class _ShellState extends State<Shell> {
         ),
       );
     },
-  );
-}
-
-/// Tempat layar yang belum dibuat (langkah 5 dan 6).
-class _Soon extends StatelessWidget {
-  const _Soon(this.title);
-  final String title;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(title)),
-    body: const Center(
-      child: Empty(title: 'Coming soon', body: 'Bagian ini sedang disiapkan.'),
-    ),
   );
 }

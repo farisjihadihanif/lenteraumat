@@ -218,7 +218,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               child: OutlinedButton.icon(
                 icon: Icon(Icons.auto_awesome, color: c.lanternText),
                 label: const Text('Ask LUMA'),
-                onPressed: () => openTab(context, tabLuma),
+                onPressed: () => openLuma(context, mode: 'ask', book: b),
               ),
             ),
           ],
