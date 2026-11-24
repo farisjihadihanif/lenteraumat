@@ -70,7 +70,8 @@ async function remove(stored) {
       if (file.startsWith(path.resolve(config.uploadDir))) fs.rmSync(file, { force: true });
     }
   } catch (error) {
-    console.warn("Gagal menghapus file:", error.message);
+    // Cloudinary kadang menolak dengan objek { error: { message } }, bukan Error.
+    console.warn("Gagal menghapus file:", error?.message || error?.error?.message || stored.key);
   }
 }
 

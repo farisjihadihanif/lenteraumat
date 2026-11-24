@@ -101,6 +101,42 @@ test("impor katalog: lisensi ketat, uji coba tidak menulis, tautan luar, LUMA me
   }
 });
 
+test("impor katalog: entri gagal dibatalkan bersih dan dicoba lagi", async (t) => {
+  const storage = require("../src/services/storage");
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "kat-")), "katalog.json");
+  fs.writeFileSync(file, JSON.stringify([item({ judul: "Gagal dulu", kategori: "Kategori Baru", sumberUrl: "https://y.id/1", pdfUrl: "https://y.id/1.pdf" })]));
+  const pdf = h.makePdf(["Teks yang cukup panjang untuk dibaca."]);
+  importer.setFetch(async () => new Response(pdf));
+  const hapus = t.mock.method(storage, "remove");
+  const bersih = async () => {
+    assert.equal(await Book.countDocuments({ judul: "Gagal dulu" }), 0);
+    assert.equal(await Category.countDocuments({ nama: "Kategori Baru" }), 0);
+  };
+  const impor = () => script.run({ file, simpan: true, jeda: 0 }, () => {});
+
+  // Gagal sebelum sampul terunggah: tidak ada file yang dihapus.
+  const simpan = t.mock.method(storage, "save", async () => {
+    throw new Error("unggah gagal");
+  });
+  assert.equal((await impor()).gagal, 1);
+  assert.equal(hapus.mock.callCount(), 0);
+  await bersih();
+  simpan.mock.restore();
+
+  // Buku sudah tertulis tetapi balasannya gagal: buku & sampul ikut dibatalkan.
+  const asli = Book.create;
+  const buat = t.mock.method(Book, "create", async (...a) => {
+    await asli.apply(Book, a);
+    throw new Error("koneksi putus");
+  });
+  assert.equal((await impor()).gagal, 1);
+  assert.equal(hapus.mock.callCount(), 1);
+  await bersih();
+  buat.mock.restore();
+
+  assert.equal((await impor()).ditambahkan, 1);
+});
+
 test("katalog.json: semua entri lolos pemeriksaan", () => {
   for (const { item: i, salah } of script.muat()) assert.deepEqual(salah, [], i.judul);
 });

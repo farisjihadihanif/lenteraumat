@@ -12,6 +12,8 @@ const path = require("path");
 const config = require("../src/config");
 const { connect, mongoose } = require("../src/db");
 const Book = require("../src/models/Book");
+const BookText = require("../src/models/BookText");
+const Category = require("../src/models/Category");
 const User = require("../src/models/User");
 const categories = require("../src/services/categories");
 const importer = require("../src/services/importer");
@@ -77,15 +79,19 @@ const sudahAda = (item) =>
 async function simpan(item, admin) {
   const { buffer } = await importer.downloadPdf(item.pdfUrl, { maxMb: 150 });
   const { stored, halaman } = await storePdf(buffer, "buku.pdf", { sourceUrl: item.pdfUrl, link: true });
-  const kategori = await categories.resolve(item.kategori, { create: true });
-  const gambar = item.sampul === "halaman-pertama" ? await firstPageCover(buffer) : await typographicCover({ ...item, kategori });
-  const coverStored = await storage.save({ buffer: gambar, mimetype: "image/jpeg", size: gambar.length, originalname: "sampul.jpg" }, "sampul");
+  const kategoriBaru = !(await Category.exists({ nama: new RegExp(`^${escapeRegex(item.kategori)}$`, "i") }));
   const isi = {};
   for (const k of WAJIB) if (!["pdfUrl", "kategori"].includes(k)) isi[k] = item[k];
-  let book;
+  const _id = new mongoose.Types.ObjectId(); // ditentukan di sini supaya bisa dibatalkan walau balasan database hilang
+  let kategori = "";
+  let coverStored = null;
   try {
-    book = await Book.create({
+    kategori = await categories.resolve(item.kategori, { create: true });
+    const gambar = item.sampul === "halaman-pertama" ? await firstPageCover(buffer) : await typographicCover({ ...item, kategori });
+    coverStored = await storage.save({ buffer: gambar, mimetype: "image/jpeg", size: gambar.length, originalname: "sampul.jpg" }, "sampul");
+    await Book.create({
       ...isi,
+      _id,
       bahasa: item.bahasa || "Indonesia",
       kategori,
       halaman,
@@ -98,11 +104,20 @@ async function simpan(item, admin) {
       reviewedBy: admin._id,
       reviewedAt: new Date(),
     });
+    await indexTextNow(_id, buffer); // teks untuk LUMA
   } catch (error) {
-    await storage.remove(coverStored); // jangan tinggalkan sampul yatim
+    await batalkan({ _id, coverStored, kategori: kategoriBaru ? kategori : "" }).catch((e) => console.warn(`Gagal membatalkan "${item.judul}" (buku ${_id}):`, e.message));
     throw error;
   }
-  await indexTextNow(book._id, buffer); // teks untuk LUMA
+}
+
+// Hapus semua jejak entri yang gagal supaya dicoba lagi saat skrip diulang. Buku dihapus lebih dulu:
+// kalau itu gagal, sampulnya dibiarkan agar buku yang tersisa tetap utuh.
+async function batalkan({ _id, coverStored, kategori }) {
+  await Book.deleteOne({ _id });
+  await BookText.deleteMany({ book: _id });
+  if (coverStored) await storage.remove(coverStored);
+  if (kategori && !(await Book.exists({ kategori }))) await Category.deleteOne({ nama: kategori });
 }
 
 async function run(opts = {}, log = console.log) {
