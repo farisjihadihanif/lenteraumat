@@ -133,6 +133,10 @@ ThemeData buildTheme(Brightness b) {
         minimumSize: const Size(48, 48),
       ),
     ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: Lu.lantern,
+      foregroundColor: Lu.onLantern,
+    ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: c.ink,
