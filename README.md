@@ -41,8 +41,6 @@ Skrip hanya mengambil dari koleksi lembaga tepercaya (Smithsonian Libraries, Lib
 
 **Catatan Cloudinary gratis:** batas 10 MB per file. PDF hasil impor yang lebih besar otomatis _ditautkan_ ke sumber aslinya (tidak disalin). Aktifkan juga **Allow delivery of PDF and ZIP files** di Cloudinary supaya PDF bisa dibaca.
 
-`
-
 ## Copyright
 
 © 2026 Faris Jihadi Hanif Lubis. All rights reserved.
