@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { PageFlip } from "page-flip";
 import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Minimize, Sparkles } from "lucide-react";
 import { api, fileUrl } from "../lib/api";
-import { openPdf, renderPage } from "../lib/pdf";
+import { openBook, renderPage } from "../lib/pdf";
 import { useAuth } from "../context/Auth";
 
 const KEEP = 14; // halaman di sekitar posisi baca yang dipertahankan dalam memori
@@ -96,7 +96,7 @@ export default function Reader() {
         let start = Number(params.get("hal")) || 0;
         if (!start && user) start = (await api.get(`/books/${id}/progress`).catch(() => ({ page: 1 }))).page;
         setStatus("Menyiapkan halaman");
-        const d = await openPdf(fileUrl(id));
+        const d = await openBook(fileUrl(id), book.file?.direct);
         if (cancelled) return d.destroy();
         doc.current = d;
         const first = await d.getPage(1);

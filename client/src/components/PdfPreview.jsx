@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { openPdf, renderPage } from "../lib/pdf";
+import { openBook, renderPage } from "../lib/pdf";
 import { fileUrl } from "../lib/api";
 
 // Cuplikan beberapa halaman awal buku, sebelum membuka flipbook.
-export default function PdfPreview({ bookId, pages = 4, onOpen }) {
+export default function PdfPreview({ bookId, direct = "", pages = 4, onOpen }) {
   const box = useRef(null);
   const [state, setState] = useState({ loading: true, error: "", total: 0 });
 
@@ -12,8 +12,8 @@ export default function PdfPreview({ bookId, pages = 4, onOpen }) {
     let doc;
     (async () => {
       try {
-        doc = await openPdf(fileUrl(bookId));
-        if (cancelled) return;
+        doc = await openBook(fileUrl(bookId), direct);
+        if (cancelled) return doc.destroy();
         const n = Math.min(pages, doc.numPages);
         setState({ loading: false, error: "", total: doc.numPages });
         for (let i = 1; i <= n && !cancelled; i++) {
@@ -31,7 +31,7 @@ export default function PdfPreview({ bookId, pages = 4, onOpen }) {
       cancelled = true;
       doc?.destroy();
     };
-  }, [bookId, pages]);
+  }, [bookId, direct, pages]);
 
   if (state.error) return <p className="text-sm text-ink-mute">{state.error}</p>;
   const n = state.total ? Math.min(pages, state.total) : pages;

@@ -109,32 +109,99 @@ async function read(stored, { maxMb = 0, timeoutMs = 5 * 60 * 1000 } = {}) {
 const finalUrls = new Map();
 const FINAL_TTL = 30 * 60 * 1000;
 
+// Server archive.org kadang tidak menjawab; jangan menunggu satu server terlalu lama.
+const HEAD_TIMEOUT = 9 * 1000;
+const PUTUS = "Sumber buku sedang tidak bisa dihubungi. Coba lagi sebentar.";
+
+// fetch yang menyerah kalau header tidak datang dalam `ms`; isi respons tidak ikut dibatasi.
+async function fetchHead(url, { headers, signal, ms }) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(new Error("Sumber tidak menjawab.")), ms);
+  try {
+    return await fetch(url, { headers, signal: AbortSignal.any([signal, ctrl.signal]) });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Server iaXXXX / dnXXXX lain yang menyimpan file archive.org yang sama.
+async function archiveMirrors(url, signal) {
+  const m = /^https?:\/\/archive\.org\/download\/([^/]+)\/(.+)$/.exec(url);
+  if (!m) return [];
+  try {
+    const res = await fetch(`https://archive.org/metadata/${m[1]}`, { signal: AbortSignal.any([signal, AbortSignal.timeout(HEAD_TIMEOUT)]), headers: { "User-Agent": "LenteraUmat/2.0" } });
+    const meta = await res.json();
+    const hosts = [...new Set([...(meta.workable_servers || []), meta.d1, meta.d2])].filter((h) => /^[a-z0-9.-]+\.archive\.org$/i.test(h || ""));
+    return meta.dir ? hosts.slice(0, 3).map((h) => `https://${h}${meta.dir}/${m[2]}`) : [];
+  } catch {
+    return [];
+  }
+}
+
 async function open(stored, { range = "", signal } = {}) {
   const sig = signal ? AbortSignal.any([signal, AbortSignal.timeout(10 * 60 * 1000)]) : AbortSignal.timeout(10 * 60 * 1000);
   // identity: tanpa kompresi, supaya content-length dari sumber cocok dengan isi yang diteruskan.
   const headers = { "User-Agent": "LenteraUmat/2.0", "Accept-Encoding": "identity", ...(range ? { Range: range } : {}) };
+  const isArchive = /^https?:\/\/archive\.org\//.test(stored.url);
+  const usable = (r) => Boolean(r && (r.ok || (range && r.status === 416)));
+  let lastError = null;
+  // null = server tidak menjawab atau sedang galat; layak dicoba di server lain.
+  const attempt = async (url, ms) => {
+    const r = await fetchHead(url, { headers, signal: sig, ms }).catch((e) => {
+      lastError = e;
+      return null;
+    });
+    if (sig.aborted) throw sig.reason;
+    if (r && r.status >= 500) {
+      r.body?.cancel().catch(() => {});
+      lastError = new Error(`status ${r.status}`);
+      return null;
+    }
+    return r;
+  };
+  // Hanya dipakai bila hasilnya benar-benar file.
+  const attemptUsable = async (url) => {
+    const r = await attempt(url, HEAD_TIMEOUT);
+    if (usable(r)) return r;
+    r?.body?.cancel().catch(() => {});
+    return null;
+  };
+  let res = null;
   const cached = finalUrls.get(stored.url);
-  let res;
   if (cached && cached.until > Date.now()) {
-    res = await fetch(cached.url, { signal: sig, headers }).catch(() => null);
-    if (!res || !res.ok) {
-      finalUrls.delete(stored.url);
-      res = null;
+    res = await attemptUsable(cached.url);
+    if (!res) finalUrls.delete(stored.url);
+  }
+  if (!res) res = await attempt(stored.url, isArchive ? HEAD_TIMEOUT : 30 * 1000);
+  if (!res && isArchive) {
+    for (const url of await archiveMirrors(stored.url, sig)) {
+      res = await attemptUsable(url);
+      if (res) break;
     }
   }
   if (!res) {
-    res = await fetch(stored.url, { signal: sig, headers });
-    if (res.ok && res.url && res.url !== stored.url) finalUrls.set(stored.url, { url: res.url, until: Date.now() + FINAL_TTL });
+    console.error("Sumber buku gagal:", stored.url, lastError?.cause?.code || lastError?.message);
+    throw new HttpError(502, PUTUS);
   }
+  if (res.ok && res.url && res.url !== stored.url) finalUrls.set(stored.url, { url: res.url, until: Date.now() + FINAL_TTL });
   if (res.status === 401 && stored.storage === "cloudinary") {
     throw new HttpError(502, "Cloudinary memblokir pengiriman PDF. Di Cloudinary buka Settings > Security, centang 'Allow delivery of PDF and ZIP files', lalu simpan.");
   }
-  if (!res.ok) throw new HttpError(502, `Gagal mengambil file buku dari penyimpanan (${res.status}).`);
+  if (!usable(res)) {
+    res.body?.cancel().catch(() => {});
+    throw new HttpError(502, `Gagal mengambil file buku dari penyimpanan (${res.status}).`);
+  }
   return res;
+}
+
+// Alamat yang boleh diambil langsung oleh browser (mendukung CORS + Range). archive.org/download dan
+// situs OJS tidak mengirim header CORS, jadi tetap lewat proxy.
+function directUrl(stored) {
+  return /^https:\/\/res\.cloudinary\.com\//.test(stored?.url || "") ? stored.url : "";
 }
 
 function localPath(stored) {
   return stored.storage === "local" ? path.join(config.uploadDir, stored.key) : null;
 }
 
-module.exports = { save, remove, read, open, localPath, maxBytes, usingCloudinary: Boolean(cloudinary), cloudinary };
+module.exports = { save, remove, read, open, directUrl, PUTUS, localPath, maxBytes, usingCloudinary: Boolean(cloudinary), cloudinary };

@@ -396,7 +396,7 @@ export default function BookDetail() {
             Open all pages
           </Link>
         </div>
-        <PdfPreview bookId={id} onOpen={(p) => navigate(`/buku/${id}/baca?hal=${p}`)} />
+        <PdfPreview bookId={id} direct={book.file?.direct} onOpen={(p) => navigate(`/buku/${id}/baca?hal=${p}`)} />
       </section>
 
       <Reviews book={book} onRating={(ratingAvg, ratingCount) => setBook((b) => ({ ...b, ratingAvg, ratingCount }))} />

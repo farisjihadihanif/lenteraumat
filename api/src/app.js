@@ -43,6 +43,7 @@ function createApp() {
         cb(null, false);
       },
       credentials: true,
+      exposedHeaders: ["Content-Range", "Accept-Ranges"],
     }),
   );
   app.use(express.json({ limit: "1mb" }));

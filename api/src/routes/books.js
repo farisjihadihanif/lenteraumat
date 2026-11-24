@@ -1,5 +1,6 @@
 const express = require("express");
 const fs = require("fs");
+const config = require("../config");
 const Book = require("../models/Book");
 const BookText = require("../models/BookText");
 const Review = require("../models/Review");
@@ -10,6 +11,7 @@ const { upload, checkImageSize } = require("../middleware/upload");
 const { HttpError, isId } = require("../middleware/errors");
 const storage = require("../services/storage");
 const categories = require("../services/categories");
+const pdfRange = require("../services/pdfRange");
 const directUpload = require("../services/directUpload");
 const { storePdf, pageCount, indexText: indexTextFor } = require("../services/bookFiles");
 const { str, page, escapeRegex, USER_PUBLIC } = require("../util");
@@ -160,7 +162,7 @@ router.get("/:id", async (req, res) => {
   out.savedCount = book.disimpan.length;
   delete out.disimpan;
   delete out.coverStored;
-  out.file = { size: book.file.size };
+  out.file = { size: book.file.size, direct: storage.directUrl(book.file) };
   out.canEdit = isAdmin(req.user) || isOwner(req.user, book.uploadedBy);
   out.discussionCount = await Discussion.countDocuments({ book: book._id });
   res.json({ book: out });
@@ -172,12 +174,33 @@ router.get("/:id/file", async (req, res) => {
   const book = await findVisible(req);
   // Sengaja BUKAN "application/pdf" dan tanpa nama file: download manager (IDM, FDM, dll)
   // menyergap respons PDF sehingga flipbook & cuplikan gagal. pdf.js tidak peduli tipe ini.
-  res.setHeader("Content-Type", BOOK_TYPE);
-  res.setHeader("Cache-Control", book.status === "disetujui" ? "public, max-age=86400" : "private, no-store");
+  // Cache hanya dipasang saat berhasil, dan tidak di CDN: cache tepi Vercel mengabaikan Range
+  // (potongan tertukar) dan pernah menyimpan balasan galat.
+  const ok = () => {
+    res.setHeader("Content-Type", BOOK_TYPE);
+    res.setHeader("Cache-Control", book.status === "disetujui" ? "private, max-age=86400" : "private, no-store");
+  };
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("CDN-Cache-Control", "no-store");
+  res.vary("Range");
+  if (config.onVercel) {
+    res.setHeader("Accept-Ranges", "bytes");
+    const range = pdfRange.parseRange(req.headers.range);
+    const part = range ? await pdfRange.readRange(book.file, range) : { total: book.file.size };
+    if (!part.body) {
+      if (part.total) res.setHeader("Content-Range", `bytes */${part.total}`);
+      throw new HttpError(416, "File buku hanya dikirim per potongan (header Range).");
+    }
+    ok();
+    res.setHeader("Content-Range", `bytes ${part.start}-${part.start + part.body.length - 1}/${part.total}`);
+    res.setHeader("Content-Length", part.body.length);
+    return res.status(206).end(part.body);
+  }
   const local = storage.localPath(book.file);
   if (local) {
     if (!fs.existsSync(local)) throw new HttpError(404, "File buku tidak ditemukan di server.");
-    return res.sendFile(local, { headers: { "Content-Type": BOOK_TYPE } }, (err) => {
+    ok();
+    return res.sendFile(local, { cacheControl: false, headers: { "Content-Type": BOOK_TYPE } }, (err) => {
       if (err && !res.headersSent) res.status(err.status || 500).end();
     });
   }
@@ -187,6 +210,12 @@ router.get("/:id/file", async (req, res) => {
   res.on("close", () => ctrl.abort());
   const range = /^bytes=\d*-\d*$/.test(req.headers.range || "") ? req.headers.range : "";
   const upstream = await storage.open(book.file, { range, signal: ctrl.signal });
+  if (upstream.status === 416) {
+    upstream.body?.cancel().catch(() => {});
+    res.setHeader("Content-Range", upstream.headers.get("content-range") || `bytes */${book.file.size}`);
+    throw new HttpError(416, "Rentang file di luar ukuran buku.");
+  }
+  ok();
   res.status(upstream.status === 206 ? 206 : 200);
   for (const h of ["content-length", "content-range"]) {
     const v = upstream.headers.get(h);
