@@ -12,7 +12,7 @@ const WARNA = {
   Fikih: "#143752",
   "Akidah & Akhlak": "#5B3A5E",
   "Sejarah Islam": "#7A3E12",
-  "Pendidikan Islam": "#2F5D3A",
+  Pendidikan: "#2F5D3A",
   "Ekonomi Syariah": "#6B4F10",
   Sains: "#1B5E7A",
   Teknologi: "#33415C",

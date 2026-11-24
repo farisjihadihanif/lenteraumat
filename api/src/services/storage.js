@@ -8,6 +8,7 @@ const path = require("path");
 const crypto = require("crypto");
 const config = require("../config");
 const { HttpError } = require("../middleware/errors");
+const { pesan, kode, agenCatat } = require("./cloudinaryError");
 
 let cloudinary = null;
 if (config.cloudinaryUrl) {
@@ -30,9 +31,11 @@ async function save(file, folder) {
 
   if (cloudinary) {
     const result = await new Promise((resolve, reject) => {
+      const agent = agenCatat(cloudinary.config().upload_prefix);
       const fail = (err) => {
-        console.error("Cloudinary:", err?.message || err);
-        const msg = String(err?.message || "");
+        const cfg = cloudinary.config();
+        const msg = agent.detail ? pesan({ message: agent.detail }, cfg) : pesan(err, cfg);
+        console.error(`Cloudinary (http_code ${kode(err) || "-"}): ${msg}`);
         if (/Invalid Signature|api_secret|Invalid api_key|Unknown API key|cloud_name/i.test(msg)) {
           return reject(new HttpError(500, "Penyimpanan Cloudinary salah atur: cek CLOUDINARY_URL di .env (API secret harus yang asli, bukan *****)."));
         }
@@ -41,6 +44,7 @@ async function save(file, folder) {
       };
       const stream = cloudinary.uploader.upload_stream(
         {
+          agent,
           folder: `lentera-umat/${folder}`,
           public_id: name.replace(ext, ""),
           resource_type: file.mimetype === "application/pdf" ? "raw" : "image",
@@ -71,7 +75,7 @@ async function remove(stored) {
     }
   } catch (error) {
     // Cloudinary kadang menolak dengan objek { error: { message } }, bukan Error.
-    console.warn("Gagal menghapus file:", error?.message || error?.error?.message || stored.key);
+    console.warn("Gagal menghapus file:", stored.storage === "cloudinary" && cloudinary ? pesan(error, cloudinary.config()) : error?.message || stored.key);
   }
 }
 

@@ -11,7 +11,8 @@
     "migrate:lama": "node scripts/migrate-from-old.js",
     "impor:arsip": "node scripts/impor-arsip.js",
     "impor:katalog": "node scripts/impor-katalog.js",
-    "rapikan:kategori": "node scripts/rapikan-kategori.js"
+    "rapikan:kategori": "node scripts/rapikan-kategori.js",
+    "cek:cloudinary": "node scripts/cek-cloudinary.js"
   },
   "author": "Faris Jihadi Hanif Lubis",
   "license": "ISC",
