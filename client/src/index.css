@@ -10,6 +10,11 @@
     --lantern-soft: 255 241 222; --night: 20 55 82;
     /* teks oranye & merah yang tetap terbaca (kontras >= 4.5) */
     --lantern-text: 168 83 0; --danger: 185 28 28;
+    /* Gradasi beranda & punggung sampul: komponen hanya memakai variabel ini */
+    --hero-bg: 23 23 23; --hero-scrim: rgb(0 0 0 / .6);
+    --gradient-hero: linear-gradient(to bottom, rgb(var(--mist) / 0), rgb(var(--mist) / .7) 60%, rgb(var(--mist)));
+    --gradient-cover: linear-gradient(to right, rgb(0 0 0 / .25), rgb(0 0 0 / 0));
+    --hero-mask: linear-gradient(black, black); /* hanya mask, tidak terlihat */
     color-scheme: light;
   }
   .dark {
@@ -18,13 +23,18 @@
     --teal: 92 180 176; --teal-soft: 22 52 54; --teal-deep: 64 150 150;
     --lantern-soft: 61 41 16; --night: 27 52 74;
     --lantern-text: 255 179 92; --danger: 248 113 113;
+    --hero-bg: 11 20 29; --hero-scrim: rgb(0 0 0 / .65);
+    --gradient-hero: linear-gradient(to bottom, rgb(var(--mist) / 0), rgb(var(--mist) / .75) 60%, rgb(var(--mist)));
+    --gradient-cover: linear-gradient(to right, rgb(0 0 0 / .4), rgb(0 0 0 / 0));
     color-scheme: dark;
   }
   html { -webkit-text-size-adjust: 100%; }
   body {
-    @apply bg-mist font-sans text-ink antialiased transition-colors duration-200;
+    @apply bg-mist font-sans text-ink antialiased;
     font-feature-settings: "ss01";
   }
+  /* Saat ganti tema semua warna berganti serentak, supaya teks tidak sempat tak terbaca. */
+  .theme-switching, .theme-switching *, .theme-switching *::before, .theme-switching *::after { transition: none !important; }
   h1, h2, h3 { text-wrap: balance; }
   :focus-visible { @apply outline outline-2 outline-offset-2 outline-lantern; }
   ::selection { background: #ffc93c80; }

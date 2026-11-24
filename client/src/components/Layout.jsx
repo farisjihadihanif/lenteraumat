@@ -21,7 +21,10 @@ function ThemeToggle() {
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
   const toggle = () => {
     const next = !dark;
-    document.documentElement.classList.toggle("dark", next);
+    const root = document.documentElement;
+    root.classList.add("theme-switching");
+    root.classList.toggle("dark", next);
+    requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-switching")));
     try {
       localStorage.setItem("theme", next ? "dark" : "light");
     } catch {

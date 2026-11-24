@@ -22,14 +22,14 @@ export default function BookCover({ book, className = "", sizes = "sm" }) {
     return (
       <div className={base}>
         <img src={book.cover} alt={`Sampul ${book.judul}`} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
-        <span className="pointer-events-none absolute inset-y-0 left-0 w-2 bg-gradient-to-r from-black/25 to-transparent" />
+        <span className="pointer-events-none absolute inset-y-0 left-0 w-2 bg-[image:var(--gradient-cover)]" />
       </div>
     );
   }
   const [bg, fg] = tone(book?.judul);
   return (
     <div className={base} style={{ background: bg, color: fg }} role="img" aria-label={`Sampul ${book?.judul || ""}`}>
-      <span className="pointer-events-none absolute inset-y-0 left-0 w-2 bg-gradient-to-r from-black/30 to-transparent" />
+      <span className="pointer-events-none absolute inset-y-0 left-0 w-2 bg-[image:var(--gradient-cover)]" />
       <div className="flex h-full flex-col justify-between p-[10%]">
         <span className="h-px w-1/3" style={{ background: fg, opacity: 0.6 }} />
         <p className={`font-serif font-semibold leading-tight ${sizes === "lg" ? "text-2xl" : "text-[13px] sm:text-sm"}`}>{book?.judul}</p>
