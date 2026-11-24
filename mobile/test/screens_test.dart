@@ -134,6 +134,8 @@ void main() {
     await buka(t);
     expect(find.text('Discussion'), findsOneWidget);
     expect(find.text('Diskusi pertama'), findsOneWidget);
+    const latar = Key('latar-bilah-status');
+    expect(find.byKey(latar), findsNothing);
     final list = find.byType(Scrollable).first;
     await t.scrollUntilVisible(
       find.text('Learning Together with LUMA'),
@@ -143,6 +145,7 @@ void main() {
     await t.scrollUntilVisible(find.text('More books'), 300, scrollable: list);
     await t.ensureVisible(find.text('More books'));
     await t.pumpAndSettle();
+    expect(find.byKey(latar), findsOneWidget);
     await t.tap(find.text('More books'));
     await t.pumpAndSettle();
     expect(tab.value, tabLibrary);

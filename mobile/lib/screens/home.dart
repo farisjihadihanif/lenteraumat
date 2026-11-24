@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../api.dart';
@@ -99,21 +100,60 @@ class _HomeScreenState extends State<HomeScreen> {
     child: Text(t, style: serifStyle(context, 28)),
   );
 
+  /// Hero sudah tergulir lewat: bilah status diberi latar agar jam tetap terbaca.
+  bool _past = false;
+
+  bool _onScroll(ScrollNotification n) {
+    if (n.depth != 0 || n.metrics.axis != Axis.vertical) return false;
+    final past =
+        n.metrics.pixels >
+        _heroHeight(context) * .7 - MediaQuery.paddingOf(context).top;
+    if (past != _past) setState(() => _past = past);
+    return false;
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const _Hero(),
-          _discussion(),
-          const _LumaSection(),
-          _library(),
-        ],
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Di atas foto hero yang gelap, ikon selalu terang.
+      value:
+          (dark || !_past
+                  ? SystemUiOverlayStyle.light
+                  : SystemUiOverlayStyle.dark)
+              .copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        body: Stack(
+          children: [
+            NotificationListener<ScrollNotification>(
+              onNotification: _onScroll,
+              child: RefreshIndicator(
+                onRefresh: _load,
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    const _Hero(),
+                    _discussion(),
+                    const _LumaSection(),
+                    _library(),
+                  ],
+                ),
+              ),
+            ),
+            if (_past)
+              Positioned(
+                key: const Key('latar-bilah-status'),
+                top: 0,
+                left: 0,
+                right: 0,
+                height: MediaQuery.paddingOf(context).top,
+                child: ColoredBox(color: Lu.of(context).mist),
+              ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   Widget _discussion() => Padding(
     padding: const EdgeInsets.fromLTRB(16, 28, 16, 32),
@@ -194,6 +234,10 @@ class _HomeScreenState extends State<HomeScreen> {
   );
 }
 
+/// Ikut membesar bersama ukuran huruf perangkat.
+double _heroHeight(BuildContext context) =>
+    math.max(400, MediaQuery.textScalerOf(context).scale(330));
+
 class _Hero extends StatelessWidget {
   const _Hero();
 
@@ -201,8 +245,7 @@ class _Hero extends StatelessWidget {
   Widget build(BuildContext context) {
     final mist = Lu.of(context).mist;
     return SizedBox(
-      // Ikut membesar bersama ukuran huruf perangkat.
-      height: math.max(400, MediaQuery.textScalerOf(context).scale(330)),
+      height: _heroHeight(context),
       child: Stack(
         fit: StackFit.expand,
         children: [
