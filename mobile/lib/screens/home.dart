@@ -249,19 +249,26 @@ class _Hero extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            'assets/brand/hero.jpg',
-            fit: BoxFit.cover,
-            color: Colors.black,
-            colorBlendMode: BlendMode.saturation,
+          // Foto berhenti sebelum tepi gradasi; bila sejajar, tampak garis gelap tipis.
+          Positioned.fill(
+            bottom: 2,
+            child: Image.asset(
+              'assets/brand/hero.jpg',
+              fit: BoxFit.cover,
+              color: Colors.black,
+              colorBlendMode: BlendMode.saturation,
+            ),
           ),
-          const ColoredBox(color: Color(0x99000000)),
+          const Positioned.fill(
+            bottom: 2,
+            child: ColoredBox(color: Color(0x99000000)),
+          ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                stops: const [.7, 1],
+                stops: const [.7, .99],
                 colors: [mist.withValues(alpha: 0), mist],
               ),
             ),

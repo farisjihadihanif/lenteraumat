@@ -69,7 +69,8 @@ const serif = 'Literata';
 TextStyle serifStyle(BuildContext context, double size) => TextStyle(
   fontFamily: serif,
   fontSize: size,
-  height: 1.25,
+  // Judul kecil sering terpotong dua baris; 1.25 memangkas kaki huruf (g, p, y).
+  height: size < 18 ? 1.45 : 1.25,
   fontWeight: FontWeight.w600,
   color: Lu.of(context).ink,
 );
