@@ -84,6 +84,13 @@ test("impor: --kering selalu menang, bawaan tidak menyimpan", () => {
   assert.equal(impor.args(["--simpan", "--kering"]).simpan, false);
 });
 
+test("impor: label bahasa", () => {
+  assert.equal(impor.bahasaDari({ language: "spa" }), "Spanyol");
+  assert.equal(impor.bahasaDari({ language: "English" }), "Inggris");
+  assert.equal(impor.bahasaDari({ language: "Malay", title: "P. Virgilii Maronis opera" }), "Tidak diketahui");
+  assert.equal(impor.bahasaDari({ language: "Malay", title: "Hikayat Si-Miskin" }), "Melayu");
+});
+
 test("audit arsip: uji coba tidak menulis; simpan mencadangkan, menghapus, memindah; buku lain aman", async () => {
   await h.makeAdmin(app);
   const admin = await User.findOne({ role: "admin" });
@@ -100,7 +107,7 @@ test("audit arsip: uji coba tidak menulis; simpan mencadangkan, menghapus, memin
   const daftar = [
     { ...dasar, arsip: "a", aksi: "hapus", alasan: "uji" },
     { ...dasar, arsip: "b", aksi: "pindah", ke: "Sains" },
-    { ...dasar, arsip: "c", aksi: "tetap", tinjau: "uji" },
+    { ...dasar, arsip: "c", aksi: "tetap", tinjau: "uji", catatan: true, bahasa: "Latin" },
     { ...dasar, arsip: "lama", aksi: "hapus", alasan: "uji" },
   ];
   const diam = () => {};
@@ -114,6 +121,10 @@ test("audit arsip: uji coba tidak menulis; simpan mencadangkan, menghapus, memin
   await audit.run({ daftar, simpan: true, cadangan }, diam);
   assert.deepEqual((await Book.find().sort("judul")).map((x) => [x.judul, x.kategori]), [["b", "Sains"], ["c", "Umum"], ["lama", "Umum"]]);
   assert.deepEqual(JSON.parse(fs.readFileSync(cadangan, "utf8")).map((x) => x.judul), ["a"]);
+  const c = await Book.findOne({ judul: "c" });
+  assert.match(c.deskripsi, /^Ditulis dari sudut pandang non-Muslim/);
+  assert.equal(c.bahasa, "Latin");
   const lagi = await audit.run({ daftar }, diam);
+  assert.deepEqual([lagi.catatan, lagi.bahasa], [0, 0]);
   assert.deepEqual([lagi.hapus, lagi.pindah], [0, 0]);
 });

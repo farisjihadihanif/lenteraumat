@@ -16,6 +16,8 @@
 // Aturan aman (src/services/arsip.js): hanya koleksi lembaga tepercaya; tahun dihitung dari jilid itu
 // sendiri, bukan awal seri (1929 ke atas atau tidak pasti = dilewati); hak cipta tidak jelas, okultisme,
 // kebencian, misinformasi kesehatan, konten dewasa, dan karya yang sudah ada di katalog dilewati.
+const fs = require("fs");
+const path = require("path");
 const config = require("../src/config");
 const { connect, mongoose } = require("../src/db");
 const Book = require("../src/models/Book");
@@ -26,7 +28,15 @@ const { storePdf, indexTextNow } = require("../src/services/bookFiles");
 const arsip = require("../src/services/arsip");
 
 // Buku yang sudah ditolak lewat audit tidak boleh masuk lagi (mis. cetakan ulang yang tahunnya di arsip keliru).
-const DITOLAK = new Set(require("../data/audit-arsip-2026-11-24.json").filter((d) => d.aksi === "hapus").map((d) => d.arsip));
+const DATA = path.join(__dirname, "..", "data");
+const DITOLAK = new Set(
+  fs
+    .readdirSync(DATA)
+    .filter((f) => /^audit-arsip-.*\.json$/.test(f))
+    .flatMap((f) => require(path.join(DATA, f)))
+    .filter((d) => d.aksi === "hapus")
+    .map((d) => d.arsip),
+);
 
 const TRUSTED = [
   "smithsonian", "biodiversity", "library_of_congress", "americana", "toronto", "university_of_toronto",
@@ -35,7 +45,16 @@ const TRUSTED = [
 const BAHASA = {
   inggris: "eng", indonesia: "ind", melayu: "(may OR Malay)", arab: "ara", belanda: "dut", jerman: "ger", prancis: "fre",
 };
-const BAHASA_NAMA = { eng: "Inggris", ind: "Indonesia", may: "Melayu", malay: "Melayu", ara: "Arab", dut: "Belanda", ger: "Jerman", fre: "Prancis", jpn: "Jepang", lat: "Latin" };
+const BAHASA_NAMA = {
+  eng: "Inggris", english: "Inggris", ind: "Indonesia", may: "Melayu", malay: "Melayu", ara: "Arab", arabic: "Arab", dut: "Belanda", dutch: "Belanda", ger: "Jerman", german: "Jerman", fre: "Prancis", french: "Prancis", jpn: "Jepang", lat: "Latin", latin: "Latin",
+  spa: "Spanyol", ita: "Italia", por: "Portugis", per: "Persia", ota: "Turki Utsmani", tur: "Turki", heb: "Ibrani", rus: "Rusia", gre: "Yunani", grc: "Yunani", swe: "Swedia", arm: "Armenia", urd: "Urdu",
+};
+// Pindaian Google di arsip sering salah berlabel "Malay"; hanya dipercaya bila judul/subjek mendukung.
+function bahasaDari(m) {
+  const kode = String(arr(m.language)[0] || "").toLowerCase();
+  if (kode === "malay" && !/mala[yi]|melayu|maleis|hikayat|sj?[y']?air|kitab/i.test([...arr(m.title), ...arr(m.subject)].join(" "))) return "Tidak diketahui";
+  return BAHASA_NAMA[kode] || kode || "Inggris";
+}
 
 function args(argv) {
   const out = { jumlah: 30, topik: "", bahasa: "", simpan: false, salin: false };
@@ -113,7 +132,6 @@ async function prepare(doc, maxBytes) {
   const file = pickPdf(meta.files || [], maxBytes);
   if (!file) return { skip: `tidak ada PDF ≤ ${Math.round(maxBytes / 1048576)} MB`, title };
   const pdfUrl = `https://archive.org/download/${encodeURIComponent(id)}/${encodeURIComponent(file.name)}`;
-  const langCode = String(arr(doc.language)[0] || "").toLowerCase();
   return {
     title,
     year,
@@ -124,7 +142,7 @@ async function prepare(doc, maxBytes) {
       penulis: clean(arr(doc.creator)[0]).slice(0, 150) || "Tidak diketahui",
       penerbit: clean(arr(doc.publisher)[0]).slice(0, 150),
       tahunTerbit: year,
-      bahasa: BAHASA_NAMA[langCode] || (langCode ? langCode : "Inggris"),
+      bahasa: bahasaDari(m),
       deskripsi: clean(arr(doc.description).join(" ")).slice(0, 3000),
       cover: `https://archive.org/services/img/${encodeURIComponent(id)}`,
       halaman: parseInt(meta.metadata?.imagecount || doc.imagecount, 10) || 0,
@@ -223,4 +241,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { run, args, buildQuery, pickPdf, setFetchJson: (fn) => (fetchJson = fn) };
+module.exports = { run, args, buildQuery, bahasaDari, pickPdf, setFetchJson: (fn) => (fetchJson = fn) };
