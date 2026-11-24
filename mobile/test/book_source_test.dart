@@ -3,11 +3,13 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:lenteraumat/reader/book_source.dart';
 import 'package:lenteraumat/reader/chunk_cache.dart';
+import 'package:lenteraumat/reader/network.dart';
 
 final isi = Uint8List.fromList(
   List.generate(kChunk * 3 + 1234, (i) => (i * 31 + i ~/ 977) & 255),
@@ -206,6 +208,32 @@ void main() {
       expect(buf, everyElement(0));
     },
   );
+
+  test(
+    'prefetch berhenti saat tidak diizinkan, lalu bisa dilanjutkan',
+    () async {
+      final s = make(potong, cache: ChunkCache(dir: dir));
+      await s.open();
+      await s.prefetch(allowed: () async => false);
+      expect(sent.length, 1);
+      var sisa = 1;
+      await s.prefetch(allowed: () async => sisa-- > 0);
+      expect(sent.length, 2);
+      await s.prefetch(allowed: () async => true);
+      expect(s.complete, isTrue);
+      s.close();
+    },
+  );
+
+  test('Wi-Fi saja: data seluler, campuran, dan luring ditolak', () {
+    const w = ConnectivityResult.wifi, m = ConnectivityResult.mobile;
+    expect(Network.isWifi([w]), isTrue);
+    expect(Network.isWifi([w, ConnectivityResult.vpn]), isTrue);
+    expect(Network.isWifi([m]), isFalse);
+    expect(Network.isWifi([m, w]), isFalse);
+    expect(Network.isWifi([ConnectivityResult.vpn]), isFalse);
+    expect(Network.isWifi([ConnectivityResult.none]), isFalse);
+  });
 
   group('ChunkCache', () {
     Uint8List blok(int n) => Uint8List(100)..fillRange(0, 100, n);

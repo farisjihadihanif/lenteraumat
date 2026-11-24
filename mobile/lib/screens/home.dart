@@ -9,6 +9,8 @@ import '../state.dart';
 import '../theme.dart';
 import '../widgets/book.dart';
 import '../widgets/ui.dart';
+import 'discussion_detail.dart';
+import 'discussions.dart';
 
 const _tagline =
     'LenteraUmat Digital Library ~ read the book, discuss, summary and create a Quiz with Luma';
@@ -115,6 +117,16 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _heading('Discussion'),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: FilledButton.icon(
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Start a discussion'),
+            onPressed: () async {
+              if (await startDiscussion(context) && mounted) await _load();
+            },
+          ),
+        ),
         if (_posts == null && _postsError.isNotEmpty)
           ErrorRetry(message: _postsError, onRetry: _load)
         else if (_posts == null)
@@ -252,8 +264,8 @@ class DiscussionCard extends StatelessWidget {
     final author = post['author'] as Json?;
     final small = TextStyle(fontSize: 13, color: c.inkMute);
     return Panel(
-      // Layar detail diskusi menyusul; sementara membuka tab Discussions.
-      onTap: () => openTab(context, tabDiscussions),
+      onTap: () =>
+          push<void>(context, DiscussionDetailScreen(id: '${post['_id']}')),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

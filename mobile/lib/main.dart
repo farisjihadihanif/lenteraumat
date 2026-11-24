@@ -5,6 +5,7 @@ import 'api.dart';
 import 'nav.dart';
 import 'reader/chunk_cache.dart';
 import 'screens/account.dart';
+import 'screens/discussions.dart';
 import 'screens/home.dart';
 import 'screens/library.dart';
 import 'state.dart';
@@ -16,7 +17,7 @@ void main() {
   pdfrxFlutterInitialize();
   registerFontLicenses();
   final state = AppState(ApiClient(), cache: ChunkCache())
-    ..loadTheme()
+    ..loadPrefs()
     ..bootstrap();
   runApp(LenteraApp(state: state));
 }
@@ -55,7 +56,7 @@ class _ShellState extends State<Shell> {
     HomeScreen(),
     LibraryScreen(),
     _Soon('LUMA'),
-    _Soon('Discussions'),
+    DiscussionsScreen(),
     AccountScreen(),
   ];
 

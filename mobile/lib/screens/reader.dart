@@ -38,6 +38,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   double? _drag;
   int? _unsaved;
   Timer? _save;
+  StreamSubscription<void>? _netSub;
 
   @override
   void initState() {
@@ -48,6 +49,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   void dispose() {
     _save?.cancel();
+    _netSub?.cancel();
     if (_unsaved != null) unawaited(_progress.save(_unsaved!));
     _source?.close();
     super.dispose();
@@ -114,7 +116,22 @@ class _ReaderScreenState extends State<ReaderScreen> {
       _counted = true;
       _state.api.post('/books/$_id/read').ignore();
     }
-    unawaited(_source!.prefetch(from: _pages > 1 ? _page / _pages : 0));
+    _prefetch();
+    _netSub ??= _state.network.changes.listen(
+      (_) => _prefetch(),
+      onError: (_) {},
+    );
+  }
+
+  /// Berhenti sendiri saat pindah ke data seluler; dipanggil lagi saat jaringan berganti.
+  void _prefetch() {
+    if (!mounted || !_ready) return;
+    unawaited(
+      _source!.prefetch(
+        from: _pages > 1 ? _page / _pages : 0,
+        allowed: _state.mayPrefetch,
+      ),
+    );
   }
 
   void _onPage(int? n) {

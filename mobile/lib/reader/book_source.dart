@@ -313,9 +313,12 @@ class BookSource extends ChangeNotifier {
 
   bool _prefetching = false;
 
-  /// Unduh sisa buku ke cache, setelah halaman pertama tampil. Mulai dari posisi baca
+  /// Unduh sisa buku ke cache, setelah halaman pertama tampil, selama [allowed] (mis. Wi-Fi). Mulai dari posisi baca
   /// [from] (0..1), lalu memutar. Mengalah pada bacaan PDFium yang sedang menunggu.
-  Future<void> prefetch({double from = 0}) async {
+  Future<void> prefetch({
+    double from = 0,
+    Future<bool> Function()? allowed,
+  }) async {
     final c = cache;
     if (c == null || _prefetching || _total > c.maxBytes) return;
     _prefetching = true;
@@ -330,6 +333,8 @@ class BookSource extends ChangeNotifier {
         if (await c.has(_key, i)) {
           _mark(i);
         } else {
+          if (allowed != null && !await allowed()) return;
+          if (_closed) return;
           await _chunk(i);
         }
       }

@@ -8,9 +8,12 @@ import '../nav.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../widgets/book.dart';
+import '../widgets/post.dart';
 import '../widgets/report.dart';
 import '../widgets/reviews.dart';
 import '../widgets/ui.dart';
+import 'discussion_detail.dart';
+import 'discussions.dart';
 import 'library.dart';
 import 'reader.dart';
 
@@ -233,12 +236,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         const SizedBox(height: 12),
         Row(
           children: [
-            Avatar(b['uploadedBy'] as Json?, size: 24),
-            const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                'Diunggah oleh ${displayName(b['uploadedBy'] as Json?)}',
-                style: mute,
+              child: UserLine(
+                b['uploadedBy'] as Json?,
+                time: 'pengunggah',
+                size: 28,
               ),
             ),
             ReportButton(
@@ -350,6 +352,16 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       const SizedBox(height: 28),
       Text('Discussions about this book', style: serifStyle(context, 20)),
       const SizedBox(height: 12),
+      OutlinedButton.icon(
+        icon: const Icon(Icons.forum_outlined),
+        label: const Text('Start discussion'),
+        onPressed: () async {
+          if (await startDiscussion(context, book: _book) && mounted) {
+            await _load();
+          }
+        },
+      ),
+      const SizedBox(height: 12),
       if (items.isEmpty)
         Text(
           'Belum ada diskusi. Punya pertanyaan atau catatan tentang buku ini? Ajak pembaca lain berdiskusi.',
@@ -359,8 +371,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Panel(
-            // Layar detail diskusi menyusul; sementara membuka tab Discussions.
-            onTap: () => openTab(context, tabDiscussions),
+            onTap: () =>
+                push<void>(context, DiscussionDetailScreen(id: '${d['_id']}')),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

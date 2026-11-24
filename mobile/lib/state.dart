@@ -5,18 +5,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
 import 'reader/chunk_cache.dart';
+import 'reader/network.dart';
 
 /// Sesi, tema, dan cache buku. Token ada di secure storage lewat [ApiClient].
 class AppState extends ChangeNotifier {
-  AppState(this.api, {this.cache}) {
+  AppState(this.api, {this.cache, Network? network})
+    : network = network ?? Network() {
     api.onUnauthorized = _clearUser;
   }
 
   final ApiClient api;
   final ChunkCache? cache;
+  final Network network;
 
   static const _userKey = 'auth_user';
   static const _themeKey = 'lenteraumat-tema';
+  static const _mobileDataKey = 'unduh-data-seluler';
 
   Json? _user;
   Json? get user => _user;
@@ -27,9 +31,26 @@ class AppState extends ChangeNotifier {
   ThemeMode _theme = ThemeMode.system;
   ThemeMode get theme => _theme;
 
-  Future<void> loadTheme() async {
+  /// "Download whole book on mobile data"; bawaan: hanya Wi-Fi.
+  bool _mobileData = false;
+  bool get mobileData => _mobileData;
+
+  Future<void> setMobileData(bool v) async {
+    _mobileData = v;
+    notifyListeners();
     try {
-      final v = (await SharedPreferences.getInstance()).getString(_themeKey);
+      await (await SharedPreferences.getInstance()).setBool(_mobileDataKey, v);
+    } catch (_) {}
+  }
+
+  /// Boleh mengunduh seluruh buku di latar sekarang?
+  Future<bool> mayPrefetch() async => _mobileData || await network.onWifi();
+
+  Future<void> loadPrefs() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      _mobileData = p.getBool(_mobileDataKey) ?? false;
+      final v = p.getString(_themeKey);
       _theme = ThemeMode.values.asNameMap()[v] ?? ThemeMode.system;
       notifyListeners();
     } catch (_) {
@@ -110,6 +131,16 @@ class AppState extends ChangeNotifier {
     });
     if (r['token'] is String) await api.setToken(r['token'] as String);
   }
+
+  Future<void> saveProfile(Map<String, String> fields, FormFile? foto) async =>
+      _adopt(
+        await api.form(
+          'PATCH',
+          '/users/me',
+          fields: fields,
+          files: [if (foto != null) foto.as('foto')],
+        ),
+      );
 
   Future<void> deleteAccount(String password) async {
     await api.delete('/users/me', {'password': password});

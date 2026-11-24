@@ -7,11 +7,16 @@ environment:
   sdk: ^3.14.0
 
 dependencies:
+  connectivity_plus: ^7.3.2
+  file_picker: ^13.4.1
   flutter:
     sdk: flutter
+  flutter_markdown_plus: ^1.0.12
   flutter_secure_storage: ^11.2.0
   flutter_svg: ^2.5.0
   http: ^1.6.0
+  http_parser: ^4.1.2
+  image_picker: ^1.2.4
   material_ui: ^1.11.1
   path_provider: ^2.1.6
   pdfrx: ^3.1.0
