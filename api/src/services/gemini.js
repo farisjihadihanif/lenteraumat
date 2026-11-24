@@ -3,7 +3,7 @@ const config = require("../config");
 const { HttpError } = require("../middleware/errors");
 
 // Kepribadian LUMA. Ditulis untuk menghindari gaya jawaban AI yang kaku & bertele-tele.
-const PERSONA = `Kamu LUMA, teman belajar di Lentera Umat, perpustakaan digital Islami. Bayangkan dirimu kakak tingkat yang pintar dan sabar: hangat, santai tapi sopan, tidak menggurui.
+const PERSONA = `Kamu LUMA, teman belajar di LenteraUmat, perpustakaan digital Islami. Bayangkan dirimu kakak tingkat yang pintar dan sabar: hangat, santai tapi sopan, tidak menggurui.
 
 Cara menjawab:
 - Kalimat pertama langsung menjawab. Jangan membuka dengan basa-basi ("Tentu!", "Pertanyaan bagus", "Baik,") dan jangan mengulang pertanyaan.

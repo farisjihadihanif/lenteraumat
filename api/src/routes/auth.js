@@ -120,14 +120,14 @@ const hashToken = (t) => crypto.createHash("sha256").update(t).digest("hex");
 
 function resetEmail(user, link) {
   const nama = (user.namaLengkap || user.username).split(" ")[0];
-  const text = `Halo ${nama},\n\nAda permintaan untuk mengganti password akun Lentera Umat @${user.username}. Buka link ini dalam ${RESET_MINUTES} menit:\n\n${link}\n\nKalau kamu tidak meminta ini, abaikan saja email ini. Password-mu tidak berubah.\n\nLentera Umat`;
+  const text = `Halo ${nama},\n\nAda permintaan untuk mengganti password akun LenteraUmat @${user.username}. Buka link ini dalam ${RESET_MINUTES} menit:\n\n${link}\n\nKalau kamu tidak meminta ini, abaikan saja email ini. Password-mu tidak berubah.\n\nLenteraUmat`;
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#1B2B3A;max-width:520px">
 <p>Halo ${nama.replace(/[<>&"]/g, "")},</p>
-<p>Ada permintaan untuk mengganti password akun Lentera Umat <b>@${user.username}</b>. Link berikut berlaku ${RESET_MINUTES} menit.</p>
+<p>Ada permintaan untuk mengganti password akun LenteraUmat <b>@${user.username}</b>. Link berikut berlaku ${RESET_MINUTES} menit.</p>
 <p><a href="${link}" style="display:inline-block;background:#FFB347;color:#1B2B3A;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Ganti password</a></p>
 <p style="color:#5B6B7A;font-size:13px">Kalau kamu tidak meminta ini, abaikan email ini. Password-mu tidak berubah.</p>
 </div>`;
-  return { subject: "Ganti password Lentera Umat", text, html };
+  return { subject: "Ganti password LenteraUmat", text, html };
 }
 
 // Jawaban selalu sama, ada atau tidak akunnya, supaya email terdaftar tidak bisa ditebak.

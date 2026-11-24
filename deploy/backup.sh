@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Backup harian database (mongodump) + folder uploads lokal (kalau tidak pakai Cloudinary).
-# Pasang di cron:  15 2 * * *  /srv/lentera-umat/deploy/backup.sh >> /var/log/lentera-umat/backup.log 2>&1
+# Pasang di cron:  15 2 * * *  /srv/lenteraumat/deploy/backup.sh >> /var/log/lenteraumat/backup.log 2>&1
 set -euo pipefail
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-DEST="${BACKUP_DIR:-$HOME/backup-lentera-umat}"
+DEST="${BACKUP_DIR:-$HOME/backup-lenteraumat}"
 KEEP_DAYS="${KEEP_DAYS:-14}"
 STAMP="$(date +%Y-%m-%d_%H%M)"
 mkdir -p "$DEST"

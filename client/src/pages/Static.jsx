@@ -21,7 +21,7 @@ export function Terms() {
     <div className="container-page max-w-2xl py-10">
       <h1 className="font-serif text-3xl font-semibold">Book sharing terms</h1>
       <div className="prose-lu prose-page mt-6 space-y-4">
-        <p>Lentera Umat adalah perpustakaan digital gratis. Setiap buku yang diunggah perlu memenuhi ketentuan berikut.</p>
+        <p>LenteraUmat adalah perpustakaan digital gratis. Setiap buku yang diunggah perlu memenuhi ketentuan berikut.</p>
         <ul>
           <li>Kamu adalah penulis, pemegang hak cipta, atau sudah mendapat izin untuk membagikan buku secara gratis. Buku domain publik dan berlisensi terbuka juga boleh.</li>
           <li>Isi buku tidak mengandung ujaran kebencian, pornografi, atau ajakan kekerasan.</li>
@@ -62,7 +62,7 @@ export function Privacy() {
       <h1 className="font-serif text-3xl font-semibold">Privacy Policy</h1>
       <p className="mt-2 text-sm text-ink-mute">Berlaku sejak 18 November 2026</p>
       <div className="prose-lu prose-page mt-6 space-y-4">
-        <p>Halaman ini menjelaskan data apa yang disimpan Lentera Umat, untuk apa, dan bagaimana kamu bisa menghapusnya.</p>
+        <p>Halaman ini menjelaskan data apa yang disimpan LenteraUmat, untuk apa, dan bagaimana kamu bisa menghapusnya.</p>
 
         <h2>Data we store</h2>
         <ul>
@@ -94,7 +94,7 @@ export function Privacy() {
         </p>
 
         <h2>Contact</h2>
-        <ContactLine email={email} subject="Privasi Lentera Umat" />
+        <ContactLine email={email} subject="Privasi LenteraUmat" />
       </div>
     </div>
   );
@@ -107,7 +107,7 @@ export function Copyright() {
       <h1 className="font-serif text-3xl font-semibold">Copyright and book takedown</h1>
       <div className="prose-lu prose-page mt-6 space-y-4">
         <p>
-          Buku di Lentera Umat diunggah pengguna atau diambil dari koleksi domain publik seperti Internet Archive. Setiap unggahan pengguna ditinjau admin, tetapi kesalahan tetap bisa terjadi. Kalau kamu pemilik hak cipta dan
+          Buku di LenteraUmat diunggah pengguna atau diambil dari koleksi domain publik seperti Internet Archive. Setiap unggahan pengguna ditinjau admin, tetapi kesalahan tetap bisa terjadi. Kalau kamu pemilik hak cipta dan
           karyamu ada di sini tanpa izin, kami akan menurunkannya.
         </p>
 

@@ -26,7 +26,7 @@ function ThemeToggle() {
     root.classList.toggle("dark", next);
     requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-switching")));
     try {
-      localStorage.setItem("theme", next ? "dark" : "light");
+      localStorage.setItem("lenteraumat_theme", next ? "dark" : "light");
     } catch {
       /* penyimpanan tidak tersedia */
     }
@@ -151,9 +151,9 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-30 border-b border-line/70 bg-surface/80 backdrop-blur-md">
       <div className="container-page flex h-16 items-center gap-4 lg:grid lg:grid-cols-[1fr_minmax(0,26rem)_1fr]">
-        <Link to="/" className="shrink-0 justify-self-start" aria-label="Lentera Umat, go to Home">
-          <img src={logoColor} alt="Lentera Umat" className="h-11 w-auto dark:hidden" />
-          <img src={logoLight} alt="Lentera Umat" className="hidden h-11 w-auto dark:block" />
+        <Link to="/" className="shrink-0 justify-self-start" aria-label="LenteraUmat, go to Home">
+          <img src={logoColor} alt="LenteraUmat" className="h-11 w-auto dark:hidden" />
+          <img src={logoLight} alt="LenteraUmat" className="hidden h-11 w-auto dark:block" />
         </Link>
         <SearchBox className="hidden w-full md:block lg:justify-self-center" />
         <div className="ml-auto flex items-center gap-1 lg:justify-self-end">
@@ -219,7 +219,7 @@ function Footer({ flush }) {
           ))}
           Faris Jihadi Hanif Lubis
         </span>
-        <span>Lentera Umat © {new Date().getFullYear()}</span>
+        <span>LenteraUmat © {new Date().getFullYear()}</span>
         <nav className="flex justify-center gap-4 md:justify-end" aria-label="Information">
           <Link to="/ketentuan" className="hover:text-white">Terms</Link>
           <Link to="/privasi" className="hover:text-white">Privacy</Link>

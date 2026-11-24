@@ -67,7 +67,7 @@ test("simpan & ganti buku dari unggahan langsung", async () => {
   assert.equal(book.status, "menunggu");
   assert.equal(book.file.storage, "cloudinary");
   assert.equal(book.file.url, `https://res.cloudinary.com/demo/raw/upload/v1700000000/${f.public_id}`);
-  assert.match(book.cover, /\/image\/upload\/v1700000000\/lentera-umat\/sampul\//);
+  assert.match(book.cover, /\/image\/upload\/v1700000000\/lenteraumat\/sampul\//);
   // unggahan yang sama tidak bisa dipakai dua kali, dan file buku pertama tidak ikut terhapus
   await u.post("/api/books").send({ ...DATA, fileUpload: f }).expect(409);
   assert.deepEqual(removed, []);
@@ -77,12 +77,21 @@ test("simpan & ganti buku dari unggahan langsung", async () => {
   assert.deepEqual(removed, [c.public_id]);
 });
 
+test("unggahan yang ditandatangani di folder lama tetap diterima", async () => {
+  const u = await h.makeUser(app);
+  const { body } = await u.post("/api/uploads/sign").send({ kind: "buku", type: "application/pdf", size: 10 }).expect(200);
+  const key = body.fields.public_id.replace("lenteraumat/", "lentera-umat/");
+  files.set(key, h.makePdf());
+  const { book } = (await u.post("/api/books").send({ ...DATA, fileUpload: proof(key) }).expect(201)).body;
+  assert.equal(book.file.url, `https://res.cloudinary.com/demo/raw/upload/v1700000000/${key}`);
+});
+
 test("ditolak: tanda tangan palsu, milik orang lain, file palsu, terlalu besar, multipart", async () => {
   const a = await h.makeUser(app, "andi");
   const b = await h.makeUser(app, "bela");
   const f = await unggah(a, "buku", h.makePdf());
   await a.post("/api/books").send({ ...DATA, fileUpload: { ...f, signature: "0".repeat(40) } }).expect(400);
-  await a.post("/api/books").send({ ...DATA, fileUpload: proof("lentera-umat/buku/lain.pdf") }).expect(400);
+  await a.post("/api/books").send({ ...DATA, fileUpload: proof("lenteraumat/buku/lain.pdf") }).expect(400);
   await b.post("/api/books").send({ ...DATA, fileUpload: f }).expect(400);
   await a.post("/api/books").send({ ...DATA, coverUpload: f }).expect(400);
   assert.deepEqual(removed, []);

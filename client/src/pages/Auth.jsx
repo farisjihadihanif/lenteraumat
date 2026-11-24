@@ -105,7 +105,7 @@ export function Login() {
     }
   };
   return (
-    <Shell title={adding ? "Add account" : "Sign in to Lentera Umat"} footer={<>Belum punya akun? <Link to={`/daftar?next=${encodeURIComponent(next)}`} className="font-semibold text-teal hover:underline">Sign up</Link></>}>
+    <Shell title={adding ? "Add account" : "Sign in to LenteraUmat"} footer={<>Belum punya akun? <Link to={`/daftar?next=${encodeURIComponent(next)}`} className="font-semibold text-teal hover:underline">Sign up</Link></>}>
       <SavedAccounts onPick={pick} />
       <form onSubmit={submit} className="space-y-4">
         <div>
@@ -168,7 +168,7 @@ export function Register() {
         <ErrorBox>{error}</ErrorBox>
         <p className="text-xs text-ink-mute">
           Dengan mendaftar, kamu menyetujui <Link to="/ketentuan" className="underline hover:text-ink">Terms</Link> dan{" "}
-          <Link to="/privasi" className="underline hover:text-ink">Privacy Policy</Link> Lentera Umat.
+          <Link to="/privasi" className="underline hover:text-ink">Privacy Policy</Link> LenteraUmat.
         </p>
         <button className="btn-primary w-full" disabled={busy}>{busy ? "Creating account…" : "Sign up"}</button>
       </form>

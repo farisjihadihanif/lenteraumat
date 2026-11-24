@@ -5,7 +5,7 @@ const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const config = require("./config");
 const { clientIp } = require("./middleware/clientIp");
-const { loadUser } = require("./middleware/auth");
+const { migrateCookies, loadUser } = require("./middleware/auth");
 const { notFound, errorHandler } = require("./middleware/errors");
 
 function createApp() {
@@ -48,6 +48,7 @@ function createApp() {
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
   app.use("/uploads", express.static(config.uploadDir, { maxAge: "7d", fallthrough: false }));
+  app.use(migrateCookies);
   app.use(loadUser);
 
   app.get("/api/health", (req, res) => res.json({ ok: true }));

@@ -79,12 +79,43 @@ test("ganti akun: sesi lama (sebelum ada daftar akun) ikut diingat saat tambah a
   await h.request(app).post("/api/auth/register").send({ username: "lama", email: "lama@lu.id", password: "rahasia123", namaLengkap: "Lama" }).expect(201);
   await h.request(app).post("/api/auth/register").send({ username: "baru", email: "baru@lu.id", password: "rahasia123", namaLengkap: "Baru" }).expect(201);
   const login = await h.request(app).post("/api/auth/login").send({ identifier: "lama", password: "rahasia123" }).expect(200);
-  const token = login.headers["set-cookie"].find((c) => c.startsWith("token=")).split(";")[0];
+  const token = login.headers["set-cookie"].find((c) => c.startsWith("lenteraumat_token=")).split(";")[0];
   // hanya cookie token, tanpa cookie accounts
   const res = await h.request(app).post("/api/auth/login").set("Cookie", token).send({ identifier: "baru", password: "rahasia123" }).expect(200);
   const cookies = res.headers["set-cookie"].map((c) => c.split(";")[0]).join("; ");
   const acc = (await h.request(app).get("/api/auth/accounts").set("Cookie", cookies)).body.accounts;
   assert.deepEqual(acc.map((x) => x.username).sort(), ["baru", "lama"]);
+});
+
+test("cookie nama lama dipindahkan: tetap masuk, daftar akun ikut, bisa keluar", async () => {
+  const akun = [];
+  for (const username of ["satu", "dua"]) {
+    const r = await h.request(app).post("/api/auth/register").send({ username, email: `${username}@lu.id`, password: "rahasia123", namaLengkap: username }).expect(201);
+    akun.push(r.headers["set-cookie"].find((c) => c.startsWith("lenteraumat_token=")).split(";")[0].split("=")[1]);
+  }
+  const lama = `token=${akun[1]}; accounts=${encodeURIComponent(JSON.stringify(akun))}`;
+
+  // di luar /api/auth: sesi lama terbaca, tapi tidak ada Set-Cookie (respons bisa di-cache publik)
+  const luar = await h.request(app).get("/api/site").set("Cookie", lama).expect(200);
+  assert.equal(luar.headers["set-cookie"], undefined);
+
+  const me = await h.request(app).get("/api/auth/me").set("Cookie", lama).expect(200);
+  assert.equal(me.body.user.username, "dua");
+  const set = me.headers["set-cookie"];
+  assert.ok(set.some((c) => c.startsWith(`lenteraumat_token=${akun[1]};`)));
+  for (const n of ["token", "accounts"]) assert.ok(set.some((c) => c.startsWith(`${n}=;`)), n);
+  const baru = set.map((c) => c.split(";")[0]).filter((c) => c.startsWith("lenteraumat_")).join("; ");
+  const acc = (await h.request(app).get("/api/auth/accounts").set("Cookie", baru)).body.accounts;
+  assert.deepEqual(acc.map((x) => x.username).sort(), ["dua", "satu"]);
+
+  // keluar sebagai permintaan pertama: Set-Cookie terakhir menghapus sesi
+  const out = await h.request(app).post("/api/auth/logout").set("Cookie", lama).expect(200);
+  assert.ok(out.headers["set-cookie"].filter((c) => c.startsWith("lenteraumat_token=")).at(-1).startsWith("lenteraumat_token=;"));
+  assert.ok(out.headers["set-cookie"].some((c) => c.startsWith("token=;")));
+
+  // cookie "token" milik aplikasi lain tidak disentuh
+  const asing = await h.request(app).get("/api/auth/me").set("Cookie", "token=punya-aplikasi-lain; accounts=x");
+  assert.equal(asing.headers["set-cookie"], undefined);
 });
 
 test("LUMA: lampiran dikirim lewat Files API, nama pengguna di system prompt", async () => {

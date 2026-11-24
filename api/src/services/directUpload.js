@@ -31,7 +31,7 @@ function sign(userId, { kind, type, size }) {
   // overwrite=false ikut ditandatangani: file yang sudah ditinjau admin tidak bisa ditimpa.
   const params = {
     overwrite: "false",
-    public_id: `lentera-umat/${kind}/${userId}-${Date.now()}-${crypto.randomBytes(6).toString("hex")}${k.ext}`,
+    public_id: `lenteraumat/${kind}/${userId}-${Date.now()}-${crypto.randomBytes(6).toString("hex")}${k.ext}`,
     timestamp: Math.floor(Date.now() / 1000),
     ...(k.resource === "image" ? { allowed_formats: "jpg,png,webp,gif" } : {}),
   };
@@ -48,7 +48,8 @@ function claim(userId, kind, raw) {
   if (!storage.usingCloudinary || typeof raw !== "object") throw bad();
   const key = String(raw.public_id || "");
   const version = String(raw.version || "");
-  const pattern = new RegExp(`^lentera-umat/${kind}/${userId}-\\d+-[a-f0-9]{12}${k.ext.replace(".", "\\.")}$`);
+  // Folder lama "lentera-umat" tetap diterima (unggahan yang ditandatangani sebelum ganti nama).
+  const pattern = new RegExp(`^(?:lenteraumat|lentera-umat)/${kind}/${userId}-\\d+-[a-f0-9]{12}${k.ext.replace(".", "\\.")}$`);
   if (!pattern.test(key) || !/^\d+$/.test(version)) throw bad();
   if (!storage.cloudinary.utils.verify_api_response_signature(key, version, String(raw.signature || ""))) throw bad();
   return { kind, key, storage: "cloudinary", url: `https://res.cloudinary.com/${storage.cloudinary.config().cloud_name}/${k.resource}/upload/v${version}/${key}` };

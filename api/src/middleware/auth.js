@@ -3,9 +3,12 @@ const config = require("../config");
 const User = require("../models/User");
 const { HttpError } = require("./errors");
 
-const COOKIE = "token";
+const COOKIE = "lenteraumat_token";
 // Akun lain yang pernah masuk di perangkat ini (untuk "Ganti akun"), maksimal 5.
-const ACCOUNTS = "accounts";
+const ACCOUNTS = "lenteraumat_accounts";
+// Nama cookie sebelum ganti nama proyek; dipindahkan supaya user tetap masuk.
+const OLD_COOKIE = "token";
+const OLD_ACCOUNTS = "accounts";
 const MAX_ACCOUNTS = 5;
 
 function cookieOptions() {
@@ -22,14 +25,16 @@ function sign(user) {
   return jwt.sign({ sub: String(user._id), v: user.tokenVersion || 0 }, config.jwtSecret, { expiresIn: `${config.jwtDays}d` });
 }
 
-function readAccounts(req) {
+function parseAccounts(raw) {
   try {
-    const list = JSON.parse(req.cookies?.[ACCOUNTS] || "[]");
+    const list = JSON.parse(raw || "[]");
     return Array.isArray(list) ? list.filter((t) => typeof t === "string").slice(0, MAX_ACCOUNTS) : [];
   } catch {
     return [];
   }
 }
+
+const readAccounts = (req) => parseAccounts(req.cookies?.[ACCOUNTS]);
 
 function subOf(token) {
   try {
@@ -55,6 +60,31 @@ function writeAccounts(res, tokens) {
     res.clearCookie(ACCOUNTS, opts);
   }
   return list;
+}
+
+// Pindahkan cookie lama ke nama baru. Hanya yang ditandatangani server ini: di localhost, proyek lain
+// bisa memakai nama "token" juga. Ditulis hanya di /api/auth (dipanggil tiap web dibuka), supaya
+// Set-Cookie tidak menempel di respons yang boleh di-cache publik seperti file buku.
+function migrateCookies(req, res, next) {
+  const { maxAge, ...opts } = cookieOptions();
+  const persist = req.path.startsWith("/api/auth/");
+  const oldToken = req.cookies?.[OLD_COOKIE];
+  if (oldToken && subOf(oldToken)) {
+    if (!req.cookies[COOKIE]) {
+      req.cookies[COOKIE] = oldToken;
+      if (persist) res.cookie(COOKIE, oldToken, cookieOptions());
+    }
+    if (persist) res.clearCookie(OLD_COOKIE, opts);
+  }
+  const oldAccounts = parseAccounts(req.cookies?.[OLD_ACCOUNTS]).filter(subOf);
+  if (oldAccounts.length) {
+    if (!req.cookies[ACCOUNTS]) {
+      req.cookies[ACCOUNTS] = JSON.stringify(oldAccounts);
+      if (persist) writeAccounts(res, oldAccounts);
+    }
+    if (persist) res.clearCookie(OLD_ACCOUNTS, opts);
+  }
+  next();
 }
 
 // Masuk sebagai user ini, dan ingat akunnya di daftar akun perangkat.
@@ -108,4 +138,4 @@ function requireAdmin(req, res, next) {
 const isAdmin = (user) => user?.role === "admin";
 const isOwner = (user, id) => Boolean(user && id && String(user._id) === String(id._id || id));
 
-module.exports = { issueToken, clearToken, loadUser, requireAuth, requireAdmin, isAdmin, isOwner, readAccounts, writeAccounts, subOf, sign, COOKIE, cookieOptions };
+module.exports = { issueToken, clearToken, migrateCookies, loadUser, requireAuth, requireAdmin, isAdmin, isOwner, readAccounts, writeAccounts, subOf, sign, COOKIE, cookieOptions };

@@ -45,7 +45,7 @@ async function save(file, folder) {
       const stream = cloudinary.uploader.upload_stream(
         {
           agent,
-          folder: `lentera-umat/${folder}`,
+          folder: `lenteraumat/${folder}`,
           public_id: name.replace(ext, ""),
           resource_type: file.mimetype === "application/pdf" ? "raw" : "image",
           ...(file.mimetype === "application/pdf" ? { format: "pdf" } : {}),

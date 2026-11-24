@@ -1,4 +1,4 @@
-# Panduan deploy Lentera Umat
+# Panduan deploy LenteraUmat
 
 Cara utama: **dua proyek Vercel** dari satu repo. `client/` (web) meneruskan
 `/api/*` ke `api/` (Express), jadi di browser semuanya satu domain dan cookie
@@ -17,14 +17,15 @@ Cara VPS ada di bagian bawah.
 
 ## Vercel: langkah
 
-1. **Proyek API**: Import repo, *Root Directory* `api`, Framework *Other*. Isi
+1. **Proyek API** (nama: `lenteraumat-api`): Import repo
+   `farisjihadihanif/lenteraumat`, *Root Directory* `api`, Framework *Other*. Isi
    environment variables (tabel di bawah), lalu Deploy. Cek
    `https://PROYEK-API.vercel.app/api/health` membalas `{"ok":true}`.
    Samakan *Function Region* dengan region Atlas. Domain produksinya jangan
    dikunci Deployment Protection, karena web harus bisa memanggilnya.
 2. **Ganti placeholder** `GANTI-DENGAN-PROYEK-API.vercel.app` di
    `client/vercel.json` dengan domain proyek API, commit, push.
-3. **Proyek web**: Import repo yang sama, *Root Directory* `client`, Framework
+3. **Proyek web** (nama: `lenteraumat`): Import repo yang sama, *Root Directory* `client`, Framework
    *Vite*. Deploy.
 4. Kembali ke proyek API: isi `CLIENT_ORIGIN` dan `APP_URL` dengan domain web,
    lalu **Redeploy** (perubahan env baru berlaku setelah deploy ulang).
@@ -83,8 +84,8 @@ Jangan menaruh rahasia di proyek ini; semua `VITE_*` ikut terkirim ke browser.
   Di DevTools > Network, header `RateLimit-Remaining` di jaringan kedua harus
   mulai dari awal (4). Kalau melanjutkan hitungan jaringan pertama, IP asli
   tidak sampai ke API. Kuota harian LUMA tetap akurat karena disimpan di database.
-- Unggahan yang batal di tengah jalan bisa tertinggal di folder `lentera-umat/`
-  Cloudinary; bersihkan sesekali.
+- Unggahan yang batal di tengah jalan bisa tertinggal di folder `lenteraumat/`
+  Cloudinary (unggahan lama: `lentera-umat/`); bersihkan sesekali.
 - CSP web ada di `client/vercel.json` (bukan di Express). Sampul boleh dari
   archive.org, Cloudinary, dan https lain; koneksi hanya ke domain sendiri dan
   `api.cloudinary.com`.
@@ -126,24 +127,24 @@ sampul, dan foto di **Cloudinary**, AI lewat **Google Gemini**, email lewat
 1. **Keamanan dasar**: login SSH pakai key, matikan login password dan root,
    aktifkan firewall: `ufw allow OpenSSH && ufw allow 'Nginx Full' && ufw enable`.
    Port 4000 **jangan** dibuka ke publik.
-2. **Kode**: salin proyek ke `/srv/lentera-umat` (tanpa `node_modules`, tanpa
+2. **Kode**: salin proyek ke `/srv/lenteraumat` (tanpa `node_modules`, tanpa
    `.env`, tanpa `api/uploads`), lalu:
    ```bash
-   cd /srv/lentera-umat/client && npm ci && npm run build
-   cd /srv/lentera-umat/api && npm ci --omit=dev
+   cd /srv/lenteraumat/client && npm ci && npm run build
+   cd /srv/lenteraumat/api && npm ci --omit=dev
    ```
 3. **Konfigurasi**: `cp api/.env.example api/.env`, isi semua nilai (tabel di
    bawah), lalu `chmod 600 api/.env`.
 4. **Jalankan dengan PM2**:
    ```bash
-   sudo mkdir -p /var/log/lentera-umat && sudo chown $USER /var/log/lentera-umat
+   sudo mkdir -p /var/log/lenteraumat && sudo chown $USER /var/log/lenteraumat
    pm2 start deploy/ecosystem.config.js
    pm2 save && pm2 startup
-   pm2 logs lentera-umat --lines 20   # harus ada "MongoDB tersambung" dan "LUMA: aktif"
+   pm2 logs lenteraumat --lines 20   # harus ada "MongoDB tersambung" dan "LUMA: aktif"
    ```
    Cukup **1 proses**. Jangan pakai mode cluster (batas percobaan login dan
    batas LUMA per menit disimpan di memori proses).
-5. **Nginx + HTTPS**: salin `deploy/nginx-lentera-umat.conf` ke
+5. **Nginx + HTTPS**: salin `deploy/nginx-lenteraumat.conf` ke
    `/etc/nginx/sites-available/domainmu.id`, ganti nama domainnya, aktifkan
    (`ln -s` ke `sites-enabled`), `sudo nginx -t && sudo systemctl reload nginx`,
    lalu `sudo certbot --nginx -d domainmu.id -d www.domainmu.id`.
@@ -182,12 +183,12 @@ sampul, dan foto di **Cloudinary**, AI lewat **Google Gemini**, email lewat
 ## VPS: update aplikasi
 
 ```bash
-cd /srv/lentera-umat
+cd /srv/lenteraumat
 ./deploy/backup.sh                  # backup dulu
 # salin kode baru (jangan timpa api/.env dan api/uploads)
 cd client && npm ci && npm run build && cd ..
 cd api && npm ci --omit=dev && cd ..
-pm2 restart lentera-umat
+pm2 restart lenteraumat
 ```
 
 ## VPS: yang perlu diketahui
@@ -200,4 +201,4 @@ pm2 restart lentera-umat
 - **Atlas M0** dibatasi 512 MB. Teks buku untuk LUMA ikut tersimpan di
   database, jadi pantau ukurannya di dasbor Atlas setelah impor banyak buku.
 - **Batas LUMA per hari** reset pukul 00.00 WIB. Ubah `LUMA_DAILY_LIMIT` lalu
-  `pm2 restart lentera-umat`.
+  `pm2 restart lenteraumat`.

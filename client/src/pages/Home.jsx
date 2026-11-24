@@ -13,7 +13,7 @@ import luma from "../assets/Maskot/Luma1.png";
 // sementara judul diam, sehingga judul tampak turun lalu tenggelam ke gradasi di bawah
 // (teknik HNI & FJ Coffee). Paragraf ikut bergulir normal bersama hero.
 const HERO_TITLE = "font-serif text-6xl font-semibold leading-none sm:text-7xl md:text-8xl";
-const TAGLINE = "Lentera Umat Digital Library ~ read the book, discuss, summary and create a Quiz with Luma";
+const TAGLINE = "LenteraUmat Digital Library ~ read the book, discuss, summary and create a Quiz with Luma";
 
 function Hero() {
   return (
@@ -23,11 +23,11 @@ function Hero() {
     >
       <img src={heroBg} alt="" className="absolute inset-0 -z-10 h-full w-full hero-parallax object-cover grayscale" />
       <div className="absolute inset-0 -z-10 bg-[color:var(--hero-scrim)]" aria-hidden />
-      <h1 className={`fixed inset-x-0 top-[calc(50svh-5rem)] px-6 text-center [text-shadow:1px_1px_4px_rgba(0,0,0,.8)] ${HERO_TITLE}`}>Lentera Umat</h1>
+      <h1 className={`fixed inset-x-0 top-[calc(50svh-5rem)] px-6 text-center [text-shadow:1px_1px_4px_rgba(0,0,0,.8)] ${HERO_TITLE}`}>LenteraUmat</h1>
       {/* Salinan judul tak terlihat menjaga jarak paragraf tepat di bawah judul. */}
       <div className="absolute inset-x-0 top-[calc(50svh-5rem)] px-6 text-center">
         <p className={`invisible ${HERO_TITLE}`} aria-hidden>
-          Lentera Umat
+          LenteraUmat
         </p>
         <p className="mx-auto mt-6 max-w-2xl text-white/90 [text-shadow:1px_1px_3px_rgba(0,0,0,.8)] sm:text-lg">{TAGLINE}</p>
       </div>

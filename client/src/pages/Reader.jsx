@@ -92,7 +92,7 @@ export default function Reader() {
         const { book } = await api.get(`/books/${id}`);
         if (cancelled) return;
         setBook(book);
-        document.title = `${book.judul} · Lentera Umat`;
+        document.title = `${book.judul} · LenteraUmat`;
         let start = Number(params.get("hal")) || 0;
         if (!start && user) start = (await api.get(`/books/${id}/progress`).catch(() => ({ page: 1 }))).page;
         setStatus("Menyiapkan halaman");
@@ -160,7 +160,7 @@ export default function Reader() {
     })();
     return () => {
       cancelled = true;
-      document.title = "Lentera Umat · Digital Library";
+      document.title = "LenteraUmat · Digital Library";
       clearTimeout(saveTimer.current);
       try {
         flip.current?.destroy();

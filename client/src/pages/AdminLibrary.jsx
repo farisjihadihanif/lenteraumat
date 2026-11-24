@@ -121,7 +121,7 @@ export function ImportBooks() {
           <legend className="label">Penyimpanan file</legend>
           <label className="flex items-start gap-2">
             <input type="radio" name="simpan" className="mt-1 accent-teal" checked={form.simpan === "salin"} onChange={() => setForm((f) => ({ ...f, simpan: "salin" }))} />
-            <span>Simpan salinan di penyimpanan Lentera Umat <span className="text-ink-mute">(paling stabil; PDF di atas batas penyimpanan otomatis ditautkan)</span></span>
+            <span>Simpan salinan di penyimpanan LenteraUmat <span className="text-ink-mute">(paling stabil; PDF di atas batas penyimpanan otomatis ditautkan)</span></span>
           </label>
           <label className="flex items-start gap-2">
             <input type="radio" name="simpan" className="mt-1 accent-teal" checked={form.simpan === "tautan"} onChange={() => setForm((f) => ({ ...f, simpan: "tautan" }))} />

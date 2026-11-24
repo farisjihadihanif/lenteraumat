@@ -24,7 +24,7 @@ const setSender = (fn) => {
 };
 
 async function send({ to, subject, text, html }) {
-  return sender({ from: config.smtp.from || `Lentera Umat <${config.smtp.user}>`, to, subject, text, html });
+  return sender({ from: config.smtp.from || `LenteraUmat <${config.smtp.user}>`, to, subject, text, html });
 }
 
 module.exports = { send, configured, setSender };
