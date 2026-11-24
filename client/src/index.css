@@ -28,7 +28,9 @@
     --gradient-cover: linear-gradient(to right, rgb(0 0 0 / .4), rgb(0 0 0 / 0));
     color-scheme: dark;
   }
-  html { -webkit-text-size-adjust: 100%; }
+  html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; }
+  /* Pembaca buku menutup seluruh layar: tanpa celah scrollbar. */
+  html:has(.lu-reader) { scrollbar-gutter: auto; }
   body {
     @apply bg-mist font-sans text-ink antialiased;
     font-feature-settings: "ss01";

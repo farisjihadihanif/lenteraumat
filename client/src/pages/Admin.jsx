@@ -10,14 +10,14 @@ import { Avatar, ConfirmModal, Empty, ErrorBox, Modal, Pagination, Spinner, Star
 import { displayName, formatDate, formatSize, timeAgo } from "../lib/format";
 
 const TABS = [
-  { id: "ringkasan", label: "Ringkasan", icon: LayoutDashboard },
-  { id: "masuk", label: "Buku masuk", icon: Inbox },
-  { id: "buku", label: "Semua buku", icon: Library },
-  { id: "impor", label: "Impor buku", icon: Link2 },
-  { id: "kategori", label: "Kategori", icon: Tags },
-  { id: "laporan", label: "Laporan", icon: Flag },
-  { id: "ulasan", label: "Ulasan", icon: Star },
-  { id: "pengguna", label: "Pengguna", icon: Users },
+  { id: "ringkasan", label: "Overview", icon: LayoutDashboard },
+  { id: "masuk", label: "Incoming books", icon: Inbox },
+  { id: "buku", label: "All books", icon: Library },
+  { id: "impor", label: "Import book", icon: Link2 },
+  { id: "kategori", label: "Categories", icon: Tags },
+  { id: "laporan", label: "Reports", icon: Flag },
+  { id: "ulasan", label: "Reviews", icon: Star },
+  { id: "pengguna", label: "Users", icon: Users },
 ];
 
 function ReviewDialog({ book, action, onClose, onDone }) {
@@ -29,7 +29,7 @@ function ReviewDialog({ book, action, onClose, onDone }) {
     setError("");
   }, [book, action]);
   if (!book) return null;
-  const title = { setujui: "Setujui buku", tolak: "Tolak buku", revisi: "Minta revisi" }[action];
+  const title = { setujui: "Approve book", tolak: "Reject book", revisi: "Request revision" }[action];
   const submit = async () => {
     setBusy(true);
     setError("");
@@ -55,9 +55,9 @@ function ReviewDialog({ book, action, onClose, onDone }) {
       <p className="hint">Catatan ini terlihat oleh pengunggah.</p>
       <ErrorBox>{error}</ErrorBox>
       <div className="mt-4 flex justify-end gap-2">
-        <button className="btn-ghost" onClick={onClose}>Batal</button>
+        <button className="btn-ghost" onClick={onClose}>Cancel</button>
         <button className={action === "tolak" ? "btn-danger" : action === "setujui" ? "btn-teal" : "btn-primary"} disabled={busy || (action !== "setujui" && !catatan.trim())} onClick={submit}>
-          {busy ? "Menyimpan…" : title}
+          {busy ? "Saving…" : title}
         </button>
       </div>
     </Modal>
@@ -71,14 +71,14 @@ function Overview({ go }) {
   }, []);
   if (!s) return <Spinner />;
   const cards = [
-    ["Menunggu tinjauan", s.books.menunggu, "masuk", "text-lantern-text"],
-    ["Buku tayang", s.books.disetujui, "buku", "text-teal"],
-    ["Perlu revisi", s.books.revisi, "buku", "text-ink"],
-    ["Ditolak", s.books.ditolak, "buku", "text-ink"],
-    ["Pengguna", s.users, "pengguna", "text-ink"],
-    ["Ulasan", s.reviews, "ulasan", "text-ink"],
-    ["Diskusi", s.discussions, null, "text-ink"],
-    ["Total dibaca", s.reads, null, "text-ink"],
+    ["Pending review", s.books.menunggu, "masuk", "text-lantern-text"],
+    ["Published books", s.books.disetujui, "buku", "text-teal"],
+    ["Needs revision", s.books.revisi, "buku", "text-ink"],
+    ["Rejected", s.books.ditolak, "buku", "text-ink"],
+    ["Users", s.users, "pengguna", "text-ink"],
+    ["Reviews", s.reviews, "ulasan", "text-ink"],
+    ["Discussions", s.discussions, null, "text-ink"],
+    ["Total reads", s.reads, null, "text-ink"],
   ];
   return (
     <div className="space-y-6">
@@ -86,7 +86,7 @@ function Overview({ go }) {
         <button onClick={() => go("laporan")} className="flex w-full items-center gap-4 rounded-xl border border-danger/30 bg-red-500/5 p-4 text-left hover:border-danger/60">
           <Flag className="text-danger" />
           <span className="flex-1 font-bold">{s.laporan} laporan baru dari pengguna.</span>
-          <span className="btn-outline btn-sm">Lihat</span>
+          <span className="btn-outline btn-sm">View</span>
         </button>
       )}
       {s.books.menunggu > 0 && (
@@ -95,7 +95,7 @@ function Overview({ go }) {
           <span className="flex-1">
             <span className="font-bold">{s.books.menunggu} buku menunggu tinjauan.</span>
           </span>
-          <span className="btn-primary btn-sm">Tinjau</span>
+          <span className="btn-primary btn-sm">Review</span>
         </button>
       )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -114,9 +114,9 @@ function Overview({ go }) {
         })}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Link to="/unggah" className="btn-outline"><Upload size={16} /> Unggah buku (langsung tayang)</Link>
-        <button onClick={() => go("impor")} className="btn-outline"><Link2 size={16} /> Impor dari tautan</button>
-        <Link to="/diskusi" className="btn-outline">Moderasi diskusi</Link>
+        <Link to="/unggah" className="btn-outline"><Upload size={16} /> Upload book (published instantly)</Link>
+        <button onClick={() => go("impor")} className="btn-outline"><Link2 size={16} /> Import from link</button>
+        <Link to="/diskusi" className="btn-outline">Moderate discussions</Link>
       </div>
     </div>
   );
@@ -131,7 +131,7 @@ function Incoming() {
     load();
   }, [load]);
   if (!res) return <Spinner />;
-  if (!res.items.length) return <Empty title="Tidak ada buku yang menunggu">Semua unggahan sudah ditinjau.</Empty>;
+  if (!res.items.length) return <Empty title="No books waiting">Semua unggahan sudah ditinjau.</Empty>;
   return (
     <>
       <p className="mb-4 text-sm text-ink-mute">{res.total} buku, yang terlama di atas.</p>
@@ -151,10 +151,10 @@ function Incoming() {
               {b.deskripsi && <p className="mt-2 line-clamp-2 text-sm text-ink-soft">{b.deskripsi}</p>}
               {b.catatanReview && <p className="mt-2 text-xs text-ink-mute">Catatan sebelumnya: {b.catatanReview}</p>}
               <div className="mt-3 flex flex-wrap gap-2">
-                <Link to={`/buku/${b._id}/baca`} target="_blank" className="btn-outline btn-sm"><ExternalLink size={14} /> Periksa isi</Link>
-                <button className="btn-teal btn-sm" onClick={() => setDialog({ book: b, action: "setujui" })}><Check size={14} /> Setujui</button>
-                <button className="btn-outline btn-sm" onClick={() => setDialog({ book: b, action: "revisi" })}><PencilLine size={14} /> Minta revisi</button>
-                <button className="btn-outline btn-sm text-danger" onClick={() => setDialog({ book: b, action: "tolak" })}><X size={14} /> Tolak</button>
+                <Link to={`/buku/${b._id}/baca`} target="_blank" className="btn-outline btn-sm"><ExternalLink size={14} /> Check contents</Link>
+                <button className="btn-teal btn-sm" onClick={() => setDialog({ book: b, action: "setujui" })}><Check size={14} /> Approve</button>
+                <button className="btn-outline btn-sm" onClick={() => setDialog({ book: b, action: "revisi" })}><PencilLine size={14} /> Request revision</button>
+                <button className="btn-outline btn-sm text-danger" onClick={() => setDialog({ book: b, action: "tolak" })}><X size={14} /> Reject</button>
               </div>
             </div>
           </li>
@@ -184,7 +184,7 @@ function AllBooks() {
       <div className="mb-4 flex flex-col gap-2 sm:flex-row">
         <form className="relative flex-1" onSubmit={(e) => { e.preventDefault(); setPage(1); setQuery(q); }}>
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute" />
-          <input className="field pl-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari judul atau penulis" />
+          <input className="field pl-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title or author" />
         </form>
         <select className="field sm:w-48" value={status} onChange={(e) => { setPage(1); setStatus(e.target.value); }} aria-label="Status">
           <option value="">Semua status</option>
@@ -195,16 +195,16 @@ function AllBooks() {
         </select>
         <AutoCoverButton onDone={load} />
       </div>
-      {!res ? <Spinner /> : res.items.length === 0 ? <Empty title="Tidak ada buku" /> : (
+      {!res ? <Spinner /> : res.items.length === 0 ? <Empty title="No books" /> : (
         <div className="overflow-x-auto rounded-xl border border-line bg-surface">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="bg-mist text-left text-xs text-ink-mute">
               <tr>
-                <th className="px-4 py-3 font-semibold">Buku</th>
+                <th className="px-4 py-3 font-semibold">Book</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
-                <th className="px-4 py-3 font-semibold">Pengunggah</th>
+                <th className="px-4 py-3 font-semibold">Uploader</th>
                 <th className="px-4 py-3 font-semibold">Rating</th>
-                <th className="px-4 py-3 font-semibold">Dibaca</th>
+                <th className="px-4 py-3 font-semibold">Reads</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -226,10 +226,10 @@ function AllBooks() {
                   <td className="px-4 py-3">{b.dibaca}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
-                      {b.status !== "disetujui" && <button className="btn-ghost btn-sm" onClick={() => setDialog({ book: b, action: "setujui" })}>Setujui</button>}
-                      {b.status === "disetujui" && <button className="btn-ghost btn-sm" onClick={() => setDialog({ book: b, action: "revisi" })}>Turunkan</button>}
-                      <Link to={`/buku/${b._id}/ubah`} className="btn-ghost btn-sm">Ubah</Link>
-                      <button className="btn-ghost btn-sm text-danger" onClick={() => setDel(b)} aria-label={`Hapus ${b.judul}`}><Trash2 size={14} /></button>
+                      {b.status !== "disetujui" && <button className="btn-ghost btn-sm" onClick={() => setDialog({ book: b, action: "setujui" })}>Approve</button>}
+                      {b.status === "disetujui" && <button className="btn-ghost btn-sm" onClick={() => setDialog({ book: b, action: "revisi" })}>Unpublish</button>}
+                      <Link to={`/buku/${b._id}/ubah`} className="btn-ghost btn-sm">Edit</Link>
+                      <button className="btn-ghost btn-sm text-danger" onClick={() => setDel(b)} aria-label={`Delete ${b.judul}`}><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -242,7 +242,7 @@ function AllBooks() {
       <ReviewDialog {...dialog} onClose={() => setDialog({ book: null })} onDone={() => { setDialog({ book: null }); load(); }} />
       <ConfirmModal
         open={Boolean(del)}
-        title="Hapus buku?"
+        title="Delete book?"
         message={`“${del?.judul}” beserta file, ulasan, dan progres bacanya akan dihapus permanen.`}
         busy={busy}
         onClose={() => setDel(null)}
@@ -272,11 +272,11 @@ function Reviews() {
       <div className="mb-4 flex flex-wrap gap-1">
         {["", "5", "4", "3", "2", "1"].map((r) => (
           <button key={r} onClick={() => { setPage(1); setRating(r); }} className={`rounded-full border px-3 py-1 text-sm font-semibold ${rating === r ? "border-forest bg-forest text-white" : "border-line bg-surface"}`}>
-            {r ? `${r} bintang` : "Semua"}
+            {r ? `${r} ${r === "1" ? "star" : "stars"}` : "All"}
           </button>
         ))}
       </div>
-      {!res ? <Spinner /> : res.items.length === 0 ? <Empty title="Belum ada ulasan" /> : (
+      {!res ? <Spinner /> : res.items.length === 0 ? <Empty title="No reviews yet" /> : (
         <ul className="space-y-3">
           {res.items.map((r) => (
             <li key={r._id} className="panel flex gap-3 p-4">
@@ -286,7 +286,7 @@ function Reviews() {
                 <div className="mt-0.5 flex items-center gap-2 text-xs text-ink-mute"><Stars value={r.rating} size={12} /> {timeAgo(r.createdAt)}</div>
                 {r.komentar && <p className="mt-1.5 whitespace-pre-line text-sm text-ink-soft">{r.komentar}</p>}
               </div>
-              <button className="btn-ghost btn-sm self-start text-danger" onClick={() => setDel(r)} aria-label="Hapus ulasan"><Trash2 size={14} /></button>
+              <button className="btn-ghost btn-sm self-start text-danger" onClick={() => setDel(r)} aria-label="Delete review"><Trash2 size={14} /></button>
             </li>
           ))}
         </ul>
@@ -294,7 +294,7 @@ function Reviews() {
       {res && <Pagination page={res.page} pages={res.pages} onChange={setPage} />}
       <ConfirmModal
         open={Boolean(del)}
-        title="Hapus ulasan?"
+        title="Delete review?"
         message="Ulasan ini akan dihapus dan rating buku dihitung ulang."
         onClose={() => setDel(null)}
         onConfirm={async () => {
@@ -341,7 +341,7 @@ function UsersTab() {
       <div className="mb-4 flex flex-col gap-2 sm:flex-row">
         <form className="relative flex-1" onSubmit={(e) => { e.preventDefault(); setPage(1); setQuery(q); }}>
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute" />
-          <input className="field pl-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama, username, atau email" />
+          <input className="field pl-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, username, or email" />
         </form>
         <select className="field sm:w-40" value={role} onChange={(e) => { setPage(1); setRole(e.target.value); }} aria-label="Peran">
           <option value="">Semua peran</option>
@@ -363,9 +363,9 @@ function UsersTab() {
               {u._id !== me._id && (
                 <div className="flex gap-1">
                   <button className="btn-outline btn-sm" onClick={() => setConfirm({ type: "peran", user: u })}>
-                    {u.role === "admin" ? "Jadikan user" : "Jadikan admin"}
+                    {u.role === "admin" ? "Make user" : "Make admin"}
                   </button>
-                  <button className="btn-ghost btn-sm text-danger" onClick={() => setConfirm({ type: "hapus", user: u })} aria-label={`Hapus ${u.username}`}><Trash2 size={14} /></button>
+                  <button className="btn-ghost btn-sm text-danger" onClick={() => setConfirm({ type: "hapus", user: u })} aria-label={`Delete ${u.username}`}><Trash2 size={14} /></button>
                 </div>
               )}
             </li>
@@ -375,13 +375,13 @@ function UsersTab() {
       {res && <Pagination page={res.page} pages={res.pages} onChange={setPage} />}
       <ConfirmModal
         open={Boolean(confirm)}
-        title={confirm?.type === "hapus" ? "Hapus pengguna?" : "Ubah peran?"}
+        title={confirm?.type === "hapus" ? "Delete user?" : "Change role?"}
         message={
           confirm?.type === "hapus"
             ? `Akun @${confirm.user.username} beserta buku, ulasan, dan diskusinya akan dihapus permanen.`
             : `@${confirm?.user.username} akan menjadi ${confirm?.user.role === "admin" ? "user biasa" : "admin dan bisa mengelola seluruh perpustakaan"}.`
         }
-        confirmLabel={confirm?.type === "hapus" ? "Hapus" : "Ubah peran"}
+        confirmLabel={confirm?.type === "hapus" ? "Delete" : "Change role"}
         danger={confirm?.type === "hapus"}
         busy={busy}
         onClose={() => setConfirm(null)}
@@ -420,7 +420,7 @@ function ReportsTab() {
   return (
     <div className="space-y-4">
       <div className="flex gap-1 rounded-lg bg-mist p-1 text-sm font-semibold w-fit" role="tablist">
-        {[["baru", "Baru"], ["selesai", "Selesai"], ["diabaikan", "Diabaikan"]].map(([v, l]) => (
+        {[["baru", "New"], ["selesai", "Resolved"], ["diabaikan", "Dismissed"]].map(([v, l]) => (
           <button key={v} role="tab" aria-selected={status === v} onClick={() => { setStatus(v); setPageNum(1); }} className={`rounded-md px-3 py-1.5 ${status === v ? "bg-surface text-ink shadow-sm" : "text-ink-soft hover:text-ink"}`}>
             {l}
           </button>
@@ -430,7 +430,7 @@ function ReportsTab() {
       {!data ? (
         <Spinner />
       ) : data.items.length === 0 ? (
-        <Empty title={status === "baru" ? "Tidak ada laporan baru" : "Belum ada"}>{status === "baru" ? "Laporan dari pengguna akan muncul di sini." : ""}</Empty>
+        <Empty title={status === "baru" ? "No new reports" : "Nothing here yet"}>{status === "baru" ? "Laporan dari pengguna akan muncul di sini." : ""}</Empty>
       ) : (
         <ul className="space-y-3">
           {data.items.map((r) => (
@@ -463,19 +463,19 @@ function ReportsTab() {
                   <>
                     {r.targetInfo && (
                       <button className="btn-outline btn-sm text-danger" onClick={() => setRemove(r)}>
-                        <Trash2 size={14} /> Hapus konten
+                        <Trash2 size={14} /> Delete content
                       </button>
                     )}
                     <button className="btn-outline btn-sm" onClick={() => mark(r, "selesai")}>
-                      <Check size={14} /> Tandai selesai
+                      <Check size={14} /> Mark as resolved
                     </button>
                     <button className="btn-ghost btn-sm" onClick={() => mark(r, "diabaikan")}>
-                      Abaikan
+                      Dismiss
                     </button>
                   </>
                 ) : (
                   <button className="btn-ghost btn-sm" onClick={() => mark(r, "baru")}>
-                    Buka lagi
+                    Reopen
                   </button>
                 )}
               </div>
@@ -486,9 +486,9 @@ function ReportsTab() {
       {data && data.pages > 1 && <Pagination page={pageNum} pages={data.pages} onChange={setPageNum} />}
       <ConfirmModal
         open={Boolean(remove)}
-        title="Hapus konten yang dilaporkan?"
+        title="Delete reported content?"
         message={remove ? `${REPORT_TYPE[remove.targetType]} "${remove.targetInfo?.title}" akan dihapus permanen. Semua laporan untuk konten ini ditandai selesai.` : ""}
-        confirmLabel="Hapus"
+        confirmLabel="Delete"
         danger
         onClose={() => setRemove(null)}
         onConfirm={async () => {
@@ -515,7 +515,7 @@ export default function Admin() {
     <div className="container-page grid gap-6 py-8 md:grid-cols-[200px_1fr]">
       <aside>
         <p className="mb-3 flex items-center gap-2 font-serif text-xl font-semibold"><BookCheck size={20} className="text-teal" /> Admin</p>
-        <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 md:mx-0 md:flex-col md:px-0" aria-label="Menu admin">
+        <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 md:mx-0 md:flex-col md:px-0" aria-label="Admin menu">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => go(id)} aria-current={tab === id ? "page" : undefined} className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold ${tab === id ? "bg-night text-white" : "text-ink-soft hover:bg-surface"}`}>
               <Icon size={16} /> {label}

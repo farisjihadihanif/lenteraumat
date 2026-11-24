@@ -51,7 +51,7 @@ export function PostCard({ post, onChange }) {
           </Link>
           <p className="mt-1 whitespace-pre-line text-[15px] leading-relaxed text-ink-soft">
             {post.cuplikan}
-            {post.terpotong && <span className="text-teal"> …lanjut</span>}
+            {post.terpotong && <span className="text-teal"> …more</span>}
           </p>
           {post.kuis?.soal?.length > 0 && (
             <Link to={`/diskusi/${post._id}`} className="mt-3 flex items-center gap-3 rounded-2xl border border-line p-3 hover:bg-mist">
@@ -122,7 +122,7 @@ export default function Discussions() {
           }}
         >
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute" />
-          <input className="field pl-9" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Cari diskusi" aria-label="Cari diskusi" />
+          <input className="field pl-9" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Search discussions" aria-label="Search discussions" />
         </form>
         <Link to="/diskusi/baru" className="btn-primary shrink-0">
           <PenSquare size={16} /> Start discussion
@@ -140,7 +140,7 @@ export default function Discussions() {
         <ErrorBox>{error}</ErrorBox>
         {!res && !error && <Spinner />}
         {res && res.items.length === 0 && (
-          <Empty title={q ? "Tidak ada diskusi yang cocok" : "Belum ada diskusi"} action={<Link to="/diskusi/baru" className="btn-primary">Start discussion</Link>}>
+          <Empty title={q ? "No matching discussions" : "No discussions yet"} action={<Link to="/diskusi/baru" className="btn-primary">Start discussion</Link>}>
             {q ? "Coba kata kunci lain." : "Mulai dengan pertanyaan tentang buku yang sedang kamu baca."}
           </Empty>
         )}

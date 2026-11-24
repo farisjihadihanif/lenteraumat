@@ -96,7 +96,7 @@ export default function UploadBook() {
 
   return (
     <div className="container-page max-w-4xl py-8">
-      <h1 className="font-serif text-3xl font-semibold">{id ? "Ubah buku" : "Unggah buku"}</h1>
+      <h1 className="font-serif text-3xl font-semibold">{id ? "Edit book" : "Upload book"}</h1>
       <p className="mt-1 text-sm text-ink-mute">
         {isAdmin ? "Sebagai admin, buku yang kamu simpan langsung tayang." : id ? "Setelah disimpan, buku akan ditinjau ulang oleh admin." : "Buku akan tayang setelah ditinjau admin."}
       </p>
@@ -115,7 +115,7 @@ export default function UploadBook() {
           </div>
           {autoCover && <p className="hint text-center">Sampul diambil dari halaman pertama PDF.</p>}
           <label className="btn-outline w-full cursor-pointer">
-            <ImagePlus size={16} /> {preview ? "Ganti sampul" : "Pilih sampul"}
+            <ImagePlus size={16} /> {preview ? "Change cover" : "Choose cover"}
             <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => pickCover(e.target.files[0])} />
           </label>
         </div>
@@ -133,7 +133,7 @@ export default function UploadBook() {
                   </>
                 ) : (
                   <>
-                    <span className="block font-semibold">Pilih file PDF</span>
+                    <span className="block font-semibold">Choose PDF file</span>
                     <span className="text-ink-mute">Maksimal {MAX_MB} MB. PDF berteks (bukan hasil scan) membuat LUMA bisa membacanya.</span>
                   </>
                 )}
@@ -197,7 +197,7 @@ export default function UploadBook() {
               <input type="checkbox" className="mt-0.5 h-4 w-4 accent-teal" checked={rights} onChange={(e) => setRights(e.target.checked)} />
               <span>
                 Saya memiliki hak atau izin untuk membagikan buku ini secara gratis, dan isinya tidak melanggar{" "}
-                <Link to="/ketentuan" target="_blank" className="font-semibold text-teal hover:underline">ketentuan</Link>.
+                <Link to="/ketentuan" target="_blank" className="font-semibold text-teal hover:underline">Terms</Link>.
               </span>
             </label>
           )}
@@ -212,8 +212,8 @@ export default function UploadBook() {
             </div>
           )}
           <div className="flex gap-2">
-            <button className="btn-primary" disabled={busy}>{busy ? "Menyimpan…" : id ? "Simpan perubahan" : isAdmin ? "Simpan & tayangkan" : "Kirim untuk ditinjau"}</button>
-            <button type="button" className="btn-ghost" onClick={() => navigate(-1)}>Batal</button>
+            <button className="btn-primary" disabled={busy}>{busy ? "Saving…" : id ? "Save changes" : isAdmin ? "Save & publish" : "Submit for review"}</button>
+            <button type="button" className="btn-ghost" onClick={() => navigate(-1)}>Cancel</button>
           </div>
         </div>
       </form>

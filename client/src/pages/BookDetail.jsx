@@ -71,7 +71,7 @@ function Reviews({ book, onRating }) {
   return (
     <section className="mt-12" aria-labelledby="ulasan">
       <h2 id="ulasan" className="text-xl font-bold">
-        Ulasan pembaca
+        Reviews
       </h2>
       <div className="mt-5 grid gap-8 md:grid-cols-[220px_1fr]">
         <div>
@@ -95,7 +95,7 @@ function Reviews({ book, onRating }) {
           {!user && (
             <p className="mb-6 rounded-lg bg-surface p-4 text-sm text-ink-soft">
               <Link to={`/masuk?next=/buku/${book._id}`} className="font-semibold text-teal hover:underline">
-                Masuk
+                Sign in
               </Link>{" "}
               untuk memberi rating dan ulasan.
             </p>
@@ -104,17 +104,17 @@ function Reviews({ book, onRating }) {
 
           {showForm && (
             <form onSubmit={submit} className="panel mb-6 space-y-3 p-4">
-              <p className="text-sm font-semibold">{data.mine ? "Ubah ulasanmu" : "Bagaimana menurutmu buku ini?"}</p>
+              <p className="text-sm font-semibold">{data.mine ? "Edit your review" : "What did you think of this book?"}</p>
               <StarInput value={form.rating} onChange={(rating) => setForm((f) => ({ ...f, rating }))} />
               <textarea className="field min-h-[90px]" maxLength={2000} placeholder="Ceritakan apa yang kamu dapat dari buku ini (opsional)" value={form.komentar} onChange={(e) => setForm((f) => ({ ...f, komentar: e.target.value }))} />
               <ErrorBox>{error}</ErrorBox>
               <div className="flex gap-2">
                 <button className="btn-primary" disabled={busy}>
-                  {busy ? "Menyimpan…" : "Kirim ulasan"}
+                  {busy ? "Saving…" : "Submit review"}
                 </button>
                 {editing && (
                   <button type="button" className="btn-ghost" onClick={() => setEditing(false)}>
-                    Batal
+                    Cancel
                   </button>
                 )}
               </div>
@@ -122,7 +122,7 @@ function Reviews({ book, onRating }) {
           )}
 
           {data.items.length === 0 ? (
-            <Empty title="Belum ada ulasan">Sudah membaca buku ini? Tulis ulasan pertama.</Empty>
+            <Empty title="No reviews yet">Sudah membaca buku ini? Tulis ulasan pertama.</Empty>
           ) : (
             <ul className="divide-y divide-line">
               {data.items.map((r) => {
@@ -143,11 +143,11 @@ function Reviews({ book, onRating }) {
                         <>
                           {mine && (
                             <button className="text-teal hover:underline" onClick={() => setEditing(true)}>
-                              Ubah
+                              Edit
                             </button>
                           )}
                           <button className="text-danger hover:underline" onClick={() => setDel(r)}>
-                            Hapus
+                            Delete
                           </button>
                         </>
                       )}
@@ -161,7 +161,7 @@ function Reviews({ book, onRating }) {
           <Pagination page={data.page} pages={data.pages} onChange={setPage} />
         </div>
       </div>
-      <ConfirmModal open={Boolean(del)} title="Hapus ulasan?" message="Ulasan dan ratingnya akan dihapus." busy={busy} onConfirm={remove} onClose={() => setDel(null)} />
+      <ConfirmModal open={Boolean(del)} title="Delete review?" message="Ulasan dan ratingnya akan dihapus." busy={busy} onConfirm={remove} onClose={() => setDel(null)} />
     </section>
   );
 }
@@ -175,9 +175,9 @@ function BookDiscussions({ book }) {
   return (
     <section className="mt-12">
       <div className="flex items-end justify-between gap-4">
-        <h2 className="text-xl font-bold">Diskusi tentang buku ini</h2>
+        <h2 className="text-xl font-bold">Discussions about this book</h2>
         <Link to={`/diskusi/baru?book=${book._id}`} className="btn-outline btn-sm">
-          <MessagesSquare size={14} /> Mulai diskusi
+          <MessagesSquare size={14} /> Start discussion
         </Link>
       </div>
       {items.length === 0 ? (
@@ -220,7 +220,7 @@ function SourceLicense({ book }) {
   return (
     <section className="mt-6 max-w-2xl" aria-labelledby="sumber-lisensi">
       <h2 id="sumber-lisensi" className="text-sm font-bold">
-        Sumber & lisensi
+        Source & license
       </h2>
       <dl className="mt-2 space-y-2 text-sm">
         {rows.map(([k, v]) => (
@@ -252,7 +252,7 @@ export default function BookDetail() {
       .catch((e) => setError(e.message));
   }, [id, user?._id]);
 
-  if (error) return <div className="container-page py-16"><Empty title="Buku tidak ditemukan">{error}</Empty></div>;
+  if (error) return <div className="container-page py-16"><Empty title="Book not found">{error}</Empty></div>;
   if (!book) return <PageLoader />;
 
   const toggleSave = async () => {
@@ -310,7 +310,7 @@ export default function BookDetail() {
           navigate(-1);
         }}
       >
-        <ArrowLeft size={16} /> Kembali ke Library
+        <ArrowLeft size={16} /> Back to Library
       </Link>
       {book.status !== "disetujui" && (
         <div className="mb-6 rounded-xl border border-amber-300/50 bg-amber-500/10 p-4 text-sm">
@@ -346,16 +346,16 @@ export default function BookDetail() {
 
           <div className="mt-6 flex flex-wrap gap-2">
             <Link to={`/buku/${id}/baca`} className="btn-primary px-6">
-              <BookOpen size={18} /> Baca buku
+              <BookOpen size={18} /> Read book
             </Link>
             <button className="btn-outline" onClick={toggleSave} aria-pressed={book.saved}>
               {book.saved ? <BookmarkCheck size={18} className="text-teal" /> : <Bookmark size={18} />}
-              {book.saved ? "Tersimpan" : "Simpan"}
+              {book.saved ? "Saved" : "Save"}
             </button>
             <Link to={`/luma?book=${id}`} className="btn-outline">
-              <Sparkles size={18} className="text-lantern-text" /> Tanya LUMA
+              <Sparkles size={18} className="text-lantern-text" /> Ask LUMA
             </Link>
-            <button className="btn-ghost" onClick={share} aria-label="Bagikan">
+            <button className="btn-ghost" onClick={share} aria-label="Share">
               <Share2 size={18} />
             </button>
           </div>
@@ -379,10 +379,10 @@ export default function BookDetail() {
           {book.canEdit && (
             <div className="mt-4 flex gap-2">
               <Link to={`/buku/${id}/ubah`} className="btn-outline btn-sm">
-                <Pencil size={14} /> Ubah
+                <Pencil size={14} /> Edit
               </Link>
               <button className="btn-outline btn-sm text-danger" onClick={() => setConfirmDel(true)}>
-                <Trash2 size={14} /> Hapus
+                <Trash2 size={14} /> Delete
               </button>
             </div>
           )}
@@ -391,9 +391,9 @@ export default function BookDetail() {
 
       <section className="mt-12">
         <div className="mb-4 flex items-end justify-between">
-          <h2 className="text-xl font-bold">Cuplikan</h2>
+          <h2 className="text-xl font-bold">Preview</h2>
           <Link to={`/buku/${id}/baca`} className="text-sm font-semibold text-teal hover:underline">
-            Buka semua halaman
+            Open all pages
           </Link>
         </div>
         <PdfPreview bookId={id} onOpen={(p) => navigate(`/buku/${id}/baca?hal=${p}`)} />
@@ -402,7 +402,7 @@ export default function BookDetail() {
       <Reviews book={book} onRating={(ratingAvg, ratingCount) => setBook((b) => ({ ...b, ratingAvg, ratingCount }))} />
       {book.status === "disetujui" && <BookDiscussions book={book} />}
 
-      <ConfirmModal open={confirmDel} title="Hapus buku?" message={`“${book.judul}” beserta ulasannya akan dihapus permanen.`} busy={busy} onConfirm={remove} onClose={() => setConfirmDel(false)} />
+      <ConfirmModal open={confirmDel} title="Delete book?" message={`“${book.judul}” beserta ulasannya akan dihapus permanen.`} busy={busy} onConfirm={remove} onClose={() => setConfirmDel(false)} />
     </div>
   );
 }

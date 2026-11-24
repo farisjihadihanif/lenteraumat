@@ -113,20 +113,20 @@ export default function QuizSheet({ quiz, onPost }) {
       </ol>
       <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
         <button className="btn-outline btn-sm" onClick={() => setShowKey((v) => !v)}>
-          {showKey ? <EyeOff size={14} /> : <Eye size={14} />} {showKey ? "Sembunyikan kunci" : "Lihat kunci jawaban"}
+          {showKey ? <EyeOff size={14} /> : <Eye size={14} />} {showKey ? "Hide answer key" : "Show answer key"}
         </button>
         <button className="btn-outline btn-sm" onClick={() => copy(false)}>
-          {copied === "soal" ? <Check size={14} /> : <Copy size={14} />} Salin soal
+          {copied === "soal" ? <Check size={14} /> : <Copy size={14} />} Copy questions
         </button>
         <button className="btn-outline btn-sm" onClick={() => copy(true)}>
-          {copied === "kunci" ? <Check size={14} /> : <Copy size={14} />} Salin + kunci
+          {copied === "kunci" ? <Check size={14} /> : <Copy size={14} />} Copy with answer key
         </button>
-        <button className="btn-outline btn-sm" onClick={() => printSheet(quiz, true)} title="Soal di halaman pertama, kunci jawaban di halaman terpisah">
-          <Printer size={14} /> Cetak
+        <button className="btn-outline btn-sm" onClick={() => printSheet(quiz, true)} title="Questions on the first page, answer key on a separate page">
+          <Printer size={14} /> Print
         </button>
         {onPost && (
           <button className="btn-teal btn-sm" onClick={onPost}>
-            <Share2 size={14} /> Bagikan ke Discussion
+            <Share2 size={14} /> Share to Discussion
           </button>
         )}
       </div>
@@ -171,13 +171,13 @@ export function DiscussionQuiz({ kuis, onToggleShare }) {
       <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3">
         {kuis.bisaLihatKunci ? (
           <button className="btn-outline btn-sm" onClick={() => setShowKey((v) => !v)}>
-            {showKey ? <EyeOff size={14} /> : <Eye size={14} />} {showKey ? "Sembunyikan kunci" : "Lihat kunci jawaban"}
+            {showKey ? <EyeOff size={14} /> : <Eye size={14} />} {showKey ? "Hide answer key" : "Show answer key"}
           </button>
         ) : (
           <p className="text-xs text-ink-mute">Kunci jawaban disimpan oleh pembuat soal.</p>
         )}
         <button className="btn-outline btn-sm" onClick={() => printSheet(quiz, kuis.bisaLihatKunci && showKey)}>
-          <Printer size={14} /> Cetak soal
+          <Printer size={14} /> Print questions
         </button>
         {kuis.pemilik && (
           <label className="ml-auto flex items-center gap-2 text-sm text-ink-soft">

@@ -50,7 +50,7 @@ export default function PostActions({ post, onChange, className = "" }) {
   const icon = "grid h-8 w-8 place-items-center rounded-full transition-colors";
   return (
     <div className={`flex items-center justify-between text-ink-mute ${className}`} onClick={(e) => e.stopPropagation()}>
-      <Link to={`/diskusi/${post._id}#balasan`} className={`${item} hover:text-sky-600 dark:hover:text-sky-400`} aria-label={`Balas, ${post.balasanCount || 0} balasan`}>
+      <Link to={`/diskusi/${post._id}#balasan`} className={`${item} hover:text-sky-600 dark:hover:text-sky-400`} aria-label={`Reply, ${post.balasanCount || 0} replies`}>
         <span className={`${icon} group-hover:bg-sky-500/10`}>
           <MessageCircle size={18} />
         </span>
@@ -62,13 +62,13 @@ export default function PostActions({ post, onChange, className = "" }) {
         </span>
         {post.repostCount || 0}
       </button>
-      <button onClick={() => toggle("like")} className={`${item} ${post.likedByMe ? "text-rose-600 dark:text-rose-400" : "hover:text-rose-600 dark:hover:text-rose-400"}`} aria-pressed={Boolean(post.likedByMe)} aria-label="Suka">
+      <button onClick={() => toggle("like")} className={`${item} ${post.likedByMe ? "text-rose-600 dark:text-rose-400" : "hover:text-rose-600 dark:hover:text-rose-400"}`} aria-pressed={Boolean(post.likedByMe)} aria-label="Like">
         <span className={`${icon} group-hover:bg-rose-500/10`}>
           <Heart size={18} fill={post.likedByMe ? "currentColor" : "none"} />
         </span>
         {post.likeCount || 0}
       </button>
-      <button onClick={share} className={`${item} hover:text-teal`} aria-label="Bagikan">
+      <button onClick={share} className={`${item} hover:text-teal`} aria-label="Share">
         <span className={`${icon} group-hover:bg-teal/10`}>
           <Share size={17} />
         </span>

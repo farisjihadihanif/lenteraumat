@@ -22,7 +22,7 @@ function BookSearch({ value, onChange }) {
           <BookCover book={value} />
         </div>
         <p className="min-w-0 flex-1 truncate font-serif text-sm font-semibold">{value.judul}</p>
-        <button type="button" className="rounded p-1.5 text-ink-mute hover:bg-mist" onClick={() => onChange(null)} aria-label="Lepas buku">
+        <button type="button" className="rounded p-1.5 text-ink-mute hover:bg-mist" onClick={() => onChange(null)} aria-label="Remove book">
           <X size={16} />
         </button>
       </div>
@@ -96,7 +96,7 @@ export default function DiscussionForm() {
 
   return (
     <div className="container-page max-w-2xl py-8">
-      <h1 className="font-serif text-3xl font-semibold">{id ? "Ubah diskusi" : "Mulai diskusi"}</h1>
+      <h1 className="font-serif text-3xl font-semibold">{id ? "Edit discussion" : "Start discussion"}</h1>
       <form onSubmit={submit} className="mt-6 space-y-5">
         <div>
           <label className="label" htmlFor="judul">Judul</label>
@@ -117,8 +117,8 @@ export default function DiscussionForm() {
         </div>
         <ErrorBox>{error}</ErrorBox>
         <div className="flex gap-2">
-          <button className="btn-primary" disabled={busy}>{busy ? "Menyimpan…" : id ? "Simpan perubahan" : "Terbitkan diskusi"}</button>
-          <button type="button" className="btn-ghost" onClick={() => navigate(-1)}>Batal</button>
+          <button className="btn-primary" disabled={busy}>{busy ? "Saving…" : id ? "Save changes" : "Publish discussion"}</button>
+          <button type="button" className="btn-ghost" onClick={() => navigate(-1)}>Cancel</button>
         </div>
       </form>
     </div>

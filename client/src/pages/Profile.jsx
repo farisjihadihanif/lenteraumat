@@ -16,7 +16,7 @@ export default function Profile() {
     setData(null);
     api.get(`/users/${username}`).then(setData).catch((e) => setError(e.message));
   }, [username]);
-  if (error) return <div className="container-page py-16"><Empty title="Pengguna tidak ditemukan">{error}</Empty></div>;
+  if (error) return <div className="container-page py-16"><Empty title="User not found">{error}</Empty></div>;
   if (!data) return <PageLoader />;
   const p = data.user;
   return (
@@ -33,7 +33,7 @@ export default function Profile() {
           </div>
         </div>
         {user?.username === p.username && (
-          <Link to="/pengaturan" className="btn-outline btn-sm self-start"><Settings size={14} /> Ubah profil</Link>
+          <Link to="/pengaturan" className="btn-outline btn-sm self-start"><Settings size={14} /> Edit profile</Link>
         )}
       </div>
 
@@ -67,9 +67,9 @@ function PostList({ items, repost }) {
 
 function ProfileTabs({ data }) {
   const tabs = [
-    { id: "buku", label: "Buku", n: data.books.length },
-    { id: "diskusi", label: "Diskusi", n: data.discussions.length },
-    { id: "repost", label: "Repost", n: data.reposts?.length || 0 },
+    { id: "buku", label: "Books", n: data.books.length },
+    { id: "diskusi", label: "Discussions", n: data.discussions.length },
+    { id: "repost", label: "Reposts", n: data.reposts?.length || 0 },
   ];
   const [tab, setTab] = useState("buku");
   return (

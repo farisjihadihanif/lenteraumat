@@ -56,13 +56,13 @@ export default function FloatingLuma() {
     <Link
       ref={setEl}
       to="/luma"
-      aria-label="Tanya LUMA"
+      aria-label="Ask LUMA"
       className={`group fixed bottom-20 right-3 z-40 flex flex-col items-center transition-opacity duration-200 md:bottom-5 md:right-10 ${
         tucked ? "max-md:pointer-events-none max-md:opacity-0 max-md:focus-visible:opacity-100" : ""
       }`}
     >
       <span className="pointer-events-none absolute bottom-full right-0 mb-1 whitespace-nowrap rounded-md bg-lantern px-3 py-1 text-sm font-bold text-[#1B2B3A] opacity-0 shadow-lift transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 md:static">
-        Tanya LUMA
+        Ask LUMA
       </span>
       <img src={luma} alt="" className="h-auto w-14 drop-shadow-lg transition-transform duration-300 ease-in-out group-hover:scale-110 md:w-24" />
     </Link>

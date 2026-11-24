@@ -8,9 +8,9 @@ import { Empty, Spinner, StatusBadge } from "../components/ui";
 import { timeAgo } from "../lib/format";
 
 const TABS = [
-  ["baca", "Lanjut membaca"],
-  ["simpan", "Disimpan"],
-  ["unggahan", "Unggahanku"],
+  ["baca", "Continue reading"],
+  ["simpan", "Saved"],
+  ["unggahan", "My uploads"],
 ];
 
 export default function Shelf() {
@@ -26,7 +26,7 @@ export default function Shelf() {
 
   return (
     <div className="container-page py-8">
-      <h1 className="font-serif text-3xl font-semibold">Rak saya</h1>
+      <h1 className="font-serif text-3xl font-semibold">My Shelf</h1>
       <div className="mt-5 flex gap-1 border-b border-line" role="tablist">
         {TABS.map(([t, l]) => (
           <button key={t} role="tab" aria-selected={tab === t} onClick={() => setParams({ tab: t })} className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold ${tab === t ? "border-lantern text-ink" : "border-transparent text-ink-mute hover:text-ink"}`}>
@@ -54,11 +54,11 @@ export default function Shelf() {
               ))}
             </div>
           ) : (
-            <Empty title="Belum ada buku yang dibaca" action={<Link to="/buku" className="btn-primary">Buka Library</Link>}>Buku yang kamu buka akan muncul di sini beserta halaman terakhirnya.</Empty>
+            <Empty title="No books read yet" action={<Link to="/buku" className="btn-primary">Open Library</Link>}>Buku yang kamu buka akan muncul di sini beserta halaman terakhirnya.</Empty>
           ))}
 
         {items && tab === "simpan" &&
-          (items.length ? <BookGrid books={items} /> : <Empty title="Belum ada buku tersimpan">Tekan tombol Simpan di halaman buku untuk menaruhnya di rakmu.</Empty>)}
+          (items.length ? <BookGrid books={items} /> : <Empty title="No saved books yet">Tekan tombol Save di halaman buku untuk menaruhnya di rakmu.</Empty>)}
 
         {items && tab === "unggahan" &&
           (items.length ? (
@@ -75,7 +75,7 @@ export default function Shelf() {
                     {b.catatanReview && b.status !== "disetujui" && <p className="mt-2 rounded-lg bg-mist px-3 py-2 text-sm">Catatan admin: {b.catatanReview}</p>}
                     {(b.status === "revisi" || b.status === "ditolak" || b.status === "menunggu") && (
                       <Link to={`/buku/${b._id}/ubah`} className="btn-outline btn-sm mt-3">
-                        <Pencil size={14} /> {b.status === "menunggu" ? "Ubah" : "Perbaiki & ajukan ulang"}
+                        <Pencil size={14} /> {b.status === "menunggu" ? "Edit" : "Fix & resubmit"}
                       </Link>
                     )}
                   </div>
@@ -83,7 +83,7 @@ export default function Shelf() {
               ))}
             </ul>
           ) : (
-            <Empty title="Kamu belum mengunggah buku" action={<Link to="/unggah" className="btn-primary"><Upload size={16} /> Unggah buku</Link>}>Buku yang kamu unggah akan ditinjau admin sebelum tayang.</Empty>
+            <Empty title="You haven't uploaded any books" action={<Link to="/unggah" className="btn-primary"><Upload size={16} /> Upload book</Link>}>Buku yang kamu unggah akan ditinjau admin sebelum tayang.</Empty>
           ))}
       </div>
     </div>

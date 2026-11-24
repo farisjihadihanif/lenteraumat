@@ -37,11 +37,11 @@ export function ImportBooks() {
   const submit = async (e) => {
     e.preventDefault();
     setError("");
-    setBusy("Mengunduh PDF dari sumber…");
+    setBusy("Downloading PDF from source…");
     try {
       const { book, linked } = await api.post("/admin/books/import", form);
       let cover = false;
-      setBusy("Membuat sampul dari halaman pertama…");
+      setBusy("Creating cover from the first page…");
       try {
         await makeCover(book._id);
         cover = true;
@@ -133,13 +133,13 @@ export function ImportBooks() {
         </p>
         <ErrorBox>{error}</ErrorBox>
         <button className="btn-primary" disabled={Boolean(busy)}>
-          <Link2 size={16} /> {busy || "Impor buku"}
+          <Link2 size={16} /> {busy || "Import book"}
         </button>
       </form>
 
       <aside className="space-y-4">
         <div className="panel p-4">
-          <p className="mb-2 text-sm font-bold">Sumber buku terbuka</p>
+          <p className="mb-2 text-sm font-bold">Open book sources</p>
           <ul className="space-y-3 text-sm">
             {SOURCES.map((s) => (
               <li key={s.name}>
@@ -148,7 +148,7 @@ export function ImportBooks() {
                     {s.name} <ExternalLink size={12} />
                   </a>
                   <button type="button" className="text-xs font-semibold text-ink-mute hover:text-ink" onClick={() => applySource(s)}>
-                    Pakai
+                    Use
                   </button>
                 </div>
                 <p className="text-xs text-ink-mute">{s.note}</p>
@@ -161,7 +161,7 @@ export function ImportBooks() {
         </div>
         {done.length > 0 && (
           <div className="panel p-4">
-            <p className="mb-2 text-sm font-bold">Baru diimpor</p>
+            <p className="mb-2 text-sm font-bold">Recently imported</p>
             <ul className="space-y-2">
               {done.map((b) => (
                 <li key={b._id}>
@@ -223,7 +223,7 @@ export function CategoriesTab() {
       <form onSubmit={add} className="flex gap-2">
         <input className="field" maxLength={60} value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama kategori baru" aria-label="Nama kategori baru" />
         <button className="btn-primary shrink-0" disabled={!nama.trim()}>
-          <Plus size={16} /> Tambah
+          <Plus size={16} /> Add
         </button>
       </form>
       <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
@@ -232,10 +232,10 @@ export function CategoriesTab() {
             {edit?._id === c._id ? (
               <>
                 <input autoFocus className="field py-1.5" value={edit.nama} maxLength={60} onChange={(e) => setEdit({ ...edit, nama: e.target.value })} onKeyDown={(e) => e.key === "Enter" && saveEdit()} aria-label="Nama kategori" />
-                <button className="btn-teal btn-sm" onClick={saveEdit} aria-label="Simpan">
+                <button className="btn-teal btn-sm" onClick={saveEdit} aria-label="Save">
                   <Check size={14} />
                 </button>
-                <button className="btn-ghost btn-sm" onClick={() => setEdit(null)} aria-label="Batal">
+                <button className="btn-ghost btn-sm" onClick={() => setEdit(null)} aria-label="Cancel">
                   <X size={14} />
                 </button>
               </>
@@ -247,10 +247,10 @@ export function CategoriesTab() {
                 </Link>
                 {c.nama !== "Umum" && (
                   <>
-                    <button className="btn-ghost btn-sm" onClick={() => setEdit({ _id: c._id, nama: c.nama })} aria-label={`Ganti nama ${c.nama}`}>
+                    <button className="btn-ghost btn-sm" onClick={() => setEdit({ _id: c._id, nama: c.nama })} aria-label={`Rename ${c.nama}`}>
                       <Pencil size={14} />
                     </button>
-                    <button className="btn-ghost btn-sm text-danger" onClick={() => setDel(c)} aria-label={`Hapus ${c.nama}`}>
+                    <button className="btn-ghost btn-sm text-danger" onClick={() => setDel(c)} aria-label={`Delete ${c.nama}`}>
                       <Trash2 size={14} />
                     </button>
                   </>
@@ -262,7 +262,7 @@ export function CategoriesTab() {
       </ul>
       <ConfirmModal
         open={Boolean(del)}
-        title="Hapus kategori?"
+        title="Delete category?"
         message={`Kategori “${del?.nama}” dihapus. ${del?.count ? `${del.count} buku di dalamnya dipindah ke “Umum”.` : ""}`}
         busy={busy}
         onClose={() => setDel(null)}
@@ -304,8 +304,8 @@ export function AutoCoverButton({ onDone }) {
     onDone?.();
   };
   return (
-    <button className="btn-outline btn-sm" onClick={run} disabled={Boolean(state)} title="Buat sampul dari halaman pertama PDF untuk buku yang belum bersampul">
-      <ImagePlus size={14} /> {state ? `Membuat sampul ${state.i}/${state.n}…` : "Sampul otomatis"}
+    <button className="btn-outline btn-sm" onClick={run} disabled={Boolean(state)} title="Create covers from the first PDF page for books without one">
+      <ImagePlus size={14} /> {state ? `Creating cover ${state.i}/${state.n}…` : "Auto covers"}
     </button>
   );
 }

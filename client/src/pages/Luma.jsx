@@ -14,9 +14,9 @@ import lumaImg from "../assets/Maskot/Luma1.png";
 
 const MODES = [
   { id: "chat", label: "Chat", icon: MessageCircle },
-  { id: "ask", label: "Tanya buku", icon: BookOpenText },
-  { id: "summary", label: "Ringkasan", icon: ScrollText },
-  { id: "quiz", label: "Kuis", icon: FileQuestion },
+  { id: "ask", label: "Ask a book", icon: BookOpenText },
+  { id: "summary", label: "Summary", icon: ScrollText },
+  { id: "quiz", label: "Quiz", icon: FileQuestion },
 ];
 
 function BookPicker({ open, onClose, onPick }) {
@@ -37,10 +37,10 @@ function BookPicker({ open, onClose, onPick }) {
     };
   }, [q, open]);
   return (
-    <Modal open={open} onClose={onClose} title="Pilih buku untuk LUMA" width="max-w-2xl">
+    <Modal open={open} onClose={onClose} title="Choose a book for LUMA" width="max-w-2xl">
       <label className="relative block">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute" />
-        <input autoFocus className="field pl-9" placeholder="Cari judul atau penulis" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input autoFocus className="field pl-9" placeholder="Search title or author" value={q} onChange={(e) => setQ(e.target.value)} />
       </label>
       <div className="mt-4 grid max-h-[55vh] grid-cols-3 gap-4 overflow-y-auto p-1 sm:grid-cols-4">
         {!items && <Spinner />}
@@ -102,7 +102,7 @@ function QuizCard({ quiz, onPost }) {
       <div className="flex flex-wrap items-center gap-3">
         {!checked ? (
           <button className="btn-teal" onClick={() => setChecked(true)} disabled={Object.keys(answers).length === 0}>
-            <Check size={16} /> Periksa jawaban
+            <Check size={16} /> Check answers
           </button>
         ) : (
           <>
@@ -116,13 +116,13 @@ function QuizCard({ quiz, onPost }) {
                 setChecked(false);
               }}
             >
-              <RotateCcw size={14} /> Ulangi
+              <RotateCcw size={14} /> Retry
             </button>
           </>
         )}
         {onPost && (
           <button className="btn-outline btn-sm sm:ml-auto" onClick={onPost}>
-            <Share2 size={14} /> Bagikan ke Discussion
+            <Share2 size={14} /> Share to Discussion
           </button>
         )}
       </div>
@@ -153,7 +153,7 @@ function AttachmentChip({ name, type, url, onRemove }) {
       )}
       <span className="truncate">{name}</span>
       {onRemove && (
-        <button type="button" onClick={onRemove} className="rounded p-0.5 text-ink-mute hover:text-ink" aria-label={`Hapus lampiran ${name}`}>
+        <button type="button" onClick={onRemove} className="rounded p-0.5 text-ink-mute hover:text-ink" aria-label={`Remove attachment ${name}`}>
           <X size={13} />
         </button>
       )}
@@ -191,7 +191,7 @@ function PostQuizModal({ quiz, onClose }) {
     }
   };
   return (
-    <Modal open onClose={onClose} title="Bagikan soal ke Discussion">
+    <Modal open onClose={onClose} title="Share questions to Discussion">
       <div className="space-y-4">
         <div>
           <label className="label" htmlFor="pq-judul">Judul</label>
@@ -206,9 +206,9 @@ function PostQuizModal({ quiz, onClose }) {
           <span>Tampilkan kunci jawaban ke semua pembaca. Biarkan tidak dicentang kalau soal ini untuk dikerjakan; kamu bisa membagikannya nanti.</span>
         </label>
         <div className="flex justify-end gap-2">
-          <button className="btn-ghost" onClick={onClose}>Batal</button>
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
           <button className="btn-primary" onClick={post} disabled={busy || !judul.trim() || isi.trim().length < 10}>
-            {busy ? "Memposting…" : "Posting"}
+            {busy ? "Posting…" : "Post"}
           </button>
         </div>
       </div>
@@ -255,7 +255,7 @@ function Message({ m, onPostQuiz }) {
               setTimeout(() => setCopied(false), 1500);
             }}
           >
-            {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Disalin" : "Salin"}
+            {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Copied" : "Copy"}
           </button>
         )}
       </div>
@@ -437,7 +437,7 @@ export default function Luma() {
       <aside className={`${showHistory ? "fixed inset-0 z-40 bg-black/40 p-4" : "hidden"} lg:static lg:block lg:bg-transparent lg:p-0`} onClick={(e) => e.target === e.currentTarget && setShowHistory(false)}>
         <div className="flex h-full max-h-[calc(100vh-7rem)] flex-col overflow-hidden rounded-xl border border-line bg-surface p-3 lg:sticky lg:top-20">
           {/* Mode LUMA (layar lebar) */}
-          <div className="hidden flex-col gap-1 border-b border-line pb-3 lg:flex" role="tablist" aria-label="Mode LUMA">
+          <div className="hidden flex-col gap-1 border-b border-line pb-3 lg:flex" role="tablist" aria-label="LUMA mode">
             {MODES.map(({ id, label, icon: Icon }) => (
               <button key={id} role="tab" aria-selected={mode === id} onClick={() => changeMode(id)} className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-semibold ${mode === id ? "bg-night text-white" : "text-ink-soft hover:bg-mist"}`}>
                 <Icon size={16} /> {label}
@@ -445,13 +445,13 @@ export default function Luma() {
             ))}
           </div>
           <div className="flex items-center justify-between px-1 pb-2 pt-3">
-            <p className="font-bold">Riwayat</p>
-            <button className="rounded p-1 hover:bg-mist lg:hidden" onClick={() => setShowHistory(false)} aria-label="Tutup riwayat">
+            <p className="font-bold">History</p>
+            <button className="rounded p-1 hover:bg-mist lg:hidden" onClick={() => setShowHistory(false)} aria-label="Close history">
               <X size={18} />
             </button>
           </div>
           <button onClick={newSession} className="btn-outline btn-sm mb-2 w-full">
-            <Plus size={14} /> Percakapan baru
+            <Plus size={14} /> New chat
           </button>
           <ul className="-mx-1 flex-1 overflow-y-auto">
             {sessions.length === 0 && <li className="px-2 py-4 text-sm text-ink-mute">Belum ada percakapan.</li>}
@@ -464,7 +464,7 @@ export default function Luma() {
                     {timeAgo(s.updatedAt)}
                   </p>
                 </button>
-                <button onClick={() => setDel(s)} className="mr-1 rounded p-1.5 text-ink-mute opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100" aria-label={`Hapus ${s.title}`}>
+                <button onClick={() => setDel(s)} className="mr-1 rounded p-1.5 text-ink-mute opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100" aria-label={`Delete ${s.title}`}>
                   <Trash2 size={14} />
                 </button>
               </li>
@@ -477,9 +477,9 @@ export default function Luma() {
         {/* Mode LUMA (HP & tablet); di layar lebar pindah ke kolom kiri */}
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3 lg:hidden">
           <button className="btn-ghost btn-sm" onClick={() => setShowHistory(true)}>
-            <History size={16} /> Riwayat
+            <History size={16} /> History
           </button>
-          <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Mode LUMA">
+          <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="LUMA mode">
             {MODES.map(({ id, label, icon: Icon }) => (
               <button key={id} role="tab" aria-selected={mode === id} onClick={() => changeMode(id)} className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold ${mode === id ? "bg-night text-white" : "text-ink-soft hover:bg-mist"}`}>
                 <Icon size={16} /> {label}
@@ -500,14 +500,14 @@ export default function Luma() {
                   <p className="truncate text-xs text-ink-mute">{book.penulis}</p>
                 </div>
                 <button className="btn-outline btn-sm" onClick={() => setPicker(true)}>
-                  Ganti buku
+                  Change book
                 </button>
               </>
             ) : (
               <>
                 <p className="flex-1 text-sm text-ink-soft">Pilih buku dari Library dulu.</p>
                 <button className="btn-teal btn-sm" onClick={() => setPicker(true)}>
-                  Pilih buku
+                  Choose book
                 </button>
               </>
             )}
@@ -535,7 +535,7 @@ export default function Luma() {
           {messages.length === 0 && (
             <div className="mx-auto max-w-lg py-8 text-center">
               <img src={lumaImg} alt="" className="mx-auto h-28 w-28" />
-              <h1 className="mt-3 font-serif text-2xl font-semibold">Halo{user?.namaLengkap ? `, ${user.namaLengkap.split(" ")[0]}` : ""}! Aku LUMA.</h1>
+              <h1 className="mt-3 font-serif text-2xl font-semibold">Hi{user?.namaLengkap ? `, ${user.namaLengkap.split(" ")[0]}` : ""}! I'm LUMA.</h1>
               <p className="mt-2 text-sm text-ink-soft">
                 {mode === "chat" && "Tanya apa saja. Bisa juga kirim foto catatan, PDF, atau video untuk dibahas."}
                 {mode === "ask" && "Pilih buku, lalu tanyakan isinya. LUMA menjawab berdasarkan buku dan menyebut halamannya."}
@@ -573,7 +573,7 @@ export default function Luma() {
                 <option value="lengkap">Lengkap per bab</option>
               </select>
               <button className="btn-primary ml-auto" disabled={!book || busy || disabled} onClick={() => run("summary", { preview: `Ringkas buku “${book.judul}”` })}>
-                <ScrollText size={16} /> Buat ringkasan
+                <ScrollText size={16} /> Create summary
               </button>
             </div>
           ) : mode === "quiz" ? (
@@ -581,8 +581,8 @@ export default function Luma() {
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex rounded-lg border border-line p-0.5 text-sm font-semibold" role="radiogroup" aria-label="Kuis untuk">
                   {[
-                    ["latihan", "Latihan sendiri"],
-                    ["guru", "Soal untuk murid"],
+                    ["latihan", "Self practice"],
+                    ["guru", "Questions for students"],
                   ].map(([v, l]) => (
                     <button key={v} role="radio" aria-checked={opts.untuk === v} onClick={() => setOpts((o) => ({ ...o, untuk: v, type: v === "latihan" && !["pilihan", "isian"].includes(o.type) ? "pilihan" : o.type }))} className={`rounded-md px-3 py-1.5 ${opts.untuk === v ? "bg-night text-white" : "text-ink-soft hover:text-ink"}`}>
                       {l}
@@ -591,8 +591,8 @@ export default function Luma() {
                 </div>
                 <div className="flex rounded-lg border border-line p-0.5 text-sm font-semibold" role="radiogroup" aria-label="Sumber soal">
                   {[
-                    ["buku", "Dari buku"],
-                    ["topik", "Dari topik"],
+                    ["buku", "From a book"],
+                    ["topik", "From a topic"],
                   ].map(([v, l]) => (
                     <button key={v} role="radio" aria-checked={opts.sumber === v} onClick={() => setOpts((o) => ({ ...o, sumber: v }))} className={`rounded-md px-3 py-1.5 ${opts.sumber === v ? "bg-night text-white" : "text-ink-soft hover:text-ink"}`}>
                       {l}
@@ -645,7 +645,7 @@ export default function Luma() {
                     run("quiz", { preview: `${opts.untuk === "guru" ? "Buatkan lembar" : "Buat"} ${opts.count} soal ${{ pilihan: "pilihan ganda", isian: "isian", esai: "esai", campuran: "campuran" }[opts.type]} (${opts.level}) tentang ${about}${opts.untuk === "guru" ? " beserta kunci jawaban" : ""}` });
                   }}
                 >
-                  <FileQuestion size={16} /> {opts.untuk === "guru" ? "Buat lembar soal" : "Buat kuis"}
+                  <FileQuestion size={16} /> {opts.untuk === "guru" ? "Create question sheet" : "Create quiz"}
                 </button>
               </div>
             </div>
@@ -666,7 +666,7 @@ export default function Luma() {
               )}
               <div className="flex items-end gap-2">
               <input ref={fileInput} type="file" multiple accept={ACCEPT} className="sr-only" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
-              <button type="button" className="btn-outline h-11 w-11 shrink-0 p-0" onClick={() => fileInput.current?.click()} disabled={disabled || files.length >= MAX_FILES} aria-label="Lampirkan gambar, file, atau video" title="Lampirkan gambar, PDF, audio, atau video">
+              <button type="button" className="btn-outline h-11 w-11 shrink-0 p-0" onClick={() => fileInput.current?.click()} disabled={disabled || files.length >= MAX_FILES} aria-label="Attach an image, file, or video" title="Attach an image, PDF, audio, or video">
                 <Paperclip size={18} />
               </button>
               <textarea
@@ -692,7 +692,7 @@ export default function Luma() {
                 aria-label="Pesan"
                 disabled={disabled}
               />
-              <button className="btn-primary h-11 w-11 shrink-0 p-0" disabled={(!input.trim() && !files.length) || busy || disabled} aria-label="Kirim">
+              <button className="btn-primary h-11 w-11 shrink-0 p-0" disabled={(!input.trim() && !files.length) || busy || disabled} aria-label="Send">
                 <Send size={18} />
               </button>
               </div>
@@ -704,7 +704,7 @@ export default function Luma() {
                 Sisa {quota.remaining} dari {quota.limit} permintaan hari ini.{" "}
               </span>
             )}
-            LUMA bisa keliru. Periksa kembali jawaban penting ke buku sumbernya atau ke guru. {book && <Link to={`/buku/${book._id}/baca`} className="underline">Buka bukunya</Link>}
+            LUMA bisa keliru. Periksa kembali jawaban penting ke buku sumbernya atau ke guru. {book && <Link to={`/buku/${book._id}/baca`} className="underline">Open the book</Link>}
           </p>
         </div>
       </section>
@@ -713,7 +713,7 @@ export default function Luma() {
       <PostQuizModal quiz={postQuiz} onClose={() => setPostQuiz(null)} />
       <ConfirmModal
         open={Boolean(del)}
-        title="Hapus percakapan?"
+        title="Delete chat?"
         message={`“${del?.title}” akan dihapus dari riwayat.`}
         onClose={() => setDel(null)}
         onConfirm={async () => {

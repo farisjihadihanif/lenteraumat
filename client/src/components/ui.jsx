@@ -64,7 +64,7 @@ export function StarInput({ value, onChange }) {
             type="button"
             role="radio"
             aria-checked={value === n}
-            aria-label={`${n} bintang`}
+            aria-label={`${n} ${n === 1 ? "star" : "stars"}`}
             onClick={() => onChange(n)}
             className="p-0.5 transition-transform hover:scale-110"
           >
@@ -130,11 +130,11 @@ export function Pagination({ page, pages, onChange }) {
   };
   const btn = "grid h-9 w-9 place-items-center rounded-lg border border-line bg-surface text-ink-soft hover:border-ink/30 hover:text-ink disabled:pointer-events-none disabled:opacity-40";
   return (
-    <nav className="mt-10 flex items-center justify-center gap-1.5" aria-label="Halaman">
-      <button className={btn} disabled={page <= 1} onClick={() => go(1)} aria-label="Halaman pertama" title="Halaman pertama">
+    <nav className="mt-10 flex items-center justify-center gap-1.5" aria-label="Pagination">
+      <button className={btn} disabled={page <= 1} onClick={() => go(1)} aria-label="First page" title="First page">
         <ChevronsLeft size={16} />
       </button>
-      <button className={btn} disabled={page <= 1} onClick={() => go(page - 1)} aria-label="Halaman sebelumnya" title="Sebelumnya">
+      <button className={btn} disabled={page <= 1} onClick={() => go(page - 1)} aria-label="Previous page" title="Previous">
         <ChevronLeft size={16} />
       </button>
       <form
@@ -154,10 +154,10 @@ export function Pagination({ page, pages, onChange }) {
         />
         <span>dari {pages}</span>
       </form>
-      <button className={btn} disabled={page >= pages} onClick={() => go(page + 1)} aria-label="Halaman berikutnya" title="Berikutnya">
+      <button className={btn} disabled={page >= pages} onClick={() => go(page + 1)} aria-label="Next page" title="Next">
         <ChevronRight size={16} />
       </button>
-      <button className={btn} disabled={page >= pages} onClick={() => go(pages)} aria-label="Halaman terakhir" title="Halaman terakhir">
+      <button className={btn} disabled={page >= pages} onClick={() => go(pages)} aria-label="Last page" title="Last page">
         <ChevronsRight size={16} />
       </button>
     </nav>
@@ -182,7 +182,7 @@ export function Modal({ open, onClose, title, children, width = "max-w-lg" }) {
       <div role="dialog" aria-modal="true" aria-label={title} className={`w-full ${width} max-h-[90vh] overflow-y-auto rounded-xl bg-surface p-5 shadow-lift`}>
         <div className="mb-4 flex items-start justify-between gap-4">
           <h2 className="text-lg font-bold">{title}</h2>
-          <button className="rounded p-1 text-ink-mute hover:bg-mist" onClick={onClose} aria-label="Tutup">
+          <button className="rounded p-1 text-ink-mute hover:bg-mist" onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
         </div>
@@ -192,16 +192,16 @@ export function Modal({ open, onClose, title, children, width = "max-w-lg" }) {
   );
 }
 
-export function ConfirmModal({ open, title, message, confirmLabel = "Hapus", danger = true, busy, onConfirm, onClose }) {
+export function ConfirmModal({ open, title, message, confirmLabel = "Delete", danger = true, busy, onConfirm, onClose }) {
   return (
     <Modal open={open} onClose={onClose} title={title} width="max-w-md">
       <p className="text-sm text-ink-soft">{message}</p>
       <div className="mt-5 flex justify-end gap-2">
         <button className="btn-ghost" onClick={onClose} disabled={busy}>
-          Batal
+          Cancel
         </button>
         <button className={danger ? "btn-danger" : "btn-primary"} onClick={onConfirm} disabled={busy}>
-          {busy ? "Memproses…" : confirmLabel}
+          {busy ? "Processing…" : confirmLabel}
         </button>
       </div>
     </Modal>

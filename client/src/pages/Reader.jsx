@@ -230,7 +230,7 @@ export default function Reader() {
   return (
     <div ref={root} className="lu-reader fixed inset-0 z-50 flex flex-col text-white">
       <header className="flex h-14 shrink-0 items-center gap-3 px-3 sm:px-5">
-        <Link to={`/buku/${id}`} className="rounded-lg p-2 hover:bg-white/10" aria-label="Kembali ke detail buku">
+        <Link to={`/buku/${id}`} className="rounded-lg p-2 hover:bg-white/10" aria-label="Back to book details">
           <ArrowLeft size={20} />
         </Link>
         <div className="min-w-0 flex-1">
@@ -238,9 +238,9 @@ export default function Reader() {
           <p className="truncate text-xs text-white/60">{book?.penulis}</p>
         </div>
         <Link to={`/luma?book=${id}`} className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-lamp hover:bg-white/10 sm:inline-flex">
-          <Sparkles size={16} /> Tanya LUMA
+          <Sparkles size={16} /> Ask LUMA
         </Link>
-        <button onClick={toggleFull} className="rounded-lg p-2 hover:bg-white/10" aria-label={full ? "Keluar layar penuh" : "Layar penuh"}>
+        <button onClick={toggleFull} className="rounded-lg p-2 hover:bg-white/10" aria-label={full ? "Exit full screen" : "Full screen"}>
           {full ? <Minimize size={20} /> : <Maximize size={20} />}
         </button>
       </header>
@@ -253,7 +253,7 @@ export default function Reader() {
               <div>
                 <p className="text-white/90">{error}</p>
                 <Link to={`/buku/${id}`} className="btn-primary mt-4">
-                  Kembali
+                  Back
                 </Link>
               </div>
             ) : (
@@ -265,10 +265,10 @@ export default function Reader() {
         )}
         {!status && !error && (
           <>
-            <button onClick={() => flip.current?.flipPrev()} disabled={atStart} className="lu-nav left-1 sm:left-3" aria-label="Halaman sebelumnya">
+            <button onClick={() => flip.current?.flipPrev()} disabled={atStart} className="lu-nav left-1 sm:left-3" aria-label="Previous page">
               <ChevronLeft size={26} />
             </button>
-            <button onClick={() => flip.current?.flipNext()} disabled={atEnd} className="lu-nav right-1 sm:right-3" aria-label="Halaman berikutnya">
+            <button onClick={() => flip.current?.flipNext()} disabled={atEnd} className="lu-nav right-1 sm:right-3" aria-label="Next page">
               <ChevronRight size={26} />
             </button>
           </>
@@ -283,7 +283,7 @@ export default function Reader() {
           value={current + 1}
           onChange={(e) => goTo(Number(e.target.value))}
           className="lu-range flex-1"
-          aria-label="Geser ke halaman"
+          aria-label="Slide to page"
           disabled={!total}
         />
         <form
@@ -294,14 +294,14 @@ export default function Reader() {
             setJump("");
           }}
         >
-          <span className="hidden sm:inline">Halaman</span>
+          <span className="hidden sm:inline">Page</span>
           <input
             inputMode="numeric"
             value={jump}
             onChange={(e) => setJump(e.target.value.replace(/\D/g, ""))}
             placeholder={spread}
             className="w-16 rounded-md bg-white/10 px-2 py-1 text-center text-white placeholder:text-white focus:bg-white/20 focus:outline-none"
-            aria-label="Lompat ke halaman"
+            aria-label="Jump to page"
           />
           <span>/ {total || "–"}</span>
         </form>

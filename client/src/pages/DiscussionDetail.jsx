@@ -59,17 +59,17 @@ function CommentItem({ c, discussionId, onAdded, onDelete, small = false }) {
         <div className="mt-1 flex gap-4 text-xs">
           {user ? (
             <button className="inline-flex items-center gap-1 font-semibold text-ink-mute hover:text-teal" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
-              <CornerDownRight size={13} /> Balas
+              <CornerDownRight size={13} /> Reply
             </button>
           ) : (
             <Link to={`/masuk?next=${encodeURIComponent(location.pathname)}`} className="inline-flex items-center gap-1 font-semibold text-ink-mute hover:text-teal">
-              <CornerDownRight size={13} /> Balas
+              <CornerDownRight size={13} /> Reply
             </Link>
           )}
           <ReportButton type="comment" id={c._id} ownerId={c.author?._id} />
           {user && (c.author?._id === user._id || isAdmin) && (
             <button className="font-semibold text-danger hover:underline" onClick={() => onDelete(c)}>
-              Hapus
+              Delete
             </button>
           )}
         </div>
@@ -86,10 +86,10 @@ function CommentItem({ c, discussionId, onAdded, onDelete, small = false }) {
             />
             <div className="mt-2 flex gap-2">
               <button className="btn-primary btn-sm" disabled={busy || !text.trim()}>
-                {busy ? "Mengirim…" : "Kirim"}
+                {busy ? "Sending…" : "Send"}
               </button>
               <button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(false)}>
-                Batal
+                Cancel
               </button>
             </div>
           </form>
@@ -116,7 +116,7 @@ export default function DiscussionDetail() {
       .catch((e) => setError(e.message));
   }, [id, user?._id]);
 
-  if (error) return <div className="container-page py-16"><Empty title="Diskusi tidak ditemukan">{error}</Empty></div>;
+  if (error) return <div className="container-page py-16"><Empty title="Discussion not found">{error}</Empty></div>;
   if (!data) return <PageLoader />;
   const { discussion: d, comments } = data;
 
@@ -160,7 +160,7 @@ export default function DiscussionDetail() {
   return (
     <div className="container-page max-w-3xl py-8">
       <Link to="/diskusi" className="text-sm font-semibold text-teal hover:underline">
-        Semua diskusi
+        All discussions
       </Link>
       <article className="mt-4">
         <h1 className="font-serif text-3xl font-semibold leading-tight">{d.judul}</h1>
@@ -207,17 +207,17 @@ export default function DiscussionDetail() {
         {d.canEdit && (
           <div className="mt-5 flex gap-2">
             <Link to={`/diskusi/${id}/ubah`} className="btn-outline btn-sm">
-              <Pencil size={14} /> Ubah
+              <Pencil size={14} /> Edit
             </Link>
             <button className="btn-outline btn-sm text-danger" onClick={() => setDel("post")}>
-              <Trash2 size={14} /> Hapus
+              <Trash2 size={14} /> Delete
             </button>
           </div>
         )}
       </article>
 
       <section id="balasan" className="mt-8">
-        <h2 className="text-lg font-bold">{comments.length} komentar</h2>
+        <h2 className="text-lg font-bold">{comments.length} {comments.length === 1 ? "comment" : "comments"}</h2>
         <ul className="mt-4 space-y-5">
           {threads(comments).map(({ c, replies }) => (
             <li key={c._id}>
@@ -241,14 +241,14 @@ export default function DiscussionDetail() {
             <div className="flex-1">
               <textarea className="field min-h-[90px]" maxLength={5000} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Tulis komentar" aria-label="Komentar" />
               <button className="btn-primary mt-2" disabled={busy || !reply.trim()}>
-                Kirim komentar
+                Post comment
               </button>
             </div>
           </form>
         ) : (
           <p className="mt-6 rounded-lg bg-surface p-4 text-sm text-ink-soft">
             <Link to={`/masuk?next=/diskusi/${id}`} className="font-semibold text-teal hover:underline">
-              Masuk
+              Sign in
             </Link>{" "}
             untuk ikut membalas.
           </p>
@@ -257,7 +257,7 @@ export default function DiscussionDetail() {
 
       <ConfirmModal
         open={Boolean(del)}
-        title={del === "post" ? "Hapus diskusi?" : "Hapus balasan?"}
+        title={del === "post" ? "Delete discussion?" : "Delete reply?"}
         message={del === "post" ? "Diskusi beserta semua balasannya akan dihapus." : del && !del.parent && comments.some((c) => c.parent === del._id) ? "Komentar ini dan balasan-balasannya akan dihapus." : "Balasan ini akan dihapus."}
         busy={busy}
         onConfirm={confirmDelete}

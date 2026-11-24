@@ -203,10 +203,10 @@ function LibrarySection() {
 }
 
 const LUMA_FEATURES = [
-  { mode: "chat", icon: MessageCircle, title: "Tanya apa saja", text: "Pelajaran, ibadah, atau topik yang sedang kamu pelajari. Bisa sambil kirim foto, PDF, atau video." },
-  { mode: "ask", icon: BookOpenText, title: "Tanya isi buku", text: "Pilih buku dari Library, lalu tanyakan bagian yang belum jelas. LUMA menyebut halamannya." },
-  { mode: "summary", icon: ScrollText, title: "Ringkasan", text: "Gambaran isi buku sebelum kamu membacanya, atau pengingat setelah selesai." },
-  { mode: "quiz", icon: FileQuestion, title: "Kuis", text: "Latihan soal dengan nilai otomatis, atau lembar soal lengkap dengan kunci jawaban untuk guru." },
+  { mode: "chat", icon: MessageCircle, title: "Ask anything", text: "Pelajaran, ibadah, atau topik yang sedang kamu pelajari. Bisa sambil kirim foto, PDF, atau video." },
+  { mode: "ask", icon: BookOpenText, title: "Ask about a book", text: "Pilih buku dari Library, lalu tanyakan bagian yang belum jelas. LUMA menyebut halamannya." },
+  { mode: "summary", icon: ScrollText, title: "Summary", text: "Gambaran isi buku sebelum kamu membacanya, atau pengingat setelah selesai." },
+  { mode: "quiz", icon: FileQuestion, title: "Quiz", text: "Latihan soal dengan nilai otomatis, atau lembar soal lengkap dengan kunci jawaban untuk guru." },
 ];
 
 function LumaSection() {

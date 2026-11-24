@@ -78,7 +78,7 @@ export default function AvatarCropper({ file, onCancel, onDone }) {
   };
 
   return (
-    <Modal open={Boolean(file)} onClose={onCancel} title="Atur foto profil">
+    <Modal open={Boolean(file)} onClose={onCancel} title="Adjust profile photo">
       <div className="flex flex-col items-center">
         <div
           tabIndex={0}
@@ -105,11 +105,11 @@ export default function AvatarCropper({ file, onCancel, onDone }) {
           <div className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_0_999px_rgba(0,0,0,.5)]" />
         </div>
         <div className="mt-5 flex w-full max-w-[280px] items-center gap-3">
-          <button type="button" onClick={() => setZoomClamped(zoom - 0.2)} className="rounded p-1 text-ink-mute hover:text-ink" aria-label="Perkecil">
+          <button type="button" onClick={() => setZoomClamped(zoom - 0.2)} className="rounded p-1 text-ink-mute hover:text-ink" aria-label="Zoom out">
             <ZoomOut size={18} />
           </button>
           <input type="range" min={1} max={4} step={0.01} value={zoom} onChange={(e) => setZoomClamped(Number(e.target.value))} className="flex-1 accent-teal" aria-label="Zoom" />
-          <button type="button" onClick={() => setZoomClamped(zoom + 0.2)} className="rounded p-1 text-ink-mute hover:text-ink" aria-label="Perbesar">
+          <button type="button" onClick={() => setZoomClamped(zoom + 0.2)} className="rounded p-1 text-ink-mute hover:text-ink" aria-label="Zoom in">
             <ZoomIn size={18} />
           </button>
         </div>
@@ -117,10 +117,10 @@ export default function AvatarCropper({ file, onCancel, onDone }) {
       </div>
       <div className="mt-5 flex justify-end gap-2">
         <button type="button" className="btn-ghost" onClick={onCancel}>
-          Batal
+          Cancel
         </button>
         <button type="button" className="btn-primary" onClick={save} disabled={!img}>
-          Pakai foto ini
+          Use this photo
         </button>
       </div>
     </Modal>

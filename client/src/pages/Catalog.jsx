@@ -80,7 +80,7 @@ export default function Catalog() {
           }}
         >
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute" />
-          <input className="field pl-9" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Cari judul, penulis, penerbit, atau ISBN" aria-label="Cari buku" />
+          <input className="field pl-9" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Search title, author, publisher, or ISBN" aria-label="Search books" />
         </form>
         <select className="field sm:w-56" value={kategori} onChange={(e) => update({ kategori: e.target.value })} aria-label="Kategori">
           <option value="">Semua kategori</option>
@@ -103,7 +103,7 @@ export default function Catalog() {
         <p className="mt-5 flex items-center gap-2 text-sm text-ink-soft">
           Hasil pencarian “{q}”
           <button onClick={() => update({ q: "" })} className="inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-xs font-semibold text-ink-mute hover:text-ink">
-            <X size={12} /> hapus
+            <X size={12} /> clear
           </button>
         </p>
       )}
@@ -119,7 +119,7 @@ export default function Catalog() {
               <Pagination page={res.page} pages={res.pages} onChange={(p) => update({ page: String(p) })} />
             </>
           ) : (
-            <Empty title="Buku tidak ditemukan">Coba kata kunci lain atau pilih kategori yang berbeda.</Empty>
+            <Empty title="No books found">Coba kata kunci lain atau pilih kategori yang berbeda.</Empty>
           ))}
       </div>
     </div>

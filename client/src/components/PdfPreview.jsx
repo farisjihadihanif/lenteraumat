@@ -43,12 +43,12 @@ export default function PdfPreview({ bookId, pages = 4, onOpen }) {
           type="button"
           onClick={() => onOpen?.(i + 1)}
           className="w-[150px] shrink-0 snap-start text-left sm:w-[170px]"
-          aria-label={`Buka halaman ${i + 1}`}
+          aria-label={`Open page ${i + 1}`}
         >
           <div data-page={i + 1} className="aspect-[1/1.41] overflow-hidden rounded border border-line bg-white shadow-sm transition-shadow hover:shadow-lift">
             <div className="h-full animate-pulse bg-mist" />
           </div>
-          <span className="mt-1.5 block text-center text-xs text-ink-mute">Halaman {i + 1}</span>
+          <span className="mt-1.5 block text-center text-xs text-ink-mute">Page {i + 1}</span>
         </button>
       ))}
     </div>

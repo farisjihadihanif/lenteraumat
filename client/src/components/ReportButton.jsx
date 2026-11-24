@@ -13,7 +13,7 @@ const REASONS = [
   ["salah_informasi", "Informasi keliru atau menyesatkan"],
   ["lainnya", "Lainnya"],
 ];
-const NOUN = { book: "buku", discussion: "diskusi", comment: "balasan", review: "ulasan" };
+const NOUN = { book: "book", discussion: "discussion", comment: "reply", review: "review" };
 
 // Tombol kecil "Laporkan" untuk buku, diskusi, balasan, atau ulasan milik orang lain.
 export default function ReportButton({ type, id, ownerId, className = "", label = true }) {
@@ -50,10 +50,10 @@ export default function ReportButton({ type, id, ownerId, className = "", label 
   };
   return (
     <>
-      <button type="button" onClick={start} className={`inline-flex items-center gap-1.5 text-ink-mute hover:text-danger ${className}`} aria-label={`Laporkan ${NOUN[type]}`} title={`Laporkan ${NOUN[type]}`}>
-        <Flag size={14} /> {label && "Laporkan"}
+      <button type="button" onClick={start} className={`inline-flex items-center gap-1.5 text-ink-mute hover:text-danger ${className}`} aria-label={`Report ${NOUN[type]}`} title={`Report ${NOUN[type]}`}>
+        <Flag size={14} /> {label && "Report"}
       </button>
-      <Modal open={open} onClose={() => setOpen(false)} title={`Laporkan ${NOUN[type]}`}>
+      <Modal open={open} onClose={() => setOpen(false)} title={`Report ${NOUN[type]}`}>
         <form onSubmit={submit} className="space-y-4">
           <fieldset className="space-y-2">
             <legend className="mb-1 text-sm text-ink-soft">Apa masalahnya?</legend>
@@ -70,8 +70,8 @@ export default function ReportButton({ type, id, ownerId, className = "", label 
           </div>
           <ErrorBox>{error}</ErrorBox>
           <div className="flex justify-end gap-2">
-            <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Batal</button>
-            <button className="btn-primary" disabled={busy || !alasan}>{busy ? "Mengirim…" : "Kirim laporan"}</button>
+            <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Cancel</button>
+            <button className="btn-primary" disabled={busy || !alasan}>{busy ? "Sending…" : "Submit report"}</button>
           </div>
         </form>
       </Modal>

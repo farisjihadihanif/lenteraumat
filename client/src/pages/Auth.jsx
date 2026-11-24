@@ -33,7 +33,7 @@ function PasswordField({ id, value, onChange, autoComplete, label = "Password" }
       <label className="label" htmlFor={id}>{label}</label>
       <div className="relative">
         <input id={id} type={show ? "text" : "password"} className="field pr-11" value={value} onChange={onChange} autoComplete={autoComplete} required />
-        <button type="button" onClick={() => setShow((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-ink-mute hover:text-ink" aria-label={show ? "Sembunyikan password" : "Tampilkan password"}>
+        <button type="button" onClick={() => setShow((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-ink-mute hover:text-ink" aria-label={show ? "Hide password" : "Show password"}>
           {show ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       </div>
@@ -48,7 +48,7 @@ function SavedAccounts({ onPick }) {
   if (!list.length) return null;
   return (
     <div className="mb-5">
-      <p className="mb-2 text-sm font-semibold text-ink-soft">Akun di perangkat ini</p>
+      <p className="mb-2 text-sm font-semibold text-ink-soft">Accounts on this device</p>
       <ul className="divide-y divide-line rounded-lg border border-line">
         {list.map((a) => (
           <li key={a._id} className="flex items-center">
@@ -59,7 +59,7 @@ function SavedAccounts({ onPick }) {
                 <span className="block truncate text-xs text-ink-mute">@{a.username}</span>
               </span>
             </button>
-            <button type="button" onClick={() => forgetAccount(a._id)} className="mr-2 rounded p-1.5 text-ink-mute hover:bg-mist hover:text-ink" aria-label={`Hapus @${a.username} dari perangkat ini`} title="Hapus dari perangkat ini">
+            <button type="button" onClick={() => forgetAccount(a._id)} className="mr-2 rounded p-1.5 text-ink-mute hover:bg-mist hover:text-ink" aria-label={`Remove @${a.username} from this device`} title="Remove from this device">
               <X size={14} />
             </button>
           </li>
@@ -105,7 +105,7 @@ export function Login() {
     }
   };
   return (
-    <Shell title={adding ? "Tambah akun" : "Masuk ke Lentera Umat"} footer={<>Belum punya akun? <Link to={`/daftar?next=${encodeURIComponent(next)}`} className="font-semibold text-teal hover:underline">Daftar</Link></>}>
+    <Shell title={adding ? "Add account" : "Sign in to Lentera Umat"} footer={<>Belum punya akun? <Link to={`/daftar?next=${encodeURIComponent(next)}`} className="font-semibold text-teal hover:underline">Sign up</Link></>}>
       <SavedAccounts onPick={pick} />
       <form onSubmit={submit} className="space-y-4">
         <div>
@@ -114,10 +114,10 @@ export function Login() {
         </div>
         <PasswordField id="password" autoComplete="current-password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
         <div className="-mt-2 text-right">
-          <Link to="/lupa-password" className="text-sm text-teal hover:underline">Lupa password?</Link>
+          <Link to="/lupa-password" className="text-sm text-teal hover:underline">Forgot password?</Link>
         </div>
         <ErrorBox>{error}</ErrorBox>
-        <button className="btn-primary w-full" disabled={busy}>{busy ? "Masuk…" : "Masuk"}</button>
+        <button className="btn-primary w-full" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
       </form>
     </Shell>
   );
@@ -148,7 +148,7 @@ export function Register() {
     }
   };
   return (
-    <Shell title="Buat akun" footer={<>Sudah punya akun? <Link to={`/masuk?next=${encodeURIComponent(next)}`} className="font-semibold text-teal hover:underline">Masuk</Link></>}>
+    <Shell title="Create account" footer={<>Sudah punya akun? <Link to={`/masuk?next=${encodeURIComponent(next)}`} className="font-semibold text-teal hover:underline">Sign in</Link></>}>
       <form onSubmit={submit} className="space-y-4">
         <div>
           <label className="label" htmlFor="nama">Nama lengkap</label>
@@ -167,10 +167,10 @@ export function Register() {
         <p className="hint -mt-2">Minimal 8 karakter.</p>
         <ErrorBox>{error}</ErrorBox>
         <p className="text-xs text-ink-mute">
-          Dengan mendaftar, kamu menyetujui <Link to="/ketentuan" className="underline hover:text-ink">Ketentuan</Link> dan{" "}
-          <Link to="/privasi" className="underline hover:text-ink">Kebijakan Privasi</Link> Lentera Umat.
+          Dengan mendaftar, kamu menyetujui <Link to="/ketentuan" className="underline hover:text-ink">Terms</Link> dan{" "}
+          <Link to="/privasi" className="underline hover:text-ink">Privacy Policy</Link> Lentera Umat.
         </p>
-        <button className="btn-primary w-full" disabled={busy}>{busy ? "Membuat akun…" : "Daftar"}</button>
+        <button className="btn-primary w-full" disabled={busy}>{busy ? "Creating account…" : "Sign up"}</button>
       </form>
     </Shell>
   );
@@ -195,7 +195,7 @@ export function ForgotPassword() {
     }
   };
   return (
-    <Shell title="Lupa password" footer={<Link to="/masuk" className="font-semibold text-teal hover:underline">Kembali ke halaman masuk</Link>}>
+    <Shell title="Forgot password" footer={<Link to="/masuk" className="font-semibold text-teal hover:underline">Back to sign in</Link>}>
       {done ? (
         <p className="text-ink-soft">{done}</p>
       ) : (
@@ -206,7 +206,7 @@ export function ForgotPassword() {
             <input id="email" type="email" className="field" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <ErrorBox>{error}</ErrorBox>
-          <button className="btn-primary w-full" disabled={busy}>{busy ? "Mengirim…" : "Kirim link"}</button>
+          <button className="btn-primary w-full" disabled={busy}>{busy ? "Sending…" : "Send link"}</button>
         </form>
       )}
     </Shell>
@@ -237,7 +237,7 @@ export function ResetPassword() {
     }
   };
   return (
-    <Shell title="Buat password baru" footer={<Link to="/lupa-password" className="font-semibold text-teal hover:underline">Minta link baru</Link>}>
+    <Shell title="Create new password" footer={<Link to="/lupa-password" className="font-semibold text-teal hover:underline">Request a new link</Link>}>
       {!token ? (
         <p className="text-ink-soft">Link tidak lengkap. Buka lagi link dari email, atau minta link baru.</p>
       ) : (
@@ -245,7 +245,7 @@ export function ResetPassword() {
           <PasswordField id="pw-a" label="Password baru" autoComplete="new-password" value={pw.a} onChange={(e) => setPw((p) => ({ ...p, a: e.target.value }))} />
           <PasswordField id="pw-b" label="Ulangi password baru" autoComplete="new-password" value={pw.b} onChange={(e) => setPw((p) => ({ ...p, b: e.target.value }))} />
           <ErrorBox>{error}</ErrorBox>
-          <button className="btn-primary w-full" disabled={busy}>{busy ? "Menyimpan…" : "Simpan password"}</button>
+          <button className="btn-primary w-full" disabled={busy}>{busy ? "Saving…" : "Save password"}</button>
         </form>
       )}
     </Shell>
