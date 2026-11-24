@@ -1,11 +1,99 @@
 # Panduan deploy Lentera Umat
 
+Cara utama: **dua proyek Vercel** dari satu repo. `client/` (web) meneruskan
+`/api/*` ke `api/` (Express), jadi di browser semuanya satu domain dan cookie
+login tetap cookie pihak pertama. Database di MongoDB Atlas, file di Cloudinary.
+Cara VPS ada di bagian bawah.
+
+## Vercel: sebelum mulai
+
+1. **Ganti semua rahasia yang pernah terlihat**, termasuk API key Google
+   dari kode lama (`UmmahPatner.jsx`): hapus key itu di Google AI Studio / Cloud
+   Console.
+2. **Atlas** > Network Access: izinkan `0.0.0.0/0` (IP Vercel berubah-ubah).
+   User database cukup *readWrite* ke `lenteraumat`, password panjang dan acak.
+3. **Cloudinary** > Settings > Security: centang *Allow delivery of PDF and ZIP
+   files*. Tanpa ini unggah buku gagal saat diperiksa.
+
+## Vercel: langkah
+
+1. **Proyek API**: Import repo, *Root Directory* `api`, Framework *Other*. Isi
+   environment variables (tabel di bawah), lalu Deploy. Cek
+   `https://PROYEK-API.vercel.app/api/health` membalas `{"ok":true}`.
+   Samakan *Function Region* dengan region Atlas. Domain produksinya jangan
+   dikunci Deployment Protection, karena web harus bisa memanggilnya.
+2. **Ganti placeholder** `GANTI-DENGAN-PROYEK-API.vercel.app` di
+   `client/vercel.json` dengan domain proyek API, commit, push.
+3. **Proyek web**: Import repo yang sama, *Root Directory* `client`, Framework
+   *Vite*. Deploy.
+4. Kembali ke proyek API: isi `CLIENT_ORIGIN` dan `APP_URL` dengan domain web,
+   lalu **Redeploy** (perubahan env baru berlaku setelah deploy ulang).
+5. **Uji**: daftar, masuk, *Lupa password*, unggah PDF antara 4,5 dan 10 MB
+   (membuktikan unggah langsung), baca buku, tanya LUMA pada buku Internet
+   Archive, muat ulang halaman `/katalog` (SPA fallback).
+
+## Vercel: environment variables proyek `api`
+
+| Variabel | Wajib | Keterangan |
+|---|---|---|
+| `NODE_ENV` | ya | `production` (cookie Secure). |
+| `NODEJS_HELPERS` | ya | `0`, supaya Express sendiri yang membaca body. |
+| `MONGO_URL` | ya | Connection string Atlas, lengkap dengan nama database. |
+| `JWT_SECRET` | ya | Acak, minimal 16 karakter. |
+| `CLIENT_ORIGIN` | ya | Domain web, tanpa garis miring di akhir. Pisahkan koma bila lebih dari satu. Dipakai untuk CORS. |
+| `APP_URL` | ya | Domain web utama (link di email). |
+| `CLOUDINARY_URL` | ya | Vercel tidak punya disk permanen. |
+| `GEMINI_API_KEY` | untuk LUMA | |
+| `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | untuk lupa password | Gmail + App Password. |
+| `ADMIN_EMAIL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD` | bila belum ada admin | Admin pertama. |
+| `CROSS_SITE_COOKIE` | tidak | Biarkan kosong / `false`. |
+| `PUBLIC_API_URL` | tidak | Kosongkan. |
+| `CONTACT_EMAIL` | tidak | Kosong = `SMTP_USER`. |
+| `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`, `LUMA_DAILY_LIMIT` | tidak | Default sudah cukup. |
+| `CLOUDINARY_MAX_MB`, `MAX_PDF_MB` | tidak | Default `10` dan `40`; yang kecil yang berlaku. |
+| `JWT_DAYS`, `SMTP_HOST`, `SMTP_PORT`, `AUTH_RATE_LIMIT`, `RESET_RATE_LIMIT` | tidak | Ada default. |
+
+Jangan diisi di Vercel: `PORT`, `UPLOAD_DIR`, `CLIENT_DIST`, `OLD_MONGO_URL`.
+`VERCEL` diisi otomatis oleh Vercel.
+
+## Vercel: environment variables proyek `client`
+
+| Variabel | Wajib | Keterangan |
+|---|---|---|
+| `VITE_API_URL` | tidak | **Kosongkan.** Web memanggil `/api` di domainnya sendiri. |
+
+Jangan menaruh rahasia di proyek ini; semua `VITE_*` ikut terkirim ke browser.
+
+## Vercel: batas yang perlu diketahui
+
+- **Waktu**: `maxDuration` 120 detik untuk seluruh API (satu fungsi). Rewrite
+  web ke API juga dipotong Vercel di 120 detik, jadi angka lebih besar percuma.
+  LUMA berhenti sendiri di 110 detik dengan pesan yang jelas.
+- **Body 4,5 MB**: PDF dan sampul buku diunggah langsung ke Cloudinary. Foto
+  profil, gambar diskusi, dan **lampiran LUMA** masih lewat API, jadi totalnya
+  harus di bawah 4,5 MB.
+- **Teks buku untuk LUMA** dibaca saat buku pertama kali ditanyakan, bukan saat
+  diunggah. Pertanyaan pertama ke sebuah buku lebih lambat.
+- **Batas percobaan** (login, LUMA per menit) disimpan di memori tiap instance,
+  jadi tidak seketat di satu server. IP pengunjung tertutup proxy Vercel, maka
+  batas login dihitung per IP + akun yang dituju. Kuota harian LUMA tetap akurat
+  karena disimpan di database.
+- Unggahan yang batal di tengah jalan bisa tertinggal di folder `lentera-umat/`
+  Cloudinary; bersihkan sesekali.
+- CSP web ada di `client/vercel.json` (bukan di Express). Sampul boleh dari
+  archive.org, Cloudinary, dan https lain; koneksi hanya ke domain sendiri dan
+  `api.cloudinary.com`.
+
+---
+
+# Alternatif: satu VPS
+
 Satu VPS menjalankan satu proses Node.js: API Express sekaligus menyajikan
 frontend hasil build (`client/dist`). Database di **MongoDB Atlas**, file PDF,
 sampul, dan foto di **Cloudinary**, AI lewat **Google Gemini**, email lewat
 **Gmail SMTP**. Ganti `domainmu.id` di semua langkah dengan domain asli.
 
-## Kebutuhan
+## VPS: kebutuhan
 
 - VPS Ubuntu 22.04/24.04, minimal 1 vCPU dan **2 GB RAM** (pembaca PDF untuk
   LUMA butuh memori), 20 GB disk.
@@ -15,7 +103,7 @@ sampul, dan foto di **Cloudinary**, AI lewat **Google Gemini**, email lewat
 - Akun yang sudah dipakai di laptop: MongoDB Atlas, Cloudinary, Google AI Studio
   (Gemini), dan Gmail dengan App Password.
 
-## Sebelum deploy
+## VPS: sebelum deploy
 
 1. **Ganti semua rahasia yang pernah terlihat** (misalnya di screenshot atau
    chat): password database Atlas, `JWT_SECRET`, API key Gemini, dan API secret
@@ -28,7 +116,7 @@ sampul, dan foto di **Cloudinary**, AI lewat **Google Gemini**, email lewat
 5. **Gemini**: di Google AI Studio, pastikan key punya kuota cukup. Kuota gratis
    dibagi untuk semua pengguna; atur batas per orang lewat `LUMA_DAILY_LIMIT`.
 
-## Langkah
+## VPS: langkah
 
 1. **Keamanan dasar**: login SSH pakai key, matikan login password dan root,
    aktifkan firewall: `ufw allow OpenSSH && ufw allow 'Nginx Full' && ufw enable`.
@@ -65,7 +153,7 @@ sampul, dan foto di **Cloudinary**, AI lewat **Google Gemini**, email lewat
    masuk), unggah buku kecil, baca buku, tanya LUMA, buat kuis, kirim laporan,
    lalu cek tab *Laporan* di dasbor admin.
 
-## Isi `api/.env`
+## VPS: isi `api/.env`
 
 | Variabel | Keterangan |
 |---|---|
@@ -86,7 +174,7 @@ sampul, dan foto di **Cloudinary**, AI lewat **Google Gemini**, email lewat
 | `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Gmail + App Password 16 huruf. |
 | `CONTACT_EMAIL` | Email di halaman Privasi dan Hak cipta. Kosong = `SMTP_USER`. |
 
-## Update aplikasi
+## VPS: update aplikasi
 
 ```bash
 cd /srv/lentera-umat
@@ -97,7 +185,7 @@ cd api && npm ci --omit=dev && cd ..
 pm2 restart lentera-umat
 ```
 
-## Yang perlu diketahui
+## VPS: yang perlu diketahui
 
 - **Rahasia hanya di server.** Key Gemini, Cloudinary, dan SMTP tidak pernah
   dikirim ke browser. Jangan menaruhnya di `client/` atau di variabel `VITE_*`.

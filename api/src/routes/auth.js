@@ -11,7 +11,10 @@ const { HttpError } = require("../middleware/errors");
 const { str } = require("../util");
 
 const router = express.Router();
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: Number(process.env.AUTH_RATE_LIMIT) || 20, standardHeaders: true, legacyHeaders: false, message: { message: "Terlalu banyak percobaan. Coba lagi 15 menit lagi." } });
+// Di Vercel, permintaan lewat rewrite web membawa IP proxy yang sama untuk banyak orang,
+// jadi kuncinya ditambah akun yang dituju supaya satu orang tidak mengunci semuanya.
+const limitKey = (req) => (config.onVercel ? `${req.ip}|${str(req.body?.identifier || req.body?.email || req.body?.username, 120).toLowerCase()}` : req.ip);
+const limiter = rateLimit({ keyGenerator: limitKey, windowMs: 15 * 60 * 1000, limit: Number(process.env.AUTH_RATE_LIMIT) || 20, standardHeaders: true, legacyHeaders: false, message: { message: "Terlalu banyak percobaan. Coba lagi 15 menit lagi." } });
 
 const USERNAME = /^[a-z0-9_.]{3,30}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -103,7 +106,7 @@ router.post("/accounts/forget", async (req, res) => {
 });
 
 // ===== Lupa password =====
-const resetLimiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: Number(process.env.RESET_RATE_LIMIT) || 5, standardHeaders: true, legacyHeaders: false, message: { message: "Terlalu banyak permintaan. Coba lagi 1 jam lagi." } });
+const resetLimiter = rateLimit({ keyGenerator: limitKey, windowMs: 60 * 60 * 1000, limit: Number(process.env.RESET_RATE_LIMIT) || 5, standardHeaders: true, legacyHeaders: false, message: { message: "Terlalu banyak permintaan. Coba lagi 1 jam lagi." } });
 const RESET_MINUTES = 30;
 const hashToken = (t) => crypto.createHash("sha256").update(t).digest("hex");
 

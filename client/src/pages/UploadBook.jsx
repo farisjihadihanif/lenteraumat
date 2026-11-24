@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FileText, ImagePlus } from "lucide-react";
-import { upload, api } from "../lib/api";
+import { saveBook, api } from "../lib/api";
 import { coverFromPdf } from "../lib/pdf";
 import { useAuth } from "../context/Auth";
 import BookCover from "../components/BookCover";
@@ -83,12 +83,8 @@ export default function UploadBook() {
     if (!rights) return setError("Centang pernyataan hak unggah terlebih dahulu.");
     setBusy(true);
     setError("");
-    const fd = new FormData();
-    for (const [k, v] of Object.entries(form)) fd.append(k, v);
-    if (pdf) fd.append("file", pdf);
-    if (cover) fd.append("cover", cover);
     try {
-      const { book } = await upload(id ? "PATCH" : "POST", id ? `/books/${id}` : "/books", fd, setProgress);
+      const { book } = await saveBook(id ? "PATCH" : "POST", id ? `/books/${id}` : "/books", form, { pdf, cover }, setProgress);
       toast.success(book.status === "disetujui" ? "Buku tersimpan dan sudah tayang." : "Buku terkirim. Admin akan meninjaunya.");
       navigate(book.status === "disetujui" ? `/buku/${book._id}` : "/rak?tab=unggahan");
     } catch (err) {

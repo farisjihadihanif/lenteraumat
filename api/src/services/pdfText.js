@@ -5,7 +5,7 @@ const { Worker } = require("worker_threads");
 
 const TIMEOUT = { count: 60 * 1000, text: 5 * 60 * 1000 };
 
-function run(task, buffer) {
+function run(task, buffer, timeoutMs = TIMEOUT[task]) {
   return new Promise((resolve, reject) => {
     // Batas memori worker: PDF raksasa cukup mematikan worker, bukan server.
     const worker = new Worker(path.join(__dirname, "pdfWorker.js"), { resourceLimits: { maxOldGenerationSizeMb: 768 } });
@@ -17,7 +17,7 @@ function run(task, buffer) {
       worker.terminate().catch(() => {});
       fn(value);
     };
-    const timer = setTimeout(() => finish(reject, new Error("Membaca PDF terlalu lama.")), TIMEOUT[task]);
+    const timer = setTimeout(() => finish(reject, Object.assign(new Error("Membaca PDF terlalu lama."), { code: "PDF_TIMEOUT" })), timeoutMs);
     worker.on("message", (msg) => (msg.error ? finish(reject, new Error(msg.error)) : finish(resolve, msg.result)));
     worker.on("error", (err) => finish(reject, err));
     worker.on("exit", (code) => finish(reject, new Error(`Pembaca PDF berhenti (kode ${code}).`)));
@@ -28,6 +28,6 @@ function run(task, buffer) {
 }
 
 const countPages = (buffer) => run("count", buffer);
-const extractText = (buffer) => run("text", buffer);
+const extractText = (buffer, timeoutMs) => run("text", buffer, timeoutMs);
 
 module.exports = { countPages, extractText };

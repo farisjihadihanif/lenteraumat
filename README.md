@@ -35,8 +35,8 @@ client/  React 19 + Vite + Tailwind — pdf.js untuk render halaman, page-flip u
    npm run dev               # http://localhost:5173 (otomatis meneruskan /api ke port 4000)
    ```
 
-## Deploy (satu server)
-Panduan lengkap (VPS, PM2, Nginx, HTTPS, backup, isi `.env`): **[DEPLOY.md](DEPLOY.md)**. Ringkasnya:
+## Deploy
+Panduan lengkap, termasuk dua proyek Vercel (`api/` dan `client/`) dan daftar environment variables: **[DEPLOY.md](DEPLOY.md)**. Untuk satu VPS, ringkasnya:
 ```bash
 cd client && npm ci && npm run build      # hasil di client/dist
 cd ../api && npm ci --omit=dev && NODE_ENV=production node index.js
@@ -78,6 +78,16 @@ Komunitas/donatur → user, admin tetap admin, password lama tetap bisa dipakai,
 
 ## Tes
 ```bash
-cd api && npm test        # 28 tes API (MongoDB di memori, LUMA tiruan)
+cd api && npm test        # tes API (MongoDB di memori, LUMA tiruan)
 cd client && npm run lint && npm run build
 ```
+
+## Copyright
+
+© 2026 Faris Jihadi Hanif Lubis. All rights reserved.
+
+This repository is public for portfolio and review purposes only. No license is granted: you may view the code, but you may not copy, modify, redistribute, or use it in other projects without my written permission.
+
+Repositori ini dipublikasikan hanya untuk keperluan portofolio. Kode boleh dilihat, tetapi tidak boleh disalin, diubah, disebarkan, atau digunakan tanpa izin tertulis dari saya.
+
+Contact: [LinkedIn](https://www.linkedin.com/in/faris-jihadi-hanif-lubis-62337a286/)

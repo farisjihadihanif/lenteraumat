@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Check, ExternalLink, ImagePlus, Link2, Pencil, Plus, Trash2, X } from "lucide-react";
-import { api, fileUrl, upload } from "../lib/api";
+import { api, fileUrl, saveBook } from "../lib/api";
 import { coverFromPdf } from "../lib/pdf";
 import { refreshCategories, useCategories } from "../lib/categories";
 import { ConfirmModal, ErrorBox, Spinner } from "../components/ui";
@@ -10,14 +10,9 @@ import { ConfirmModal, ErrorBox, Spinner } from "../components/ui";
 // Buat sampul dari halaman pertama PDF lalu simpan ke buku.
 // eslint-disable-next-line react-refresh/only-export-components
 export async function makeCover(bookId) {
-  const res = await fetch(fileUrl(bookId), { credentials: "include" });
-  if (!res.ok) throw new Error("PDF tidak bisa dibuka.");
-  const blob = await res.blob();
-  const cover = await coverFromPdf(new File([blob], "buku.pdf", { type: "application/pdf" }));
+  const cover = await coverFromPdf(fileUrl(bookId));
   if (!cover) throw new Error("Sampul gagal dibuat.");
-  const fd = new FormData();
-  fd.append("cover", cover);
-  return upload("PATCH", `/books/${bookId}`, fd);
+  return saveBook("PATCH", `/books/${bookId}`, {}, { cover });
 }
 
 const SOURCES = [

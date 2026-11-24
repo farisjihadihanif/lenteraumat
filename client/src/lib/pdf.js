@@ -45,8 +45,9 @@ export async function renderPage(doc, number, width, canvas = document.createEle
 }
 
 // Sampul otomatis dari halaman pertama PDF (untuk buku tanpa gambar sampul).
-export async function coverFromPdf(file) {
-  const doc = await openPdf(new Uint8Array(await file.arrayBuffer()));
+// src: File pilihan user, atau alamat file buku (cukup halaman pertamanya yang diambil).
+export async function coverFromPdf(src) {
+  const doc = await openPdf(typeof src === "string" ? src : new Uint8Array(await src.arrayBuffer()));
   const { canvas } = await renderPage(doc, 1, 600);
   await doc.destroy();
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b && new File([b], "sampul.jpg", { type: "image/jpeg" })), "image/jpeg", 0.85));

@@ -35,14 +35,14 @@ function setFetch(fn) {
 const RETRYABLE = new Set([429, 500, 502, 503, 504]);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function callModel(model, body) {
+async function callModel(model, body, timeoutMs) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
   try {
     const res = await fetchImpl(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": config.geminiApiKey },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     const data = await res.json().catch(() => ({}));
     return { status: res.status, data };
@@ -51,7 +51,7 @@ async function callModel(model, body) {
   }
 }
 
-async function generate(contents, { json = null, temperature = 0.75, user = null } = {}) {
+async function generate(contents, { json = null, temperature = 0.75, user = null, deadline = Infinity } = {}) {
   if (!config.geminiApiKey) throw new HttpError(503, "LUMA belum aktif: GEMINI_API_KEY belum diisi di server.");
   const body = {
     systemInstruction: { parts: [{ text: systemFor(user) }] },
@@ -67,7 +67,10 @@ async function generate(contents, { json = null, temperature = 0.75, user = null
   let last;
   for (let i = 0; i < attempts.length; i++) {
     if (i > 0) await wait(i === 1 ? 1200 : 300);
-    last = await callModel(attempts[i], body);
+    // Jangan mulai percobaan yang pasti terpotong batas waktu permintaan.
+    const left = deadline - Date.now();
+    if (i > 0 && left < 5000) break;
+    last = await callModel(attempts[i], body, Math.max(1000, Math.min(60000, left)));
     if (last.status === 200) {
       const cand = last.data?.candidates?.[0];
       const text = cand?.content?.parts?.map((p) => p.text || "").join("") || "";
@@ -92,7 +95,7 @@ async function generate(contents, { json = null, temperature = 0.75, user = null
 // File disimpan Google selama 48 jam, jadi lampiran tetap bisa dibahas di pesan berikutnya.
 const API = "https://generativelanguage.googleapis.com";
 
-async function uploadFile(buffer, mimeType, displayName = "lampiran") {
+async function uploadFile(buffer, mimeType, displayName = "lampiran", { deadline = Infinity } = {}) {
   if (!config.geminiApiKey) throw new HttpError(503, "LUMA belum aktif: GEMINI_API_KEY belum diisi di server.");
   const start = await fetchImpl(`${API}/upload/v1beta/files`, {
     method: "POST",
@@ -116,12 +119,12 @@ async function uploadFile(buffer, mimeType, displayName = "lampiran") {
     method: "POST",
     headers: { "Content-Length": String(buffer.length), "X-Goog-Upload-Offset": "0", "X-Goog-Upload-Command": "upload, finalize" },
     body: buffer,
-    signal: AbortSignal.timeout(5 * 60 * 1000),
+    signal: AbortSignal.timeout(Math.max(1000, Math.min(5 * 60 * 1000, deadline - Date.now()))),
   }).catch(() => null);
   let file = done?.ok ? (await done.json().catch(() => ({}))).file : null;
   if (!file?.uri) throw new HttpError(502, "Lampiran gagal dikirim ke LUMA. Coba lagi.");
   // Video & audio perlu diproses dulu oleh Google sebelum bisa dipakai.
-  for (let i = 0; file.state === "PROCESSING" && i < 45; i++) {
+  for (let i = 0; file.state === "PROCESSING" && i < 45 && deadline - Date.now() > 30000; i++) {
     await wait(2000);
     const r = await fetchImpl(`${API}/v1beta/${file.name}`, { headers: { "x-goog-api-key": config.geminiApiKey } }).catch(() => null);
     if (r?.ok) file = await r.json();

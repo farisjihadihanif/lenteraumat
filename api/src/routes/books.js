@@ -1,15 +1,17 @@
 const express = require("express");
 const fs = require("fs");
 const Book = require("../models/Book");
+const BookText = require("../models/BookText");
 const Review = require("../models/Review");
 const ReadingProgress = require("../models/ReadingProgress");
 const Discussion = require("../models/Discussion");
 const { requireAuth, isAdmin, isOwner } = require("../middleware/auth");
-const { upload, checkImageSize, isRealPdf } = require("../middleware/upload");
+const { upload, checkImageSize } = require("../middleware/upload");
 const { HttpError, isId } = require("../middleware/errors");
 const storage = require("../services/storage");
 const categories = require("../services/categories");
-const { storePdf: storePdfBuffer, indexText: indexTextFor } = require("../services/bookFiles");
+const directUpload = require("../services/directUpload");
+const { storePdf, pageCount, indexText: indexTextFor } = require("../services/bookFiles");
 const { str, page, escapeRegex, USER_PUBLIC } = require("../util");
 const { recomputeRating, deleteBook } = require("./cleanup");
 
@@ -62,7 +64,44 @@ async function bookFields(body, { partial = false, createCategory = false } = {}
 }
 
 const indexText = (book, buffer) => indexTextFor(book._id, buffer);
-const storePdf = (file) => storePdfBuffer(file.buffer, file.originalname);
+
+// PDF & sampul dari permintaan ini. Dengan Cloudinary browser sudah mengunggah langsung dan hanya
+// mengirim buktinya; tanpa Cloudinary (laptop) filenya ikut di body.
+async function takeFiles(req) {
+  const pdf = req.files?.file?.[0];
+  const cover = req.files?.cover?.[0];
+  if (storage.usingCloudinary && (pdf || cover)) throw new HttpError(400, "Muat ulang halaman lalu unggah lagi (cara unggah sudah berubah).");
+  const body = req.body || {};
+  const pdfClaim = directUpload.claim(req.user._id, "buku", body.fileUpload);
+  const coverClaim = directUpload.claim(req.user._id, "sampul", body.coverUpload);
+  // File yang harus dibuang kalau penyimpanan buku batal.
+  const saved = [pdfClaim, coverClaim].filter(Boolean);
+  const keys = saved.map((c) => c.key);
+  // Satu unggahan untuk satu buku, supaya menghapus buku tidak menghapus file buku lain.
+  if (keys.length && (await Book.exists({ $or: [{ "file.key": { $in: keys } }, { "coverStored.key": { $in: keys } }] }))) {
+    throw new HttpError(409, "File ini sudah dipakai buku lain. Unggah ulang filenya.");
+  }
+  const out = { pdf: null, cover: null, discard: () => Promise.all(saved.map((s) => storage.remove(s))) };
+  try {
+    if (pdfClaim) {
+      const { buffer, stored } = await directUpload.check(pdfClaim);
+      out.pdf = { buffer, stored, halaman: await pageCount(buffer) };
+    } else if (pdf) {
+      const { stored, halaman } = await storePdf(pdf.buffer, pdf.originalname);
+      out.pdf = { buffer: pdf.buffer, stored, halaman };
+      saved.push(stored);
+    }
+    if (coverClaim) out.cover = (await directUpload.check(coverClaim)).stored;
+    else if (cover) {
+      out.cover = await storage.save(cover, "sampul");
+      saved.push(out.cover);
+    }
+  } catch (error) {
+    await out.discard();
+    throw error;
+  }
+  return out;
+}
 
 // ---------- Daftar & pencarian ----------
 router.get("/", async (req, res) => {
@@ -167,23 +206,23 @@ const files = upload.fields([
 ]);
 
 router.post("/", requireAuth, files, checkImageSize("cover"), async (req, res) => {
-  const pdf = req.files?.file?.[0];
-  if (!pdf) throw new HttpError(400, "File PDF buku wajib diunggah.");
+  if (!req.files?.file?.[0] && !req.body?.fileUpload) throw new HttpError(400, "File PDF buku wajib diunggah.");
   const data = await bookFields(req.body);
-  const { stored, halaman } = await storePdf(pdf);
-  let coverStored = null;
-  if (req.files?.cover?.[0]) coverStored = await storage.save(req.files.cover[0], "sampul");
+  const { pdf, cover, discard } = await takeFiles(req);
   const admin = isAdmin(req.user);
   const book = await Book.create({
     ...data,
-    file: stored,
-    halaman,
-    cover: coverStored?.url || "",
-    coverStored: coverStored || undefined,
+    file: pdf.stored,
+    halaman: pdf.halaman,
+    cover: cover?.url || "",
+    coverStored: cover || undefined,
     uploadedBy: req.user._id,
     // Buku dari admin langsung tayang; dari user menunggu ditinjau.
     status: admin ? "disetujui" : "menunggu",
     ...(admin ? { reviewedBy: req.user._id, reviewedAt: new Date() } : {}),
+  }).catch(async (error) => {
+    await discard();
+    throw error;
   });
   indexText(book, pdf.buffer);
   res.status(201).json({ book });
@@ -193,29 +232,33 @@ router.patch("/:id", requireAuth, files, checkImageSize("cover"), async (req, re
   const book = await findVisible(req);
   const admin = isAdmin(req.user);
   if (!admin && !isOwner(req.user, book.uploadedBy)) throw new HttpError(403, "Kamu tidak bisa mengubah buku ini.");
-  Object.assign(book, await bookFields(req.body, { partial: true }));
-  const pdf = req.files?.file?.[0];
+  Object.assign(book, await bookFields(req.body || {}, { partial: true }));
+  const { pdf, cover, discard } = await takeFiles(req);
+  const { file: oldFile, coverStored: oldCover } = book.toObject();
   if (pdf) {
-    const old = book.file;
-    const { stored, halaman } = await storePdf(pdf);
-    book.file = stored;
-    book.halaman = halaman;
-    await storage.remove(old);
-    indexText(book, pdf.buffer);
+    book.file = pdf.stored;
+    book.halaman = pdf.halaman;
   }
-  if (req.files?.cover?.[0]) {
-    const old = book.coverStored;
-    const saved = await storage.save(req.files.cover[0], "sampul");
-    book.cover = saved.url;
-    book.coverStored = saved;
-    if (old?.key) await storage.remove(old);
+  if (cover) {
+    book.cover = cover.url;
+    book.coverStored = cover;
   }
   // Perubahan oleh pengunggah (bukan admin) perlu ditinjau ulang.
   if (!admin) {
     book.status = "menunggu";
     book.reviewedAt = undefined;
   }
-  await book.save();
+  await book.save().catch(async (error) => {
+    await discard();
+    throw error;
+  });
+  if (cover && oldCover?.key) await storage.remove(oldCover);
+  if (pdf) {
+    await storage.remove(oldFile);
+    // Teks lama milik PDF sebelumnya; dibaca ulang dari PDF baru.
+    await BookText.deleteOne({ book: book._id });
+    indexText(book, pdf.buffer);
+  }
   res.json({ book });
 });
 

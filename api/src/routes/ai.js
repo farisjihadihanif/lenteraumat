@@ -44,6 +44,10 @@ router.get("/status", (req, res) => {
 });
 
 router.use(requireAuth);
+router.use((req, res, next) => {
+  req.deadline = Date.now() + config.lumaBudgetMs;
+  next();
+});
 const limiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 15,
@@ -71,11 +75,11 @@ async function loadBook(id, user) {
 }
 
 // Buku dari Internet Archive sudah punya teks OCR (_djvu.txt), jauh lebih ringan dari PDF-nya.
-async function archiveText(file) {
+async function archiveText(file, timeoutMs) {
   const m = /^https:\/\/archive\.org\/download\/(.+)\.pdf$/i.exec(file?.url || "");
   if (!m) return null;
   try {
-    const res = await fetch(`https://archive.org/download/${m[1]}_djvu.txt`, { signal: AbortSignal.timeout(60 * 1000), headers: { "User-Agent": "LenteraUmat/2.0" } });
+    const res = await fetch(`https://archive.org/download/${m[1]}_djvu.txt`, { signal: AbortSignal.timeout(timeoutMs), headers: { "User-Agent": "LenteraUmat/2.0" } });
     if (!res.ok) return null;
     const text = (await res.text()).slice(0, 400000);
     return text.trim().length > 50 ? { text, pages: 0 } : null;
@@ -85,18 +89,26 @@ async function archiveText(file) {
 }
 
 // Teks buku diekstrak sekali lalu disimpan; kalau belum ada, ekstrak sekarang.
-async function bookText(book) {
+// Sisakan waktu untuk Gemini setelah PDF diambil dan dibaca.
+const GEMINI_RESERVE = 45 * 1000;
+
+async function bookText(book, deadline) {
+  const left = (cap) => Math.max(1000, Math.min(cap, deadline - GEMINI_RESERVE - Date.now()));
+  const slow = () => new HttpError(504, "Buku ini terlalu lama diambil atau dibaca. Coba lagi nanti.");
   let doc = await BookText.findOne({ book: book._id });
   if (!doc || (!doc.text && !doc.error)) {
-    let result = await archiveText(book.file);
+    let result = await archiveText(book.file, left(config.onVercel ? 30 * 1000 : 60 * 1000));
     if (!result) {
       // Gagal mengambil file (jaringan / terlalu besar) tidak disimpan, supaya bisa dicoba lagi nanti.
-      const buffer = await storage.read(book.file, { maxMb: 150 });
+      const buffer = await storage.read(book.file, { maxMb: 150, timeoutMs: left(5 * 60 * 1000) }).catch((e) => {
+        throw e?.name === "TimeoutError" ? slow() : e;
+      });
       // Situs sumber kadang membalas halaman HTML (pemeliharaan, verifikasi bot) dengan status 200.
       if (buffer.subarray(0, 1024).indexOf("%PDF-") === -1) throw new HttpError(502, "Sumber buku sedang tidak mengirimkan file PDF. Coba lagi nanti.");
       try {
-        result = await extractText(buffer);
+        result = await extractText(buffer, left(5 * 60 * 1000));
       } catch (error) {
+        if (error.code === "PDF_TIMEOUT") throw slow(); // jangan disimpan sebagai gagal permanen
         result = { text: "", pages: 0, error: error.message };
       }
     }
@@ -174,14 +186,14 @@ router.post("/chat", limiter, checkQuota, withAttachments, async (req, res) => {
 
   const lampiran = [];
   for (const f of files) {
-    const up = await gemini.uploadFile(f.buffer, f.mimetype, f.originalname);
+    const up = await gemini.uploadFile(f.buffer, f.mimetype, f.originalname, { deadline: req.deadline });
     lampiran.push({ name: f.originalname.slice(0, 120), mimeType: up.mimeType, size: f.size, uri: up.uri, expiresAt: up.expiresAt ? new Date(up.expiresAt) : undefined });
   }
 
   const contents = [];
   if (session.book) {
     const b = book || (await loadBook(session.book, req.user));
-    contents.push({ role: "user", parts: [{ text: bookPrompt(b, await bookText(b)) }] });
+    contents.push({ role: "user", parts: [{ text: bookPrompt(b, await bookText(b, req.deadline)) }] });
     contents.push({ role: "model", parts: [{ text: `Sudah kubaca buku "${b.judul}". Silakan tanya.` }] });
   }
   contents.push(...history(session), {
@@ -189,7 +201,7 @@ router.post("/chat", limiter, checkQuota, withAttachments, async (req, res) => {
     parts: [...lampiran.map((f) => ({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })), { text: message }],
   });
 
-  const reply = await gemini.generate(contents, { user: req.user });
+  const reply = await gemini.generate(contents, { user: req.user, deadline: req.deadline });
   session.messages.push({ role: "user", content: message, kind: session.book ? "ask" : "chat", lampiran });
   session.messages.push({ role: "model", content: reply, kind: session.book ? "ask" : "chat" });
   await session.save();
@@ -200,10 +212,10 @@ router.post("/chat", limiter, checkQuota, withAttachments, async (req, res) => {
 router.post("/summary", limiter, checkQuota, async (req, res) => {
   const book = await loadBook(req.body.bookId, req.user);
   const panjang = { singkat: "sekitar 5 poin penting", sedang: "sekitar 3–5 paragraf dengan poin-poin utama tiap bab", lengkap: "ringkasan per bab yang lengkap" }[req.body.length] || "sekitar 3–5 paragraf dengan poin-poin utama tiap bab";
-  const text = await bookText(book);
+  const text = await bookText(book, req.deadline);
   const reply = await gemini.generate(
     [{ role: "user", parts: [{ text: `${bookPrompt(book, text)}\n\nBuat ringkasan buku ini (${panjang}). Awali dengan satu kalimat gambaran umum, lalu poin-poin utama, dan akhiri dengan pelajaran yang bisa diambil.` }] }],
-    { temperature: 0.4, user: req.user },
+    { temperature: 0.4, user: req.user, deadline: req.deadline },
   );
   const session = await getSession(req.user, req.body.sessionId, { book, title: `Ringkasan: ${book.judul}` });
   session.book = book._id;
@@ -251,7 +263,7 @@ router.post("/quiz", limiter, checkQuota, async (req, res) => {
   const level = { mudah: "mudah", sedang: "sedang", sulit: "sulit" }[req.body.level] || "sedang";
   const jenjang = str(req.body.jenjang, 80);
 
-  const sumber = book ? `${bookPrompt(book, await bookText(book))}\n\nSoal harus berdasarkan isi buku di atas.` : `Topik: ${topik}`;
+  const sumber = book ? `${bookPrompt(book, await bookText(book, req.deadline))}\n\nSoal harus berdasarkan isi buku di atas.` : `Topik: ${topik}`;
   const aturan = [
     `Buat ${count} soal ${TYPE_LABEL[type]} tingkat ${level}${jenjang ? ` untuk ${jenjang}` : ""}.`,
     "Pilihan ganda: tepat 4 pilihan di \"options\" tanpa awalan huruf, dan \"answer\" sama persis dengan salah satu pilihan. Pengecoh harus masuk akal, bukan asal salah.",
@@ -260,7 +272,7 @@ router.post("/quiz", limiter, checkQuota, async (req, res) => {
     `"explanation": pembahasan singkat${book ? " dengan rujukan halaman bila ada" : ""}.`,
     "Variasikan tingkat berpikir (mengingat, memahami, menerapkan, menganalisis). Hindari soal yang jawabannya tersirat di soal lain.",
   ].join("\n");
-  const raw = await gemini.generate([{ role: "user", parts: [{ text: `${sumber}\n\n${aturan}` }] }], { json: QUIZ_SCHEMA, temperature: 0.5, user: req.user });
+  const raw = await gemini.generate([{ role: "user", parts: [{ text: `${sumber}\n\n${aturan}` }] }], { json: QUIZ_SCHEMA, temperature: 0.5, user: req.user, deadline: req.deadline });
   let questions;
   try {
     questions = JSON.parse(raw).questions;

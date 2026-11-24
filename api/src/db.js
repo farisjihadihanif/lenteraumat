@@ -8,13 +8,13 @@ mongoose.set("strictQuery", true);
 // coba lagi memakai DNS publik Cloudflare & Google.
 const SRV_ERRORS = ["ECONNREFUSED", "ETIMEOUT", "ESERVFAIL", "ENOTFOUND", "EREFUSED"];
 
-async function connect(url) {
+async function connect(url, { dnsFallback = true, ...extra } = {}) {
   if (!url) throw new Error("MONGO_URL belum diisi di .env");
-  const opts = { serverSelectionTimeoutMS: 15000 };
+  const opts = { serverSelectionTimeoutMS: 15000, ...extra };
   try {
     await mongoose.connect(url, opts);
   } catch (error) {
-    const srvFailed = url.startsWith("mongodb+srv://") && error?.syscall === "querySrv" && SRV_ERRORS.includes(error.code);
+    const srvFailed = dnsFallback && url.startsWith("mongodb+srv://") && error?.syscall === "querySrv" && SRV_ERRORS.includes(error.code);
     if (!srvFailed) throw explain(error);
     console.warn("DNS jaringan ini menolak alamat MongoDB Atlas, mencoba lewat DNS publik (1.1.1.1 / 8.8.8.8)...");
     dns.setServers(["1.1.1.1", "8.8.8.8", "1.0.0.1", "8.8.4.4"]);

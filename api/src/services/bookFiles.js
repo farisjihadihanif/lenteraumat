@@ -1,20 +1,24 @@
 // Penyimpanan PDF buku + ekstraksi teks untuk LUMA. Dipakai unggah, impor, dan skrip.
 const BookText = require("../models/BookText");
+const config = require("../config");
 const storage = require("./storage");
 const { extractText, countPages } = require("./pdfText");
 const { HttpError } = require("../middleware/errors");
 const { isRealPdf } = require("../middleware/upload");
 
-// sourceUrl: tautan PDF asal (impor). Kalau file terlalu besar untuk penyimpanan
-// (mis. batas 10 MB Cloudinary gratis) atau link=true, buku cukup ditautkan ke sumber aslinya.
-async function storePdf(buffer, name = "buku.pdf", { sourceUrl = "", link = false } = {}) {
+async function pageCount(buffer) {
   if (!isRealPdf(buffer)) throw new HttpError(400, "File bukan PDF yang valid.");
-  let halaman = 0;
   try {
-    halaman = await countPages(buffer);
+    return await countPages(buffer);
   } catch {
     throw new HttpError(400, "PDF rusak atau terkunci password, tidak bisa dibuka.");
   }
+}
+
+// sourceUrl: tautan PDF asal (impor). Kalau file terlalu besar untuk penyimpanan
+// (mis. batas 10 MB Cloudinary gratis) atau link=true, buku cukup ditautkan ke sumber aslinya.
+async function storePdf(buffer, name = "buku.pdf", { sourceUrl = "", link = false } = {}) {
+  const halaman = await pageCount(buffer);
   if (sourceUrl && (link || buffer.length > storage.maxBytes())) {
     return { stored: { url: sourceUrl, storage: "external", key: "", size: buffer.length }, halaman, linked: true };
   }
@@ -31,9 +35,11 @@ async function indexTextNow(bookId, buffer) {
   }
 }
 
-// Di belakang layar supaya respons unggah cepat.
+// Di belakang layar supaya respons unggah cepat. Di Vercel fungsi dibekukan setelah membalas,
+// jadi teksnya diekstrak nanti saat buku pertama kali dipakai di LUMA.
 function indexText(bookId, buffer) {
+  if (config.onVercel) return;
   setImmediate(() => indexTextNow(bookId, buffer));
 }
 
-module.exports = { storePdf, indexText, indexTextNow };
+module.exports = { storePdf, pageCount, indexText, indexTextNow };

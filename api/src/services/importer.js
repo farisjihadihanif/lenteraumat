@@ -49,7 +49,7 @@ async function downloadPdf(raw, { maxMb = config.maxPdfMb } = {}) {
   // Ikuti pengalihan secara manual supaya tiap lompatan dicek juga.
   for (let hop = 0; hop < 5; hop++) {
     try {
-      res = await fetchImpl(url.href, { redirect: "manual", signal: AbortSignal.timeout(120000), headers: { "User-Agent": "LenteraUmat/2.0 (perpustakaan digital)" } });
+      res = await fetchImpl(url.href, { redirect: "manual", signal: AbortSignal.timeout(config.onVercel ? 80000 : 120000), headers: { "User-Agent": "LenteraUmat/2.0 (perpustakaan digital)" } });
     } catch {
       throw new HttpError(502, "Situs sumber tidak bisa dihubungi.");
     }

@@ -57,6 +57,7 @@ function createApp() {
   app.use("/api/discussions", require("./routes/discussions"));
   app.use("/api/admin", require("./routes/admin"));
   app.use("/api/ai", require("./routes/ai"));
+  app.use("/api/uploads", require("./routes/uploads"));
   app.use("/api/reports", require("./routes/reports"));
 
   app.use("/api", notFound);

@@ -58,6 +58,7 @@ async function save(file, folder) {
     return { url: result.secure_url, storage: "cloudinary", key: result.public_id, size: file.size };
   }
 
+  if (config.onVercel) throw new HttpError(500, "CLOUDINARY_URL wajib diisi di Vercel (tidak ada disk permanen).");
   const dir = path.join(config.uploadDir, folder);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, name), file.buffer);
@@ -81,7 +82,7 @@ async function remove(stored) {
 
 // Isi file sebagai Buffer (untuk ekstraksi teks & disajikan ke pembaca).
 // maxMb: tolak file yang terlalu besar sebelum diunduh ke memori.
-async function read(stored, { maxMb = 0 } = {}) {
+async function read(stored, { maxMb = 0, timeoutMs = 5 * 60 * 1000 } = {}) {
   const tooBig = () => new HttpError(413, `File buku lebih dari ${maxMb} MB, terlalu besar untuk dibaca LUMA.`);
   if (stored.storage === "local") {
     const file = path.join(config.uploadDir, stored.key);
@@ -89,7 +90,7 @@ async function read(stored, { maxMb = 0 } = {}) {
     return fs.promises.readFile(file);
   }
   if (maxMb && stored.size > maxMb * 1024 * 1024) throw tooBig();
-  const res = await fetch(stored.url, { signal: AbortSignal.timeout(5 * 60 * 1000), headers: { "User-Agent": "LenteraUmat/2.0" } });
+  const res = await fetch(stored.url, { signal: AbortSignal.timeout(timeoutMs), headers: { "User-Agent": "LenteraUmat/2.0" } });
   if (maxMb && Number(res.headers.get("content-length")) > maxMb * 1024 * 1024) {
     res.body?.cancel().catch(() => {});
     throw tooBig();
@@ -136,4 +137,4 @@ function localPath(stored) {
   return stored.storage === "local" ? path.join(config.uploadDir, stored.key) : null;
 }
 
-module.exports = { save, remove, read, open, localPath, maxBytes, usingCloudinary: Boolean(cloudinary) };
+module.exports = { save, remove, read, open, localPath, maxBytes, usingCloudinary: Boolean(cloudinary), cloudinary };

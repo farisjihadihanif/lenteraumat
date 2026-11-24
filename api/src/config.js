@@ -9,8 +9,14 @@ const list = (v, fallback) =>
 
 const isProduction = process.env.NODE_ENV === "production";
 
+// Vercel: disk tidak permanen, body maksimal 4,5 MB, waktu tiap permintaan terbatas.
+const onVercel = Boolean(process.env.VERCEL);
+
 module.exports = {
   isProduction,
+  onVercel,
+  // Waktu total satu permintaan LUMA, sedikit di bawah maxDuration (120 dtk) di vercel.json.
+  lumaBudgetMs: onVercel ? 110 * 1000 : 10 * 60 * 1000,
   port: Number(process.env.PORT) || 4000,
   mongoUrl: process.env.MONGO_URL || "",
   // SECRET dipertahankan dari versi lama supaya .env lama tetap jalan.
