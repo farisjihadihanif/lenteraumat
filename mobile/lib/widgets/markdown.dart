@@ -13,9 +13,20 @@ class Md extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Lu.of(context);
-    final p = TextStyle(fontSize: 15, height: 1.6, color: c.ink);
-    TextStyle h(double size) =>
-        TextStyle(fontSize: size, fontWeight: FontWeight.w700, color: c.ink);
+    // Teks yang bisa disorot tidak mewarisi huruf tema.
+    const font = 'Manrope';
+    final p = TextStyle(
+      fontFamily: font,
+      fontSize: 15,
+      height: 1.6,
+      color: c.ink,
+    );
+    TextStyle h(double size) => TextStyle(
+      fontFamily: font,
+      fontSize: size,
+      fontWeight: FontWeight.w700,
+      color: c.ink,
+    );
     return MarkdownBody(
       data: data,
       selectable: selectable,
@@ -28,7 +39,11 @@ class Md extends StatelessWidget {
       styleSheet: MarkdownStyleSheet(
         p: p,
         listBullet: p,
-        a: TextStyle(color: c.teal, decoration: TextDecoration.underline),
+        a: TextStyle(
+          fontFamily: font,
+          color: c.teal,
+          decoration: TextDecoration.underline,
+        ),
         h1: h(20),
         h2: h(18),
         h3: h(16),

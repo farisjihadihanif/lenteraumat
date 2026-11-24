@@ -235,6 +235,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
       ),
       onGeneralTap: (context, c, details) {
         if (details.type != PdfViewerGeneralTapType.tap) return false;
+        // Ada teks tersorot: ketukan menutup sorotan dan menunya dulu.
+        if (c.textSelectionDelegate.hasSelectedText) return false;
         setState(() => _bars = !_bars);
         return true;
       },

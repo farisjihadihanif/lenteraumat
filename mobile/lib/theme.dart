@@ -172,6 +172,15 @@ ThemeData buildTheme(Brightness b) {
         ),
       ),
     ),
+    // Warna garis terlalu samar untuk sakelar mati.
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected) ? null : c.inkMute,
+      ),
+      trackOutlineColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected) ? null : c.inkMute,
+      ),
+    ),
     snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
   );
 }
