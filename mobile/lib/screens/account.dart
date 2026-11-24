@@ -7,8 +7,12 @@ import '../state.dart';
 import '../theme.dart';
 import '../widgets/ui.dart';
 import 'auth.dart';
+import 'settings.dart';
+import 'shelf.dart';
+import 'upload_book.dart';
+import 'user_profile.dart';
 
-/// Tab Profile. Rak, unggah, ubah profil, password, dan hapus akun menyusul.
+/// Tab Profile: akun, rak, unggah, tampilan, unduhan.
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
 
@@ -61,6 +65,34 @@ class AccountScreen extends StatelessWidget {
                 ],
               ),
             ),
+          if (s.signedIn) ...[
+            const SizedBox(height: 12),
+            for (final (icon, label, screen) in [
+              (
+                Icons.person_outline,
+                'My profile',
+                UserProfileScreen(username: '${s.user!['username']}'),
+              ),
+              (
+                Icons.collections_bookmark_outlined,
+                'My Shelf',
+                const ShelfScreen(),
+              ),
+              (
+                Icons.upload_file_outlined,
+                'Upload book',
+                const UploadBookScreen(),
+              ),
+              (Icons.settings_outlined, 'Settings', const SettingsScreen()),
+            ])
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(icon),
+                title: Text(label),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => push<void>(context, screen),
+              ),
+          ],
           const SizedBox(height: 24),
           Text('Appearance', style: serifStyle(context, 18)),
           const SizedBox(height: 10),
@@ -73,6 +105,17 @@ class AccountScreen extends StatelessWidget {
             ],
             selected: {s.theme},
             onSelectionChanged: (v) => s.setTheme(v.first),
+          ),
+          const SizedBox(height: 24),
+          Text('Reading', style: serifStyle(context, 18)),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Download whole book on mobile data'),
+            subtitle: const Text(
+              'Bawaan: sisa buku hanya diunduh lewat Wi-Fi. Halaman yang dibuka selalu dimuat.',
+            ),
+            value: s.mobileData,
+            onChanged: s.setMobileData,
           ),
           const SizedBox(height: 24),
           Text('About', style: serifStyle(context, 18)),

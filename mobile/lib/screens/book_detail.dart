@@ -16,6 +16,7 @@ import 'discussion_detail.dart';
 import 'discussions.dart';
 import 'library.dart';
 import 'reader.dart';
+import 'upload_book.dart';
 
 class BookDetailScreen extends StatefulWidget {
   const BookDetailScreen({super.key, required this.id});
@@ -97,6 +98,30 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     if (mounted) setState(() => _saving = false);
   }
 
+  Future<void> _edit() async {
+    await push<bool>(context, UploadBookScreen(id: widget.id));
+    if (mounted) await _load();
+  }
+
+  Future<void> _delete() async {
+    if (!await confirmDelete(
+          context,
+          'Delete book?',
+          '“${_book!['judul']}” beserta ulasannya akan dihapus permanen.',
+        ) ||
+        !mounted) {
+      return;
+    }
+    try {
+      await AppScope.read(context).api.delete('/books/${widget.id}');
+      if (!mounted) return;
+      toast(context, 'Buku dihapus.');
+      Navigator.pop(context);
+    } catch (e) {
+      if (mounted) toast(context, errorText(e));
+    }
+  }
+
   void _share() => SharePlus.instance.share(
     ShareParams(
       subject: text(_book!['judul']),
@@ -110,6 +135,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         actions: [
+          if (b?['canEdit'] == true)
+            PopupMenuButton<String>(
+              tooltip: 'More',
+              onSelected: (v) => v == 'edit' ? _edit() : _delete(),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: Text('Edit')),
+                PopupMenuItem(value: 'delete', child: Text('Delete')),
+              ],
+            ),
           if (b != null)
             IconButton(
               tooltip: 'Share',

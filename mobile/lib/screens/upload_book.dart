@@ -31,10 +31,7 @@ const _keys = [
 
 /// Sampul dari halaman pertama PDF. Melempar bila PDF rusak / terkunci.
 Future<FormFile> coverFromPdf(FormFile pdf) async {
-  final doc = await PdfDocument.openFile(
-    pdf.path,
-    useProgressiveLoading: true,
-  );
+  final doc = await PdfDocument.openFile(pdf.path, useProgressiveLoading: true);
   try {
     final page = doc.pages.first;
     final w = 600.0, h = 600.0 * page.height / page.width;
@@ -161,8 +158,7 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
         if (!mounted) return;
         setState(() {
           _pdf = null;
-          _error =
-              'PDF tidak bisa dibuka. Pastikan file tidak rusak atau terkunci password.';
+          _error = 'PDF tidak bisa dibuka. Pastikan file tidak rusak atau terkunci password.';
         });
       }
     } catch (e) {

@@ -252,7 +252,7 @@ class _LumaScreenState extends State<LumaScreen> {
           if (_files.isEmpty) _files = files;
         });
       }
-      if (here()) toast(context, errorText(e));
+      if (mounted && here()) toast(context, errorText(e));
     }
     if (!mounted) return;
     if (here()) setState(() => _busy = false);

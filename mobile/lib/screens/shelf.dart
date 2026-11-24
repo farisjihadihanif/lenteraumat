@@ -50,8 +50,7 @@ class _Section extends StatefulWidget {
   State<_Section> createState() => _SectionState();
 }
 
-class _SectionState extends State<_Section>
-    with AutomaticKeepAliveClientMixin {
+class _SectionState extends State<_Section> with AutomaticKeepAliveClientMixin {
   List<Json>? _items;
   String _error = '';
 
@@ -130,8 +129,7 @@ class _SectionState extends State<_Section>
   Widget _empty(BuildContext context) => switch (widget.path) {
     '/books/continue' => const Empty(
       title: 'No books read yet',
-      body:
-          'Buku yang kamu buka akan muncul di sini beserta halaman terakhirnya.',
+      body: 'Buku yang kamu buka akan muncul di sini beserta halaman terakhirnya.',
     ),
     '/books/saved' => const Empty(
       title: 'No saved books yet',
