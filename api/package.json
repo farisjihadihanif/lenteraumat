@@ -13,6 +13,7 @@
     "audit:arsip": "node scripts/audit-arsip.js",
     "impor:katalog": "node scripts/impor-katalog.js",
     "rapikan:kategori": "node scripts/rapikan-kategori.js",
+    "indeks:teks": "node scripts/indeks-teks.js",
     "cek:cloudinary": "node scripts/cek-cloudinary.js"
   },
   "author": "Faris Jihadi Hanif Lubis",

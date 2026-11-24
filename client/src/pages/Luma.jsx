@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { BookOpenText, Check, Copy, FileQuestion, FileText, Film, History, Image as ImageIcon, MessageCircle, Music, Paperclip, Plus, ScrollText, Send, Trash2, X, Search, RotateCcw, Share2 } from "lucide-react";
 import QuizSheet from "../components/quiz/QuizSheet";
-import { api } from "../lib/api";
+import { api, streamPost } from "../lib/api";
 import { compressImage, MAX_UPLOAD_MB } from "../lib/image";
 import { useAuth } from "../context/Auth";
 import Markdown from "../components/Markdown";
@@ -246,7 +246,7 @@ function Message({ m, onPostQuiz }) {
         ) : (
           <Markdown>{m.content}</Markdown>
         )}
-        {m.kind !== "quiz" && (
+        {m.kind !== "quiz" && !m.live && (
           <button
             className="mt-2 inline-flex items-center gap-1 text-xs text-ink-mute hover:text-ink"
             onClick={() => {
@@ -275,6 +275,8 @@ export default function Luma() {
   const [picker, setPicker] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [live, setLive] = useState(false); // jawaban sedang mengalir
+  const turn = useRef(0); // berubah tiap pindah percakapan
   const [opts, setOpts] = useState({ length: "sedang", type: "pilihan", count: 5, level: "sedang", untuk: "latihan", sumber: "buku", topik: "", jenjang: "" });
   const [files, setFiles] = useState([]);
   const [preparing, setPreparing] = useState(false);
@@ -302,10 +304,14 @@ export default function Luma() {
   }, [params]);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, busy]);
+    const end = endRef.current;
+    // Selagi jawaban mengalir, ikuti hanya kalau pembaca masih di bagian bawah.
+    if (live && end && end.getBoundingClientRect().top > window.innerHeight + 200) return;
+    end?.scrollIntoView({ behavior: live ? "auto" : "smooth", block: "end" });
+  }, [messages, busy, live]);
 
   const newSession = () => {
+    turn.current++;
     setSessionId(null);
     setMessages([]);
     setShowHistory(false);
@@ -313,6 +319,7 @@ export default function Luma() {
 
   const openSession = async (id) => {
     setShowHistory(false);
+    turn.current++;
     try {
       const { session } = await api.get(`/ai/sessions/${id}`);
       setSessionId(session._id);
@@ -340,13 +347,30 @@ export default function Luma() {
 
   const run = async (kind, payload) => {
     setBusy(true);
+    const mine = turn.current;
+    const here = () => turn.current === mine;
+    // Teks yang sedang mengalir ditampilkan paling banyak sekali per frame.
+    let frame = 0;
+    const showText = (text) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (!here()) return;
+        setLive(Boolean(text));
+        setMessages((m) => [...m.filter((x) => !x.live), ...(text ? [{ role: "model", content: text, kind, live: true }] : [])]);
+      });
+    };
+    const finish = (r, message) => {
+      cancelAnimationFrame(frame);
+      if (!here()) return;
+      setSessionId(r.sessionId);
+      setMessages((m) => [...m.filter((x) => !x.live), message]);
+    };
     const pending = payload.preview || payload.files?.length ? [{ role: "user", content: payload.preview || "", kind, localFiles: payload.files?.map((f) => ({ name: f.file.name, type: f.file.type, url: f.url })) }] : [];
     setMessages((m) => [...m, ...pending]);
     try {
       if (kind === "summary") {
-        const r = await api.post("/ai/summary", { bookId: book._id, length: opts.length, sessionId });
-        setSessionId(r.sessionId);
-        setMessages((m) => [...m, { role: "model", content: r.reply, kind }]);
+        const r = await streamPost("/ai/summary", { bookId: book._id, length: opts.length, sessionId }, showText);
+        finish(r, { role: "model", content: r.reply, kind });
       } else if (kind === "quiz") {
         const fromBook = opts.sumber === "buku";
         const r = await api.post("/ai/quiz", {
@@ -359,8 +383,7 @@ export default function Luma() {
           jenjang: opts.untuk === "guru" ? opts.jenjang : undefined,
           sessionId,
         });
-        setSessionId(r.sessionId);
-        setMessages((m) => [...m, { role: "model", content: "Kuis", kind, data: r.quiz }]);
+        finish(r, { role: "model", content: "Kuis", kind, data: r.quiz });
       } else {
         const bookId = mode === "ask" && !sessionId ? book?._id : undefined;
         let body = { message: payload.message, sessionId, bookId };
@@ -371,18 +394,21 @@ export default function Luma() {
           if (bookId) body.append("bookId", bookId);
           payload.files.forEach((f) => body.append("lampiran", f.file, f.file.name));
         }
-        const r = await api.post("/ai/chat", body);
-        setSessionId(r.sessionId);
-        setMessages((m) => [...m, { role: "model", content: r.reply, kind }]);
+        const r = await streamPost("/ai/chat", body, showText);
+        finish(r, { role: "model", content: r.reply, kind });
       }
       loadSessions();
     } catch (e) {
-      setMessages((m) => m.slice(0, m.length - pending.length));
-      if (payload.message) setInput(payload.message);
-      if (payload.files?.length) setFiles(payload.files);
+      cancelAnimationFrame(frame);
+      if (here()) {
+        setMessages((m) => m.filter((x) => !x.live && !pending.includes(x)));
+        if (payload.message) setInput(payload.message);
+        if (payload.files?.length) setFiles(payload.files);
+      }
       toast.error(e.message);
     } finally {
       setBusy(false);
+      setLive(false);
       loadQuota();
     }
   };
@@ -547,7 +573,7 @@ export default function Luma() {
           {messages.map((m, i) => (
             <Message key={m._id || i} m={m} onPostQuiz={setPostQuiz} />
           ))}
-          {busy && (
+          {busy && !live && (
             <div className="flex items-center gap-3 text-sm text-ink-mute">
               <img src={lumaImg} alt="" className="h-9 w-9 rounded-full bg-lamp/30" />
               <span className="flex gap-1" aria-label="LUMA sedang menulis">

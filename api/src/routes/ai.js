@@ -8,6 +8,7 @@ const ChatSession = require("../models/ChatSession");
 const { requireAuth, isAdmin, isOwner } = require("../middleware/auth");
 const { HttpError, isId } = require("../middleware/errors");
 const storage = require("../services/storage");
+const { archiveText } = require("../services/bookFiles");
 const { extractText } = require("../services/pdfText");
 const gemini = require("../services/gemini");
 const { checkQuota, usage } = require("../services/quota");
@@ -77,20 +78,6 @@ async function loadBook(id, user) {
   return book;
 }
 
-// Buku dari Internet Archive sudah punya teks OCR (_djvu.txt), jauh lebih ringan dari PDF-nya.
-async function archiveText(file, timeoutMs) {
-  const m = /^https:\/\/archive\.org\/download\/(.+)\.pdf$/i.exec(file?.url || "");
-  if (!m) return null;
-  try {
-    const res = await fetch(`https://archive.org/download/${m[1]}_djvu.txt`, { signal: AbortSignal.timeout(timeoutMs), headers: { "User-Agent": "LenteraUmat/2.0" } });
-    if (!res.ok) return null;
-    const text = (await res.text()).slice(0, 400000);
-    return text.trim().length > 50 ? { text, pages: 0 } : null;
-  } catch {
-    return null;
-  }
-}
-
 // Teks buku diekstrak sekali lalu disimpan; kalau belum ada, ekstrak sekarang.
 // Sisakan waktu untuk Gemini setelah PDF diambil dan dibaca.
 const GEMINI_RESERVE = 45 * 1000;
@@ -121,6 +108,40 @@ async function bookText(book, deadline) {
     throw new HttpError(422, "Teks buku ini tidak bisa dibaca LUMA (mungkin berupa hasil scan/gambar).");
   }
   return doc.text.slice(0, CONTEXT_CHARS);
+}
+
+// Jawaban dialirkan (server-sent events) bila browser memintanya; selain itu JSON biasa.
+// Header baru dikirim bersama teks pertama, jadi galat sebelum itu tetap berupa balasan JSON biasa.
+// Isi tiap peristiwa: { text } | { reset } | { done: balasan lengkap } | { error: { status, message } }
+async function answer(req, res, contents, opts, save) {
+  if (!String(req.headers.accept || "").includes("text/event-stream")) {
+    return res.json(await save(await gemini.generate(contents, opts)));
+  }
+  const ctrl = new AbortController();
+  // Browser memutus sambungan: hentikan Gemini dan jangan simpan (browser mengulang tanpa streaming).
+  res.on("close", () => res.writableFinished || ctrl.abort());
+  const send = (data) => {
+    if (res.destroyed) return;
+    if (!res.headersSent) {
+      res.status(200).set({ "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" });
+      res.flushHeaders();
+    }
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+  try {
+    const reply = await gemini.generate(contents, { ...opts, signal: ctrl.signal, onText: (text) => send({ text }), onReset: () => send({ reset: true }) });
+    if (ctrl.signal.aborted) return;
+    const done = await save(reply);
+    await req.countUsage?.();
+    send({ done });
+    res.end();
+  } catch (error) {
+    if (ctrl.signal.aborted) return;
+    if (!res.headersSent) throw error;
+    if (!(error instanceof HttpError)) console.error(error);
+    send({ error: { status: error.status || 500, message: error instanceof HttpError ? error.message : "Terjadi kesalahan di server." } });
+    res.end();
+  }
 }
 
 function bookPrompt(book, text) {
@@ -204,11 +225,12 @@ router.post("/chat", limiter, checkQuota, withAttachments, async (req, res) => {
     parts: [...lampiran.map((f) => ({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })), { text: message }],
   });
 
-  const reply = await gemini.generate(contents, { user: req.user, deadline: req.deadline });
-  session.messages.push({ role: "user", content: message, kind: session.book ? "ask" : "chat", lampiran });
-  session.messages.push({ role: "model", content: reply, kind: session.book ? "ask" : "chat" });
-  await session.save();
-  res.json({ sessionId: session._id, title: session.title, reply, lampiran: lampiran.map(({ name, mimeType, size }) => ({ name, mimeType, size })) });
+  await answer(req, res, contents, { user: req.user, deadline: req.deadline }, async (reply) => {
+    session.messages.push({ role: "user", content: message, kind: session.book ? "ask" : "chat", lampiran });
+    session.messages.push({ role: "model", content: reply, kind: session.book ? "ask" : "chat" });
+    await session.save();
+    return { sessionId: session._id, title: session.title, reply, lampiran: lampiran.map(({ name, mimeType, size }) => ({ name, mimeType, size })) };
+  });
 });
 
 // ---------- Ringkasan ----------
@@ -216,16 +238,20 @@ router.post("/summary", limiter, checkQuota, async (req, res) => {
   const book = await loadBook(req.body.bookId, req.user);
   const panjang = { singkat: "sekitar 5 poin penting", sedang: "sekitar 3–5 paragraf dengan poin-poin utama tiap bab", lengkap: "ringkasan per bab yang lengkap" }[req.body.length] || "sekitar 3–5 paragraf dengan poin-poin utama tiap bab";
   const text = await bookText(book, req.deadline);
-  const reply = await gemini.generate(
+  const session = await getSession(req.user, req.body.sessionId, { book, title: `Ringkasan: ${book.judul}` });
+  await answer(
+    req,
+    res,
     [{ role: "user", parts: [{ text: `${bookPrompt(book, text)}\n\nBuat ringkasan buku ini (${panjang}). Awali dengan satu kalimat gambaran umum, lalu poin-poin utama, dan akhiri dengan pelajaran yang bisa diambil.` }] }],
     { temperature: 0.4, user: req.user, deadline: req.deadline },
+    async (reply) => {
+      session.book = book._id;
+      session.messages.push({ role: "user", content: `Ringkas buku "${book.judul}"`, kind: "summary" });
+      session.messages.push({ role: "model", content: reply, kind: "summary" });
+      await session.save();
+      return { sessionId: session._id, title: session.title, reply };
+    },
   );
-  const session = await getSession(req.user, req.body.sessionId, { book, title: `Ringkasan: ${book.judul}` });
-  session.book = book._id;
-  session.messages.push({ role: "user", content: `Ringkas buku "${book.judul}"`, kind: "summary" });
-  session.messages.push({ role: "model", content: reply, kind: "summary" });
-  await session.save();
-  res.json({ sessionId: session._id, title: session.title, reply });
 });
 
 // ---------- Kuis ----------

@@ -26,6 +26,20 @@ async function storePdf(buffer, name = "buku.pdf", { sourceUrl = "", link = fals
   return { stored, halaman, linked: false };
 }
 
+// Buku dari Internet Archive sudah punya teks OCR (_djvu.txt), jauh lebih ringan dari PDF-nya.
+async function archiveText(file, timeoutMs) {
+  const m = /^https:\/\/archive\.org\/download\/(.+)\.pdf$/i.exec(file?.url || "");
+  if (!m) return null;
+  try {
+    const res = await fetch(`https://archive.org/download/${m[1]}_djvu.txt`, { signal: AbortSignal.timeout(timeoutMs), headers: { "User-Agent": "LenteraUmat/2.0" } });
+    if (!res.ok) return null;
+    const text = (await res.text()).slice(0, 400000);
+    return text.trim().length > 50 ? { text, pages: 0 } : null;
+  } catch {
+    return null;
+  }
+}
+
 async function indexTextNow(bookId, buffer) {
   try {
     const { text, pages } = await extractText(buffer);
@@ -42,4 +56,4 @@ function indexText(bookId, buffer) {
   setImmediate(() => indexTextNow(bookId, buffer));
 }
 
-module.exports = { storePdf, pageCount, indexText, indexTextNow };
+module.exports = { storePdf, pageCount, indexText, indexTextNow, archiveText };

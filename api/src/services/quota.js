@@ -22,12 +22,14 @@ async function checkQuota(req, res, next) {
     throw new HttpError(429, `Batas LUMA hari ini (${config.lumaDailyLimit} permintaan) sudah habis. Bisa dipakai lagi besok mulai pukul 00.00 WIB.`);
   }
   // Dicatat sebelum jawaban dikirim: di Vercel fungsi bisa dibekukan begitu jawaban selesai.
+  req.countUsage = () =>
+    AiUsage.updateOne({ user: req.user._id, day: today() }, { $inc: { count: 1 }, $setOnInsert: { createdAt: new Date() } }, { upsert: true }).catch((e) =>
+      console.error("Kuota LUMA gagal dicatat:", e.message),
+    );
   const json = res.json.bind(res);
   res.json = (body) => {
     if (res.statusCode >= 400) return json(body);
-    AiUsage.updateOne({ user: req.user._id, day: today() }, { $inc: { count: 1 }, $setOnInsert: { createdAt: new Date() } }, { upsert: true })
-      .catch((e) => console.error("Kuota LUMA gagal dicatat:", e.message))
-      .finally(() => json(body));
+    req.countUsage().finally(() => json(body));
     return res;
   };
   next();

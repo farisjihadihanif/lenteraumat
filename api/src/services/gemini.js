@@ -35,14 +35,14 @@ function setFetch(fn) {
 const RETRYABLE = new Set([429, 500, 502, 503, 504]);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function callModel(model, body, timeoutMs) {
+async function callModel(model, body, timeoutMs, signal) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
   try {
     const res = await fetchImpl(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": config.geminiApiKey },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     });
     const data = await res.json().catch(() => ({}));
     return { status: res.status, data };
@@ -51,7 +51,59 @@ async function callModel(model, body, timeoutMs) {
   }
 }
 
-async function generate(contents, { json = null, temperature = 0.75, user = null, deadline = Infinity } = {}) {
+// Versi streaming: onText dipanggil tiap potongan teks. Hasil akhirnya berbentuk sama dengan callModel.
+async function streamModel(model, body, timeoutMs, onText, signal) {
+  const url = `${API}/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
+  const ctrl = new AbortController();
+  // Teks pertama ditunggu paling lama 45 detik; sisanya cukup dibatasi waktu total permintaan.
+  const first = setTimeout(() => ctrl.abort(new Error("Gemini tidak menjawab.")), Math.min(45000, timeoutMs));
+  const total = setTimeout(() => ctrl.abort(new Error("Waktu habis.")), Math.min(10 * 60 * 1000, timeoutMs));
+  let text = "";
+  let finishReason = "";
+  let promptFeedback;
+  try {
+    const res = await fetchImpl(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": config.geminiApiKey },
+      body: JSON.stringify(body),
+      signal: signal ? AbortSignal.any([signal, ctrl.signal]) : ctrl.signal,
+    });
+    if (res.status !== 200) return { status: res.status, data: await res.json().catch(() => ({})) };
+    const line = (raw) => {
+      if (!raw.startsWith("data:")) return;
+      const data = JSON.parse(raw.slice(5));
+      if (data.error) throw new Error(data.error.message || "Gemini terputus.");
+      promptFeedback = data.promptFeedback || promptFeedback;
+      const cand = data.candidates?.[0];
+      finishReason = cand?.finishReason || finishReason;
+      const part = (cand?.content?.parts || []).map((p) => (p.thought ? "" : p.text || "")).join("");
+      if (!part) return;
+      clearTimeout(first);
+      text += part;
+      onText(part);
+    };
+    const decoder = new TextDecoder();
+    let buf = "";
+    for await (const chunk of res.body) {
+      buf += decoder.decode(chunk, { stream: true });
+      const lines = buf.split(/\r?\n/);
+      buf = lines.pop();
+      lines.forEach(line);
+    }
+    line(buf.trim());
+    if (text && !finishReason) throw new Error("Jawaban Gemini terputus.");
+    return { status: 200, data: { candidates: [{ finishReason, content: { parts: [{ text }] } }], promptFeedback } };
+  } catch (error) {
+    return { status: 0, error };
+  } finally {
+    clearTimeout(first);
+    clearTimeout(total);
+  }
+}
+
+// onText: jawaban dialirkan selagi ditulis. Kalau aliran gagal, dicoba lagi tanpa streaming; onReset
+// dipanggil bila potongan yang telanjur terkirim harus dibuang.
+async function generate(contents, { json = null, temperature = 0.75, user = null, deadline = Infinity, onText = null, onReset = null, signal = null } = {}) {
   if (!config.geminiApiKey) throw new HttpError(503, "LUMA belum aktif: GEMINI_API_KEY belum diisi di server.");
   const body = {
     systemInstruction: { parts: [{ text: systemFor(user) }] },
@@ -64,13 +116,27 @@ async function generate(contents, { json = null, temperature = 0.75, user = null
   // Model utama dicoba 2x, lalu model cadangan, karena server Google kadang sibuk/lambat.
   const fallback = config.geminiFallbackModel;
   const attempts = [config.geminiModel, config.geminiModel, ...(fallback && fallback !== config.geminiModel ? [fallback] : [])];
+  // Saat streaming, percobaan terakhir selalu tanpa streaming.
+  if (onText) attempts.push(attempts.at(-1));
+  let streaming = Boolean(onText);
   let last;
   for (let i = 0; i < attempts.length; i++) {
     if (i > 0) await wait(i === 1 ? 1200 : 300);
     // Jangan mulai percobaan yang pasti terpotong batas waktu permintaan.
     const left = deadline - Date.now();
     if (i > 0 && left < 5000) break;
-    last = await callModel(attempts[i], body, Math.max(1000, Math.min(60000, left)));
+    if (streaming && i < attempts.length - 1) {
+      let sent = false;
+      const forward = (t) => {
+        sent = true;
+        onText(t);
+      };
+      last = await streamModel(attempts[i], body, Math.max(1000, left), forward, signal);
+      if (last.status !== 200 && sent) onReset?.();
+      // Model sibuk: percobaan berikutnya tetap dialirkan. Gagal karena hal lain: tanpa streaming.
+      streaming = last.status === 429 || last.status === 503;
+    } else last = await callModel(attempts[i], body, Math.max(1000, Math.min(60000, left)), signal);
+    if (signal?.aborted) throw new HttpError(499, "Permintaan dibatalkan.");
     if (last.status === 200) {
       const cand = last.data?.candidates?.[0];
       const text = cand?.content?.parts?.map((p) => p.text || "").join("") || "";

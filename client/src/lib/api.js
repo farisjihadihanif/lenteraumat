@@ -40,6 +40,59 @@ export const api = {
   del: (p, b, o) => request("DELETE", p, b, o),
 };
 
+// Jawaban LUMA dialirkan selagi ditulis (server-sent events). onText menerima seluruh teks sejauh ini.
+// Aliran tidak didukung atau terputus: diulang tanpa streaming. Galat dari server tidak diulang.
+export async function streamPost(path, body, onText) {
+  const plain = () => {
+    onText("");
+    return request("POST", path, body);
+  };
+  if (!window.ReadableStream || !window.TextDecoder) return plain();
+  const form = body instanceof FormData;
+  let res;
+  try {
+    res = await fetch(`${BASE}/api${path}`, {
+      method: "POST",
+      credentials: "include",
+      headers: { Accept: "text/event-stream", ...(form ? {} : { "Content-Type": "application/json" }) },
+      body: form ? body : JSON.stringify(body),
+    });
+  } catch {
+    return plain();
+  }
+  if (!(res.headers.get("content-type") || "").includes("text/event-stream")) {
+    const data = await res.json().catch(() => null);
+    if (res.ok && data) return data;
+    if (!data && res.status === 413) throw new ApiError(413, "File terlalu besar untuk dikirim. Coba file di bawah 4 MB.");
+    if (!data) return plain();
+    throw new ApiError(res.status, data.message || `Terjadi kesalahan (${res.status}).`);
+  }
+  let text = "";
+  try {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const events = buf.split("\n\n");
+      buf = events.pop();
+      for (const raw of events) {
+        if (!raw.startsWith("data:")) continue;
+        const e = JSON.parse(raw.slice(5));
+        if (e.error) throw new ApiError(e.error.status, e.error.message);
+        if (e.done) return e.done;
+        text = e.reset ? "" : text + (e.text || "");
+        onText(text);
+      }
+    }
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+  }
+  return plain();
+}
+
 export const fileUrl = (bookId) => `${BASE}/api/books/${bookId}/file`;
 
 // Upload dengan progres (fetch belum punya progres upload).
