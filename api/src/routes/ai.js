@@ -16,7 +16,7 @@ const multer = require("multer");
 
 // Lampiran untuk LUMA: gambar, PDF/teks, audio, video.
 const ATTACH_TYPES = /^(image\/(png|jpe?g|webp|heic|heif|gif)|application\/pdf|text\/(plain|markdown|csv)|video\/(mp4|mpeg|quicktime|webm|x-msvideo|3gpp|x-flv|x-ms-wmv)|audio\/(mpeg|mp3|wav|x-wav|ogg|aac|flac|webm|x-m4a|mp4|aiff))$/;
-const MAX_ATTACH_MB = 50;
+const MAX_ATTACH_MB = config.lumaAttachMb;
 const attachUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_ATTACH_MB * 1024 * 1024, files: 4 },
@@ -33,6 +33,9 @@ function withAttachments(req, res, next) {
   attachUpload.array("lampiran", 4)(req, res, (err) => {
     if (err?.code === "LIMIT_FILE_SIZE") return next(new HttpError(400, `Ukuran lampiran maksimal ${MAX_ATTACH_MB} MB per file.`));
     if (err?.code === "LIMIT_FILE_COUNT") return next(new HttpError(400, "Maksimal 4 lampiran sekali kirim."));
+    if (!err && config.onVercel && (req.files || []).reduce((n, f) => n + f.size, 0) > MAX_ATTACH_MB * 1024 * 1024) {
+      return next(new HttpError(400, `Total lampiran maksimal ${MAX_ATTACH_MB} MB sekali kirim.`));
+    }
     next(err);
   });
 }
@@ -40,7 +43,7 @@ function withAttachments(req, res, next) {
 const router = express.Router();
 
 router.get("/status", (req, res) => {
-  res.json({ enabled: Boolean(config.geminiApiKey), model: config.geminiModel });
+  res.json({ enabled: Boolean(config.geminiApiKey), model: config.geminiModel, maxAttachMb: MAX_ATTACH_MB, maxAttachTotalMb: config.onVercel ? MAX_ATTACH_MB : null });
 });
 
 router.use(requireAuth);

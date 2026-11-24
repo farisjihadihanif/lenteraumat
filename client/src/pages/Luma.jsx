@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { BookOpenText, Check, Copy, FileQuestion, FileText, Film, History, Image as ImageIcon, MessageCircle, Music, Paperclip, Plus, ScrollText, Send, Trash2, X, Search, RotateCcw, Share2 } from "lucide-react";
 import QuizSheet from "../components/quiz/QuizSheet";
 import { api } from "../lib/api";
+import { compressImage, MAX_UPLOAD_MB } from "../lib/image";
 import { useAuth } from "../context/Auth";
 import Markdown from "../components/Markdown";
 import BookCover from "../components/BookCover";
@@ -131,7 +132,6 @@ function QuizCard({ quiz, onPost }) {
 
 const ACCEPT = "image/*,application/pdf,text/plain,text/markdown,text/csv,video/*,audio/*";
 const MAX_FILES = 4;
-const MAX_MB = 50;
 
 function fileIcon(type = "") {
   if (type.startsWith("image/")) return ImageIcon;
@@ -277,6 +277,7 @@ export default function Luma() {
   const [busy, setBusy] = useState(false);
   const [opts, setOpts] = useState({ length: "sedang", type: "pilihan", count: 5, level: "sedang", untuk: "latihan", sumber: "buku", topik: "", jenjang: "" });
   const [files, setFiles] = useState([]);
+  const [preparing, setPreparing] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [postQuiz, setPostQuiz] = useState(null);
   const fileInput = useRef(null);
@@ -386,14 +387,26 @@ export default function Luma() {
     }
   };
 
-  const addFiles = (list) => {
+  // Batas mengikuti server (4 MB di Vercel); sebelum status terbaca pakai yang paling aman.
+  const maxMb = status?.maxAttachMb || MAX_UPLOAD_MB;
+  const maxTotalMb = status ? status.maxAttachTotalMb : MAX_UPLOAD_MB;
+
+  const addFiles = async (list) => {
     const incoming = Array.from(list || []);
     if (!incoming.length) return;
     const ok = [];
-    for (const file of incoming) {
-      if (file.size > MAX_MB * 1024 * 1024) toast.error(`${file.name} lebih dari ${MAX_MB} MB.`);
-      else ok.push({ file, url: file.type.startsWith("image/") ? URL.createObjectURL(file) : "" });
+    setPreparing(true);
+    for (const original of incoming) {
+      try {
+        const isImage = original.type.startsWith("image/");
+        const file = isImage ? await compressImage(original) : original;
+        if (file.size > maxMb * 1024 * 1024) throw new Error(`${file.name} lebih dari ${maxMb} MB. Pilih file yang lebih kecil.`);
+        ok.push({ file, url: isImage ? URL.createObjectURL(file) : "" });
+      } catch (e) {
+        toast.error(e.message);
+      }
     }
+    setPreparing(false);
     setFiles((cur) => {
       const next = [...cur, ...ok];
       if (next.length > MAX_FILES) toast.info(`Maksimal ${MAX_FILES} lampiran sekali kirim.`);
@@ -404,6 +417,10 @@ export default function Luma() {
   const send = (text) => {
     const message = (text ?? input).trim();
     if ((!message && !files.length) || busy) return;
+    if (preparing) return toast.info("Lampiran masih diproses. Tunggu sebentar.");
+    if (maxTotalMb && files.reduce((n, f) => n + f.file.size, 0) > maxTotalMb * 1024 * 1024) {
+      return toast.error(`Total lampiran lebih dari ${maxTotalMb} MB. Hapus salah satu lampiran.`);
+    }
     if (mode === "ask" && !book) return setPicker(true);
     const attached = files;
     setInput("");

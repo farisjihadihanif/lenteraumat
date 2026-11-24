@@ -4,12 +4,15 @@ const cors = require("cors");
 const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const config = require("./config");
+const { clientIp } = require("./middleware/clientIp");
 const { loadUser } = require("./middleware/auth");
 const { notFound, errorHandler } = require("./middleware/errors");
 
 function createApp() {
   const app = express();
+  // Tepat satu proxy di depan: Nginx (VPS) atau edge Vercel.
   app.set("trust proxy", 1);
+  app.use(clientIp);
   app.disable("x-powered-by");
   app.use(
     helmet({

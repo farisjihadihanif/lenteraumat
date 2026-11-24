@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { X } from "lucide-react";
 import { api } from "../lib/api";
+import { compressImage } from "../lib/image";
 import BookCover from "../components/BookCover";
 import { ErrorBox, PageLoader } from "../components/ui";
 
@@ -82,8 +83,8 @@ export default function DiscussionForm() {
     fd.append("judul", form.judul);
     fd.append("isi", form.isi);
     fd.append("book", book?._id || "");
-    if (gambar) fd.append("gambar", gambar);
     try {
+      if (gambar) fd.append("gambar", await compressImage(gambar));
       const r = id ? await api.patch(`/discussions/${id}`, fd) : await api.post("/discussions", fd);
       toast.success(id ? "Diskusi diperbarui." : "Diskusi dimulai.");
       navigate(`/diskusi/${r.discussion._id}`);

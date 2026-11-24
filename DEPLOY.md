@@ -70,14 +70,19 @@ Jangan menaruh rahasia di proyek ini; semua `VITE_*` ikut terkirim ke browser.
   web ke API juga dipotong Vercel di 120 detik, jadi angka lebih besar percuma.
   LUMA berhenti sendiri di 110 detik dengan pesan yang jelas.
 - **Body 4,5 MB**: PDF dan sampul buku diunggah langsung ke Cloudinary. Foto
-  profil, gambar diskusi, dan **lampiran LUMA** masih lewat API, jadi totalnya
-  harus di bawah 4,5 MB.
+  profil, gambar diskusi, dan **lampiran LUMA** masih lewat API. Gambar
+  dikecilkan di browser (maks. 1600 px, 4 MB); lampiran LUMA maks. 4 MB total
+  per kiriman di Vercel (50 MB per file di luar Vercel).
 - **Teks buku untuk LUMA** dibaca saat buku pertama kali ditanyakan, bukan saat
   diunggah. Pertanyaan pertama ke sebuah buku lebih lambat.
-- **Batas percobaan** (login, LUMA per menit) disimpan di memori tiap instance,
-  jadi tidak seketat di satu server. IP pengunjung tertutup proxy Vercel, maka
-  batas login dihitung per IP + akun yang dituju. Kuota harian LUMA tetap akurat
-  karena disimpan di database.
+- **Batas percobaan** disimpan di memori tiap instance, jadi tidak seketat di satu
+  server. Daftar dan lupa password dihitung per IP (lupa password juga per email),
+  login per IP + akun. IP dibaca dari `x-real-ip` yang diisi Vercel, juga lewat
+  rewrite web ke API. **Cek setelah deploy**: di domain web, kirim *Lupa password*
+  beberapa kali dari Wi-Fi lalu sekali dari data seluler, dengan email berbeda.
+  Di DevTools > Network, header `RateLimit-Remaining` di jaringan kedua harus
+  mulai dari awal (4). Kalau melanjutkan hitungan jaringan pertama, IP asli
+  tidak sampai ke API. Kuota harian LUMA tetap akurat karena disimpan di database.
 - Unggahan yang batal di tengah jalan bisa tertinggal di folder `lentera-umat/`
   Cloudinary; bersihkan sesekali.
 - CSP web ada di `client/vercel.json` (bukan di Express). Sampul boleh dari

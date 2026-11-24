@@ -7,19 +7,23 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const config = require("../config");
 const { issueToken, clearToken, readAccounts, writeAccounts, subOf, COOKIE, cookieOptions } = require("../middleware/auth");
+const { ipKey } = require("../middleware/clientIp");
 const { HttpError } = require("../middleware/errors");
 const { str } = require("../util");
 
 const router = express.Router();
-// Di Vercel, permintaan lewat rewrite web membawa IP proxy yang sama untuk banyak orang,
-// jadi kuncinya ditambah akun yang dituju supaya satu orang tidak mengunci semuanya.
-const limitKey = (req) => (config.onVercel ? `${req.ip}|${str(req.body?.identifier || req.body?.email || req.body?.username, 120).toLowerCase()}` : req.ip);
-const limiter = rateLimit({ keyGenerator: limitKey, windowMs: 15 * 60 * 1000, limit: Number(process.env.AUTH_RATE_LIMIT) || 20, standardHeaders: true, legacyHeaders: false, message: { message: "Terlalu banyak percobaan. Coba lagi 15 menit lagi." } });
+// Login: per IP, dan di Vercel ditambah akun yang dituju. Daftar & lupa password: selalu per IP,
+// supaya mengganti-ganti email tidak menghindari batasnya.
+const account = (req) => str(req.body?.identifier || req.body?.email || req.body?.username, 120).toLowerCase();
+const authLimit = (keyGenerator) =>
+  rateLimit({ keyGenerator, windowMs: 15 * 60 * 1000, limit: Number(process.env.AUTH_RATE_LIMIT) || 20, standardHeaders: true, legacyHeaders: false, message: { message: "Terlalu banyak percobaan. Coba lagi 15 menit lagi." } });
+const loginLimiter = authLimit((req) => (config.onVercel ? `${ipKey(req)}|${account(req)}` : ipKey(req)));
+const registerLimiter = authLimit(ipKey);
 
 const USERNAME = /^[a-z0-9_.]{3,30}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-router.post("/register", limiter, async (req, res) => {
+router.post("/register", registerLimiter, async (req, res) => {
   const username = str(req.body.username, 30).toLowerCase();
   const email = str(req.body.email, 120).toLowerCase();
   const password = String(req.body.password || "");
@@ -34,7 +38,7 @@ router.post("/register", limiter, async (req, res) => {
   res.status(201).json({ user: user.toSelf() });
 });
 
-router.post("/login", limiter, async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   const identifier = str(req.body.identifier ?? req.body.username, 120).toLowerCase();
   const password = String(req.body.password || "");
   const user = await User.findOne(identifier.includes("@") ? { email: identifier } : { username: identifier }).select("+password");
@@ -106,7 +110,11 @@ router.post("/accounts/forget", async (req, res) => {
 });
 
 // ===== Lupa password =====
-const resetLimiter = rateLimit({ keyGenerator: limitKey, windowMs: 60 * 60 * 1000, limit: Number(process.env.RESET_RATE_LIMIT) || 5, standardHeaders: true, legacyHeaders: false, message: { message: "Terlalu banyak permintaan. Coba lagi 1 jam lagi." } });
+const resetLimit = (keyGenerator, standardHeaders = true) =>
+  rateLimit({ keyGenerator, windowMs: 60 * 60 * 1000, limit: Number(process.env.RESET_RATE_LIMIT) || 5, standardHeaders, legacyHeaders: false, message: { message: "Terlalu banyak permintaan. Coba lagi 1 jam lagi." } });
+// Satu email juga dibatasi walau permintaannya datang dari banyak IP.
+const forgotAccountLimiter = resetLimit(account, false);
+const resetLimiter = resetLimit(ipKey);
 const RESET_MINUTES = 30;
 const hashToken = (t) => crypto.createHash("sha256").update(t).digest("hex");
 
@@ -123,7 +131,7 @@ function resetEmail(user, link) {
 }
 
 // Jawaban selalu sama, ada atau tidak akunnya, supaya email terdaftar tidak bisa ditebak.
-router.post("/forgot", resetLimiter, async (req, res) => {
+router.post("/forgot", resetLimiter, forgotAccountLimiter, async (req, res) => {
   const email = str(req.body.email, 120).toLowerCase();
   if (!EMAIL.test(email)) throw new HttpError(400, "Format email tidak valid.");
   if (!mail.configured() && config.isProduction) {

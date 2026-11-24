@@ -17,6 +17,8 @@ module.exports = {
   onVercel,
   // Waktu total satu permintaan LUMA, sedikit di bawah maxDuration (120 dtk) di vercel.json.
   lumaBudgetMs: onVercel ? 110 * 1000 : 10 * 60 * 1000,
+  // Lampiran LUMA lewat body API: di Vercel maksimal 4 MB (total), di server biasa 50 MB per file.
+  lumaAttachMb: onVercel ? 4 : 50,
   port: Number(process.env.PORT) || 4000,
   mongoUrl: process.env.MONGO_URL || "",
   // SECRET dipertahankan dari versi lama supaya .env lama tetap jalan.

@@ -21,12 +21,13 @@ const upload = multer({
   },
 });
 
-// Gambar dibatasi 5 MB walaupun batas multer mengikuti ukuran PDF.
+// Batas gambar (MB), walaupun batas multer mengikuti ukuran PDF. Foto & gambar diskusi lewat body API.
+const IMAGE_MB = { cover: 5, foto: 4, gambar: 4 };
 function checkImageSize(...fields) {
   return (req, res, next) => {
     for (const f of fields) {
       const file = req.files?.[f]?.[0] || (req.file?.fieldname === f ? req.file : null);
-      if (file && file.size > 5 * 1024 * 1024) throw new HttpError(400, "Ukuran gambar maksimal 5 MB.");
+      if (file && file.size > IMAGE_MB[f] * 1024 * 1024) throw new HttpError(400, `Ukuran gambar maksimal ${IMAGE_MB[f]} MB.`);
     }
     next();
   };

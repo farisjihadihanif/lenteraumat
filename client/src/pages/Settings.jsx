@@ -3,6 +3,7 @@ import AvatarCropper from "../components/AvatarCropper";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { api } from "../lib/api";
+import { compressImage } from "../lib/image";
 import { useAuth } from "../context/Auth";
 import { Avatar, ErrorBox, Modal } from "../components/ui";
 
@@ -82,9 +83,14 @@ export default function Settings() {
               type="file"
               accept="image/jpeg,image/png,image/webp"
               className="sr-only"
-              onChange={(e) => {
-                setRaw(e.target.files[0] || null);
+              onChange={async (e) => {
+                const file = e.target.files[0];
                 e.target.value = "";
+                try {
+                  setRaw(file ? await compressImage(file) : null);
+                } catch (e2) {
+                  toast.error(e2.message);
+                }
               }}
             />
           </label>
