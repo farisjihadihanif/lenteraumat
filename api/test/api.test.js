@@ -182,12 +182,12 @@ test("katalog: cari, kategori, simpan, progres baca", async () => {
   const admin = await h.makeAdmin(app);
   const user = await h.makeUser(app, "faris");
   const a = (await h.uploadBook(admin, { judul: "Tafsir Juz Amma", kategori: "Al-Qur'an & Tafsir" })).body.book._id;
-  await h.uploadBook(admin, { judul: "Belajar Python", kategori: "Sains & Teknologi", penulis: "Guido" });
+  await h.uploadBook(admin, { judul: "Belajar Python", kategori: "Teknologi", penulis: "Guido" });
 
   assert.equal((await h.request(app).get("/api/books?q=tafsir")).body.total, 1);
   assert.equal((await h.request(app).get("/api/books?q=guido")).body.total, 1);
   assert.equal((await h.request(app).get("/api/books?q=(((")).body.total, 0);
-  assert.equal((await h.request(app).get("/api/books?kategori=Sains%20%26%20Teknologi")).body.total, 1);
+  assert.equal((await h.request(app).get("/api/books?kategori=Teknologi")).body.total, 1);
   const cats = (await h.request(app).get("/api/books/categories")).body.categories;
   assert.equal(cats.find((c) => c.name === "Al-Qur'an & Tafsir").count, 1);
 

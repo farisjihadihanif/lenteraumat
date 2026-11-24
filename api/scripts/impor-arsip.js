@@ -47,7 +47,8 @@ const CATEGORY_RULES = [
   [/\bart\b|arts|ornament|design|architecture|music|painting|pottery|costume|craft|textile|decoration/i, "Seni & Budaya"],
   [/education|textbook|school|teaching|study and teaching/i, "Pendidikan"],
   [/history|histor|antiquit|travel|voyage|description and travel/i, "Sejarah"],
-  [/science|botany|zoology|natural history|biology|chemistry|physics|astronomy|geology|mathematic|engineering|technology|medicine|insect|bird|plant|animal|fishes|mineral/i, "Sains & Teknologi"],
+  [/engineering|technology/i, "Teknologi"],
+  [/science|botany|zoology|natural history|biology|chemistry|physics|astronomy|geology|mathematic|medicine|insect|bird|plant|animal|fishes|mineral/i, "Sains"],
 ];
 
 function args(argv) {

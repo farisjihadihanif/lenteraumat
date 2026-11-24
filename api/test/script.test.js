@@ -37,7 +37,7 @@ test("skrip impor arsip: domain publik, kategori dari subjek, lewati duplikat & 
   const books = (await h.request(app).get("/api/books?limit=10")).body.items;
   const byTitle = Object.fromEntries(books.map((b) => [b.judul, b]));
   assert.equal(byTitle["The spirit of Islam"].kategori, "Akidah & Akhlak");
-  assert.equal(byTitle["Birds of Java"].kategori, "Sains & Teknologi");
+  assert.equal(byTitle["Birds of Java"].kategori, "Sains");
   assert.ok(logs.some((l) => /lewati "Atlas besar"/.test(l)));
   const detail = (await h.request(app).get(`/api/books/${byTitle["Birds of Java"]._id}`)).body.book;
   assert.equal(detail.sumber, "Internet Archive");

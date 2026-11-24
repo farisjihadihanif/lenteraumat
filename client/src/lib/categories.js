@@ -17,7 +17,7 @@ export function useCategories() {
   const [items, setItems] = useState(cache || []);
   useEffect(() => {
     listeners.add(setItems);
-    if (!cache) refreshCategories().catch(() => {});
+    refreshCategories().catch(() => {}); // selalu segarkan: kategori bisa sudah dihapus
     return () => listeners.delete(setItems);
   }, []);
   return items;
