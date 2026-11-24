@@ -10,6 +10,7 @@
     "test": "node --test --test-concurrency=1 test/*.test.js",
     "migrate:lama": "node scripts/migrate-from-old.js",
     "impor:arsip": "node scripts/impor-arsip.js",
+    "audit:arsip": "node scripts/audit-arsip.js",
     "impor:katalog": "node scripts/impor-katalog.js",
     "rapikan:kategori": "node scripts/rapikan-kategori.js",
     "cek:cloudinary": "node scripts/cek-cloudinary.js"

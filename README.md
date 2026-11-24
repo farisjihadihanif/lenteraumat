@@ -56,15 +56,14 @@ Hanya buku yang memang boleh disebarkan ulang: domain publik, lisensi terbuka (C
 - **Satu per satu:** Dasbor admin → **Impor buku**. Tempel tautan PDF (mis. dari SIBI Kemendikdasmen), isi judul, penulis, kategori, **sumber** dan **lisensi**. Buku langsung tayang dengan atribusi dan sampul dibuat otomatis dari halaman pertama.
 - **Banyak sekaligus (domain publik, Internet Archive):** buka **terminal kedua** (server `npm run dev` tetap jalan di terminal pertama), lalu di folder `api`
   ```bash
-  npm run impor:arsip -- --jumlah 50                      # campuran, terpopuler
-  npm run impor:arsip -- --topik islam --jumlah 50
+  npm run impor:arsip -- --jumlah 50                      # uji coba: lihat daftar, tidak menyimpan
+  npm run impor:arsip -- --topik islam --jumlah 50 --simpan   # tampilkan daftar, lalu simpan
   npm run impor:arsip -- --topik "natural history" --jumlah 30
   npm run impor:arsip -- --bahasa melayu --jumlah 20       # inggris | indonesia | melayu | arab | belanda
-  npm run impor:arsip -- --topik islam --kering            # lihat daftar dulu, tidak menyimpan
-  npm run impor:arsip -- --topik islam --salin             # unduh & simpan salinan PDF (lambat)
+  npm run impor:arsip -- --topik islam --simpan --salin    # unduh & simpan salinan PDF (lambat)
   ```
   Mode bawaan **cepat**: cukup memanggil API Internet Archive (judul, penulis, sampul, jumlah halaman, tautan PDF) — 50 buku selesai dalam hitungan detik. PDF tidak diunduh; saat dibaca, server hanya mengambil bagian halaman yang sedang dibuka (HTTP Range). Teks untuk LUMA diambil saat buku itu pertama kali dipakai di LUMA.
-  Skrip hanya mengambil dari koleksi lembaga tepercaya (Smithsonian Libraries, Library of Congress, perpustakaan universitas), terbit 1500–1928 (domain publik), konten dewasa dikecualikan. Kategori ditentukan otomatis dari subjek buku; sumber & lisensi dicatat. Aman dijalankan berulang (tidak ada duplikat).
+  Skrip hanya mengambil dari koleksi lembaga tepercaya (Smithsonian Libraries, Library of Congress, perpustakaan universitas), terbit 1500–1928 menurut tahun jilidnya sendiri. Dilewati: tahun atau hak cipta yang tidak pasti, okultisme, kebencian, misinformasi kesehatan, konten dewasa, dan karya yang sudah ada (maksimal 2 jilid per judul berseri). Kategori ditentukan otomatis dari subjek buku; sumber & lisensi dicatat. Aman dijalankan berulang (tidak ada duplikat).
 - **Sampul otomatis:** Dasbor admin → Semua buku → **Sampul otomatis** (untuk buku yang belum bersampul).
 - **Kategori:** Dasbor admin → **Kategori** (tambah, ganti nama, hapus — buku di kategori yang dihapus pindah ke "Umum").
 

@@ -14,6 +14,7 @@ test("skrip impor arsip: domain publik, kategori dari subjek, lewati duplikat & 
     { identifier: "kitabislam1900", title: "The spirit of Islam", creator: "Ameer Ali", subject: ["Islam"], year: "1902", language: "eng" },
     { identifier: "birds1890", title: "Birds of Java", creator: ["Vorderman"], subject: "Birds", year: "1890", language: "dut", description: "<p>Burung</p>" },
     { identifier: "besar1910", title: "Atlas besar", subject: "Maps", year: "1910" },
+    { identifier: "godmanwordmadefl00carerich", title: "God-man", year: "1920" }, // ditolak saat audit
   ];
   const queries = [];
   script.setFetchJson(async (url) => {
@@ -30,13 +31,16 @@ test("skrip impor arsip: domain publik, kategori dari subjek, lewati duplikat & 
     throw new Error("mode cepat tidak boleh mengunduh PDF");
   });
   const logs = [];
-  const n = await script.run({ jumlah: 5, topik: "", bahasa: "", kering: false, salin: false }, (l) => logs.push(l));
+  const n = await script.run({ jumlah: 5, topik: "", bahasa: "" }, (l) => logs.push(l));
   assert.equal(n, 2);
+  assert.equal((await h.request(app).get("/api/books?limit=10")).body.items.length, 0); // uji coba: tidak menulis
+  assert.ok(logs.some((l) => /\[1\] The spirit of Islam \(1902\)/.test(l)));
+  assert.equal(await script.run({ jumlah: 5, topik: "", bahasa: "", simpan: true }, () => {}), 2);
   assert.match(queries[0], /year:\[1500 TO 1928\]/);
   assert.match(queries[0], /-collection:bannedbooks/);
   const books = (await h.request(app).get("/api/books?limit=10")).body.items;
   const byTitle = Object.fromEntries(books.map((b) => [b.judul, b]));
-  assert.equal(byTitle["The spirit of Islam"].kategori, "Akidah & Akhlak");
+  assert.equal(byTitle["The spirit of Islam"].kategori, "Sejarah Islam");
   assert.equal(byTitle["Birds of Java"].kategori, "Sains");
   assert.ok(logs.some((l) => /lewati "Atlas besar"/.test(l)));
   const detail = (await h.request(app).get(`/api/books/${byTitle["Birds of Java"]._id}`)).body.book;
@@ -66,10 +70,10 @@ test("skrip impor arsip: domain publik, kategori dari subjek, lewati duplikat & 
   }
 
   // dijalankan lagi: tidak ada duplikat
-  assert.equal(await script.run({ jumlah: 5, topik: "", bahasa: "" }, () => {}), 0);
+  assert.equal(await script.run({ jumlah: 5, topik: "", bahasa: "", simpan: true }, () => {}), 0);
 
   // mode --salin: PDF diunduh dan teks LUMA langsung diambil
   docs.push({ identifier: "salin1920", title: "Kitab salinan", subject: "Islam", year: "1920" });
   importer.setFetch(async () => new Response(h.makePdf(["Isi buku domain publik tentang Islam."])));
-  assert.equal(await script.run({ jumlah: 1, topik: "", bahasa: "", salin: true }, () => {}), 1);
+  assert.equal(await script.run({ jumlah: 1, topik: "", bahasa: "", salin: true, simpan: true }, () => {}), 1);
 });

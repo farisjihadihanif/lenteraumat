@@ -2,11 +2,10 @@
 // (Smithsonian Libraries, Library of Congress, perpustakaan universitas, dll).
 //
 // Contoh:
-//   npm run impor:arsip                               -> 30 buku populer campuran
+//   npm run impor:arsip                               -> uji coba 30 buku: daftar saja, TIDAK menulis apa pun
 //   npm run impor:arsip -- --topik islam --jumlah 50
-//   npm run impor:arsip -- --bahasa melayu --jumlah 20
-//   npm run impor:arsip -- --topik "natural history" --kering   (lihat daftar saja, tidak menyimpan)
-//   npm run impor:arsip -- --topik islam --salin                (unduh & simpan salinan PDF; lambat)
+//   npm run impor:arsip -- --bahasa melayu --jumlah 20 --simpan           (tampilkan daftar, lalu simpan)
+//   npm run impor:arsip -- --topik islam --simpan --salin                 (unduh & simpan salinan PDF; lambat)
 //
 // Mode bawaan CEPAT: hanya memanggil API Internet Archive (judul, penulis, sampul,
 // jumlah halaman, tautan PDF). PDF tidak diunduh; saat dibaca, server mengambil
@@ -14,8 +13,9 @@
 //
 // Jalankan di terminal KEDUA, biarkan server (npm run dev) tetap jalan.
 //
-// Aturan aman: hanya koleksi lembaga tepercaya, terbit 1500–1928 (domain publik),
-// konten dewasa dikecualikan, atribusi sumber & lisensi dicatat di tiap buku.
+// Aturan aman (src/services/arsip.js): hanya koleksi lembaga tepercaya; tahun dihitung dari jilid itu
+// sendiri, bukan awal seri (1929 ke atas atau tidak pasti = dilewati); hak cipta tidak jelas, okultisme,
+// kebencian, misinformasi kesehatan, konten dewasa, dan karya yang sudah ada di katalog dilewati.
 const config = require("../src/config");
 const { connect, mongoose } = require("../src/db");
 const Book = require("../src/models/Book");
@@ -23,6 +23,10 @@ const User = require("../src/models/User");
 const categories = require("../src/services/categories");
 const importer = require("../src/services/importer");
 const { storePdf, indexTextNow } = require("../src/services/bookFiles");
+const arsip = require("../src/services/arsip");
+
+// Buku yang sudah ditolak lewat audit tidak boleh masuk lagi (mis. cetakan ulang yang tahunnya di arsip keliru).
+const DITOLAK = new Set(require("../data/audit-arsip-2026-11-24.json").filter((d) => d.aksi === "hapus").map((d) => d.arsip));
 
 const TRUSTED = [
   "smithsonian", "biodiversity", "library_of_congress", "americana", "toronto", "university_of_toronto",
@@ -33,32 +37,16 @@ const BAHASA = {
 };
 const BAHASA_NAMA = { eng: "Inggris", ind: "Indonesia", may: "Melayu", malay: "Melayu", ara: "Arab", dut: "Belanda", ger: "Jerman", fre: "Prancis", jpn: "Jepang", lat: "Latin" };
 
-// Subjek (bahasa Inggris) -> kategori LenteraUmat. Urutan menentukan prioritas.
-const CATEGORY_RULES = [
-  [/juvenile|children/i, "Anak"],
-  [/koran|qur.?an|tafsir/i, "Al-Qur'an & Tafsir"],
-  [/hadith|hadis|sunnah/i, "Hadis"],
-  [/islamic law|fiqh|fikih/i, "Fikih"],
-  [/islam.*(history|histor)|caliph|ottoman|moors|crusade/i, "Sejarah Islam"],
-  [/islam|muslim|muhammad|sufi|mosque/i, "Akidah & Akhlak"],
-  [/biograph|memoir|autobiograph/i, "Biografi"],
-  [/grammar|dictionar|language|vocabular|phrase/i, "Bahasa"],
-  [/poetry|poems|fiction|novel|literature|drama|tales|stories/i, "Sastra"],
-  [/\bart\b|arts|ornament|design|architecture|music|painting|pottery|costume|craft|textile|decoration/i, "Seni & Budaya"],
-  [/education|textbook|school|teaching|study and teaching/i, "Pendidikan"],
-  [/history|histor|antiquit|travel|voyage|description and travel/i, "Sejarah"],
-  [/engineering|technology/i, "Teknologi"],
-  [/science|botany|zoology|natural history|biology|chemistry|physics|astronomy|geology|mathematic|medicine|insect|bird|plant|animal|fishes|mineral/i, "Sains"],
-];
-
 function args(argv) {
-  const out = { jumlah: 30, topik: "", bahasa: "", kering: false, salin: false };
+  const out = { jumlah: 30, topik: "", bahasa: "", simpan: false, salin: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--kering") out.kering = true;
+    if (a === "--simpan") out.simpan = true;
+    else if (a === "--kering") out.kering = true; // sekarang bawaan; selalu menang atas --simpan
     else if (a === "--salin") out.salin = true;
     else if (a.startsWith("--")) out[a.slice(2)] = argv[++i] ?? "";
   }
+  if (out.kering) out.simpan = false;
   out.jumlah = Math.max(1, Math.min(500, parseInt(out.jumlah, 10) || 30));
   return out;
 }
@@ -66,19 +54,13 @@ function args(argv) {
 const arr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 const clean = (s) => String(s || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
-function pickCategory(subjects, title) {
-  const text = [...arr(subjects), title].join(" | ");
-  for (const [rx, cat] of CATEGORY_RULES) if (rx.test(text)) return cat;
-  return "Umum";
-}
-
 function buildQuery({ topik, bahasa }) {
   const parts = [
     "mediatype:texts",
     `collection:(${TRUSTED.join(" OR ")})`,
-    "year:[1500 TO 1928]",
+    `year:[1500 TO ${arsip.TAHUN_MAKS}]`,
     "-collection:bannedbooks",
-    "-subject:(erotic* OR sex OR sexual*)",
+    "-subject:(erotic* OR sex OR sexual* OR occultism OR magic OR witchcraft)",
   ];
   if (bahasa) parts.push(`language:${BAHASA[bahasa.toLowerCase()] || bahasa}`);
   if (topik) parts.push(`(subject:(${topik}) OR title:(${topik}))`);
@@ -92,7 +74,7 @@ let fetchJson = async (url) => {
 };
 
 async function search(opts, page, rows) {
-  const fl = ["identifier", "title", "creator", "subject", "year", "language", "publisher", "description", "licenseurl", "volume", "imagecount"];
+  const fl = ["identifier", "title", "creator", "subject", "year", "language", "publisher", "description", "licenseurl", "date", "volume", "imagecount"];
   const qs = new URLSearchParams({ q: buildQuery(opts), rows: String(rows), page: String(page), output: "json" });
   fl.forEach((f) => qs.append("fl[]", f));
   qs.append("sort[]", "downloads desc");
@@ -107,23 +89,27 @@ function pickPdf(files, maxBytes) {
   return pdfs.sort((a, b) => rank(a) - rank(b) || Number(a.size) - Number(b.size)).find((f) => Number(f.size || 0) <= maxBytes);
 }
 
-const escapeRx = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-// Siapkan satu buku dari hasil pencarian: ambil metadata file, pilih PDF.
-async function prepare(doc, opts, maxBytes) {
+// Siapkan satu buku dari hasil pencarian: periksa aturan, ambil metadata file, pilih PDF.
+async function prepare(doc, maxBytes) {
   const id = doc.identifier;
   const detailUrl = `https://archive.org/details/${id}`;
-  if (await Book.exists({ sumberUrl: detailUrl })) return { skip: "sudah ada" };
   let title = clean(doc.title).replace(/\*/g, "");
   if (!title) return { skip: "tanpa judul" };
   const vol = clean(arr(doc.volume)[0]);
-  if (vol && !/jilid|vol/i.test(title)) title = `${title} (Jilid ${vol})`;
+  if (vol && !/jilid|vol/i.test(title)) title = `${title.slice(0, 200 - vol.length - 9)} (Jilid ${vol})`;
   title = title.slice(0, 200);
-  const year = parseInt(doc.year, 10) || undefined;
-  if (await Book.exists({ judul: new RegExp(`^${escapeRx(title)}$`, "i"), tahunTerbit: year })) return { skip: "judul sama sudah ada" };
-  const kategori = pickCategory(doc.subject, title);
-  if (opts.kering) return { title, year, kategori, dry: true };
+  if (DITOLAK.has(id)) return { skip: "sudah ditolak saat audit", title };
+  if (await Book.exists({ sumberUrl: detailUrl })) return { skip: "sudah ada", title };
+  // Cukup dari hasil pencarian: tidak perlu membuka metadata.
+  const terlarang = arsip.topikTerlarang(doc);
+  if (terlarang) return { skip: terlarang, title };
   const meta = await fetchJson(`https://archive.org/metadata/${encodeURIComponent(id)}`);
+  const m = { ...doc, ...meta.metadata };
+  const alasan = arsip.topikTerlarang(m) || arsip.masalahHak(m);
+  if (alasan) return { skip: alasan, title };
+  const { tahun: year, alasan: alasanTahun } = arsip.tahunAsli(m);
+  if (alasanTahun) return { skip: alasanTahun, title };
+  const kategori = arsip.pilihKategori(m.subject, title);
   const file = pickPdf(meta.files || [], maxBytes);
   if (!file) return { skip: `tidak ada PDF ≤ ${Math.round(maxBytes / 1048576)} MB`, title };
   const pdfUrl = `https://archive.org/download/${encodeURIComponent(id)}/${encodeURIComponent(file.name)}`;
@@ -145,7 +131,7 @@ async function prepare(doc, opts, maxBytes) {
       asalPdf: pdfUrl,
       sumber: "Internet Archive",
       sumberUrl: detailUrl,
-      lisensi: String(doc.licenseurl || "").includes("publicdomain") ? "Domain publik" : `Domain publik (terbit ${doc.year})`,
+      lisensi: String(m.licenseurl || "").includes("publicdomain") ? "Domain publik" : `Domain publik (terbit ${year})`,
       file: { url: pdfUrl, storage: "external", key: "", size: Number(file.size) || 0 },
     },
   };
@@ -168,49 +154,60 @@ async function save(item, opts, admin) {
 }
 
 async function run(opts, log = console.log) {
-  const admin = await User.findOne({ role: "admin" }).sort({ createdAt: 1 });
-  if (!admin) throw new Error("Belum ada akun admin. Jalankan server sekali dengan ADMIN_EMAIL & ADMIN_PASSWORD di .env.");
+  const admin = opts.simpan ? await User.findOne({ role: "admin" }).sort({ createdAt: 1 }) : null;
+  if (opts.simpan && !admin) throw new Error("Belum ada akun admin. Jalankan server sekali dengan ADMIN_EMAIL & ADMIN_PASSWORD di .env.");
   // Mode cepat cukup menautkan, jadi PDF besar pun bisa (dibaca per bagian).
   const maxBytes = (opts.salin ? config.maxPdfMb : Math.max(config.maxPdfMb, 200)) * 1024 * 1024;
-  const PARALLEL = opts.salin ? 1 : 6;
-  let added = 0;
+  const PARALLEL = 6;
+  const pencatat = arsip.buatPencatat();
+  for (const b of await Book.find().select("judul penulis tahunTerbit").lean()) pencatat.tambah({ judul: b.judul, penulis: b.penulis, tahun: b.tahunTerbit });
+
+  log(`Mencari buku domain publik${opts.topik ? ` tentang "${opts.topik}"` : ""}${opts.bahasa ? ` berbahasa ${opts.bahasa}` : ""}...`);
+  const terpilih = [];
   let page = 1;
   let seen = 0;
-  const started = Date.now();
-  log(`Mencari buku domain publik${opts.topik ? ` tentang "${opts.topik}"` : ""}${opts.bahasa ? ` berbahasa ${opts.bahasa}` : ""}${opts.salin ? " (mode salin: mengunduh PDF)" : ""}...`);
-  while (added < opts.jumlah) {
+  while (terpilih.length < opts.jumlah) {
     const { docs, numFound } = await search(opts, page, 50);
-    if (page === 1) log(`Ditemukan ${numFound.toLocaleString("id-ID")} buku di arsip. Mengambil ${opts.jumlah}.`);
+    if (page === 1) log(`Ditemukan ${numFound.toLocaleString("id-ID")} buku di arsip. Mencari ${opts.jumlah} yang lolos aturan.`);
     if (!docs.length) break;
-    for (let i = 0; i < docs.length && added < opts.jumlah; i += PARALLEL) {
+    for (let i = 0; i < docs.length && terpilih.length < opts.jumlah; i += PARALLEL) {
       const batch = docs.slice(i, i + PARALLEL);
       seen += batch.length;
-      const prepared = await Promise.all(batch.map((d) => prepare(d, opts, maxBytes).catch((e) => ({ skip: e.message, title: clean(d.title) }))));
+      const prepared = await Promise.all(batch.map((d) => prepare(d, maxBytes).catch((e) => ({ skip: e.message, title: clean(d.title) }))));
       for (const item of prepared) {
-        if (added >= opts.jumlah) break;
-        if (item.skip) {
-          if (item.title) log(`  - lewati "${item.title}": ${item.skip}`);
+        if (terpilih.length >= opts.jumlah) break;
+        const karya = item.skip ? null : { judul: item.title, penulis: item.data.penulis, tahun: item.year };
+        const skip = item.skip || pencatat.tolak(karya);
+        if (skip) {
+          if (item.title) log(`  - lewati "${item.title}": ${skip}`);
           continue;
         }
-        if (item.dry) {
-          added++;
-          log(`  [${added}] ${item.title} (${item.year}) -> ${item.kategori}`);
-          continue;
-        }
-        try {
-          const { book, linked } = await save(item, opts, admin);
-          added++;
-          log(`  [${added}/${opts.jumlah}] ${item.title} (${item.year}) -> ${book.kategori}${opts.salin && linked ? " [ditautkan]" : ""}`);
-        } catch (error) {
-          log(`  - gagal "${item.title}": ${error.message}`);
-        }
+        pencatat.tambah(karya);
+        terpilih.push(item);
       }
     }
     page++;
     if (seen >= numFound) break;
   }
-  const secs = Math.round((Date.now() - started) / 1000);
-  log(opts.kering ? "Selesai (uji coba, tidak ada yang disimpan)." : `Selesai: ${added} buku ditambahkan dalam ${secs} detik.`);
+
+  log(`\nDaftar (${terpilih.length} buku):`);
+  terpilih.forEach((t, i) => log(`  [${i + 1}] ${t.title} (${t.year}) | ${t.data.penulis} | ${t.kategori}`));
+  if (!opts.simpan) {
+    log("Uji coba: tidak ada yang disimpan; pakai --simpan untuk menyimpan.");
+    return terpilih.length;
+  }
+  const started = Date.now();
+  let added = 0;
+  for (const item of terpilih) {
+    try {
+      const { linked } = await save(item, opts, admin);
+      added++;
+      if (opts.salin) log(`  tersimpan ${added}/${terpilih.length}${linked ? " [ditautkan]" : ""}`);
+    } catch (error) {
+      log(`  - gagal "${item.title}": ${error.message}`);
+    }
+  }
+  log(`Selesai: ${added} buku ditambahkan dalam ${Math.round((Date.now() - started) / 1000)} detik.`);
   return added;
 }
 
@@ -226,4 +223,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { run, args, buildQuery, pickCategory, pickPdf, setFetchJson: (fn) => (fetchJson = fn) };
+module.exports = { run, args, buildQuery, pickPdf, setFetchJson: (fn) => (fetchJson = fn) };
