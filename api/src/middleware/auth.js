@@ -87,6 +87,25 @@ function migrateCookies(req, res, next) {
   next();
 }
 
+// Aplikasi mobile (header X-Client: mobile) memakai token Bearer, bukan cookie. Permintaan dari browser
+// selalu membawa Origin atau Sec-Fetch-Site, jadi halaman web tidak bisa meminta token lewat header ini.
+const isMobile = (req) => req.headers["x-client"] === "mobile" && !req.headers.origin && !req.headers["sec-fetch-site"];
+
+function bearerOf(req) {
+  const m = /^Bearer\s+(\S+)$/i.exec(req.headers.authorization || "");
+  return m ? m[1] : "";
+}
+
+// Masuk: aplikasi menerima token di balasan (tanpa cookie), web menerima cookie httpOnly (tanpa token).
+function startSession(req, res, user) {
+  if (!isMobile(req)) {
+    issueToken(res, user, req);
+    return {};
+  }
+  res.setHeader("Cache-Control", "no-store");
+  return { token: sign(user) };
+}
+
 // Masuk sebagai user ini, dan ingat akunnya di daftar akun perangkat.
 function issueToken(res, user, req = null) {
   const token = sign(user);
@@ -107,11 +126,10 @@ function clearToken(res, req = null, { forget = true } = {}) {
   if (req && forget && req.user) writeAccounts(res, readAccounts(req).filter((t) => subOf(t) !== String(req.user._id)));
 }
 
-// Membaca user dari cookie (atau header Authorization: Bearer). Tidak wajib.
+// Membaca user dari header Authorization: Bearer (aplikasi), atau cookie (web). Tidak wajib.
 async function loadUser(req, res, next) {
   req.user = null;
-  const header = req.headers.authorization || "";
-  const token = req.cookies?.[COOKIE] || (header.startsWith("Bearer ") ? header.slice(7) : "");
+  const token = bearerOf(req) || req.cookies?.[COOKIE];
   if (token) {
     try {
       const payload = jwt.verify(token, config.jwtSecret);
@@ -138,4 +156,4 @@ function requireAdmin(req, res, next) {
 const isAdmin = (user) => user?.role === "admin";
 const isOwner = (user, id) => Boolean(user && id && String(user._id) === String(id._id || id));
 
-module.exports = { issueToken, clearToken, migrateCookies, loadUser, requireAuth, requireAdmin, isAdmin, isOwner, readAccounts, writeAccounts, subOf, sign, COOKIE, cookieOptions };
+module.exports = { isMobile, bearerOf, startSession, issueToken, clearToken, migrateCookies, loadUser, requireAuth, requireAdmin, isAdmin, isOwner, readAccounts, writeAccounts, subOf, sign, COOKIE, cookieOptions };

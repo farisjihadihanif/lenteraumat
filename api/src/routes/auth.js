@@ -6,7 +6,7 @@ const rateLimit = require("express-rate-limit");
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const config = require("../config");
-const { issueToken, clearToken, readAccounts, writeAccounts, subOf, COOKIE, cookieOptions } = require("../middleware/auth");
+const { isMobile, bearerOf, startSession, issueToken, clearToken, readAccounts, writeAccounts, subOf, COOKIE, cookieOptions } = require("../middleware/auth");
 const { ipKey } = require("../middleware/clientIp");
 const { HttpError } = require("../middleware/errors");
 const { str } = require("../util");
@@ -34,8 +34,7 @@ router.post("/register", registerLimiter, async (req, res) => {
   if (!namaLengkap) throw new HttpError(400, "Nama lengkap wajib diisi.");
 
   const user = await User.create({ username, email, namaLengkap, password: await bcrypt.hash(password, 10), role: "user" });
-  issueToken(res, user, req);
-  res.status(201).json({ user: user.toSelf() });
+  res.status(201).json({ user: user.toSelf(), ...startSession(req, res, user) });
 });
 
 router.post("/login", loginLimiter, async (req, res) => {
@@ -46,8 +45,7 @@ router.post("/login", loginLimiter, async (req, res) => {
   if (!user || !(await bcrypt.compare(password, user.password))) {
     throw new HttpError(401, "Username/email atau password salah.");
   }
-  issueToken(res, user, req);
-  res.json({ user: user.toSelf() });
+  res.json({ user: user.toSelf(), ...startSession(req, res, user) });
 });
 
 // Keluar dari akun ini. Akun tetap tersimpan di perangkat untuk "Ganti akun",
@@ -175,8 +173,24 @@ router.post("/reset", resetLimiter, async (req, res) => {
   res.json({ user: user.toSelf() });
 });
 
-router.get("/me", (req, res) => {
-  res.json({ user: req.user ? req.user.toSelf() : null });
+// Aplikasi memperpanjang token lewat /me (Bearer + X-Client: mobile): dibatasi seperti masuk, per IP
+// dan akun. Web tidak pernah mendapat token di sini dan tidak ikut dibatasi.
+const refreshing = (req) => isMobile(req) && Boolean(bearerOf(req));
+const refreshLimiter = rateLimit({
+  keyGenerator: (req) => (config.onVercel && req.user ? `${ipKey(req)}|${req.user._id}` : ipKey(req)),
+  skip: (req) => !refreshing(req),
+  windowMs: 15 * 60 * 1000,
+  limit: Number(process.env.REFRESH_RATE_LIMIT) || Number(process.env.AUTH_RATE_LIMIT) || 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Terlalu banyak percobaan. Coba lagi 15 menit lagi." },
+});
+
+router.get("/me", refreshLimiter, (req, res) => {
+  if (!refreshing(req)) return res.json({ user: req.user ? req.user.toSelf() : null });
+  // Token mati: aplikasi harus tahu supaya menghapusnya, tidak cukup "tamu".
+  if (!req.user) throw new HttpError(401, "Sesi berakhir. Silakan masuk lagi.");
+  res.json({ user: req.user.toSelf(), ...startSession(req, res, req.user) });
 });
 
 module.exports = router;

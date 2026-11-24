@@ -43,6 +43,8 @@ function createApp() {
         cb(null, false);
       },
       credentials: true,
+      // Hanya header yang dipakai web. X-Client (aplikasi mobile) sengaja tidak ada.
+      allowedHeaders: ["Content-Type", "Accept", "Range"],
       exposedHeaders: ["Content-Range", "Accept-Ranges"],
     }),
   );

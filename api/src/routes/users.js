@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Book = require("../models/Book");
 const Discussion = require("../models/Discussion");
-const { requireAuth, issueToken, clearToken } = require("../middleware/auth");
+const { requireAuth, startSession, clearToken } = require("../middleware/auth");
 const { upload, checkImageSize } = require("../middleware/upload");
 const { HttpError } = require("../middleware/errors");
 const storage = require("../services/storage");
@@ -48,8 +48,7 @@ router.put("/me/password", requireAuth, async (req, res) => {
   user.password = await bcrypt.hash(baru, 10);
   user.tokenVersion = (user.tokenVersion || 0) + 1; // keluarkan sesi di perangkat lain
   await user.save();
-  issueToken(res, user, req);
-  res.json({ ok: true });
+  res.json({ ok: true, ...startSession(req, res, user) });
 });
 
 router.delete("/me", requireAuth, async (req, res) => {
