@@ -3,9 +3,11 @@ import { Link } from "react-router-dom";
 import { BookOpenText, FileQuestion, Heart, MessageCircle, PenSquare, ScrollText } from "lucide-react";
 import { api } from "../lib/api";
 import { BookCard } from "../components/BookGrid";
+import Reveal from "../components/Reveal";
 import { Avatar, Spinner } from "../components/ui";
 import { displayName, timeAgo } from "../lib/format";
 import heroBg from "../assets/Beranda/hero-perpustakaan.jpg";
+import luma from "../assets/Maskot/Luma1.png";
 
 // Judul hero "fixed" di dalam hero yang memakai mask: saat halaman digulir, hero naik
 // sementara judul diam, sehingga judul tampak turun lalu tenggelam ke gradasi di bawah
@@ -19,7 +21,7 @@ function Hero() {
       className="relative isolate -mt-16 h-svh min-h-[34rem] overflow-hidden bg-[rgb(var(--hero-bg))] text-white"
       style={{ WebkitMaskImage: "var(--hero-mask)", maskImage: "var(--hero-mask)" }}
     >
-      <img src={heroBg} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover grayscale" />
+      <img src={heroBg} alt="" className="absolute inset-0 -z-10 h-full w-full hero-parallax object-cover grayscale" />
       <div className="absolute inset-0 -z-10 bg-[color:var(--hero-scrim)]" aria-hidden />
       <h1 className={`fixed inset-x-0 top-[calc(50svh-5rem)] px-6 text-center [text-shadow:1px_1px_4px_rgba(0,0,0,.8)] ${HERO_TITLE}`}>Lentera Umat</h1>
       {/* Salinan judul tak terlihat menjaga jarak paragraf tepat di bawah judul. */}
@@ -40,7 +42,7 @@ const DISCUSSION_GRID = "grid gap-4 sm:grid-cols-2 lg:grid-cols-4";
 
 function DiscussionCard({ post }) {
   return (
-    <Link to={`/diskusi/${post._id}`} className="panel flex h-full min-w-0 flex-col p-5 transition-colors hover:border-ink/30">
+    <Link to={`/diskusi/${post._id}`} className="panel lift flex h-full min-w-0 flex-col p-5 hover:border-ink/30">
       <span className="flex items-center gap-2.5">
         <Avatar user={post.author} size={32} />
         <span className="min-w-0 text-xs text-ink-mute">
@@ -86,11 +88,11 @@ function DiscussionSkeleton() {
   );
 }
 
-// Tamu yang menekan "Mulai diskusi" diarahkan ke halaman masuk oleh RequireAuth.
+// Tamu yang menekan "Start a discussion" diarahkan ke halaman masuk oleh RequireAuth.
 function StartDiscussion() {
   return (
     <Link to="/diskusi/baru" className="btn-primary shrink-0">
-      <PenSquare size={16} /> Mulai diskusi
+      <PenSquare size={16} /> Start a discussion
     </Link>
   );
 }
@@ -109,7 +111,9 @@ function DiscussionSection() {
     <section className="relative bg-mist py-16 sm:py-20">
       <div className="container-page">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <h2 className="font-serif text-3xl font-semibold sm:text-4xl">Diskusi</h2>
+          <Reveal as="h2" className="font-serif text-3xl font-semibold sm:text-4xl">
+            Discussion
+          </Reveal>
           {items?.length !== 0 && <StartDiscussion />}
         </div>
         {failed ? (
@@ -124,16 +128,16 @@ function DiscussionSection() {
         ) : (
           <ul className={DISCUSSION_GRID}>
             {items.map((p) => (
-              <li key={p._id} className="min-w-0">
+              <Reveal as="li" key={p._id} className="min-w-0">
                 <DiscussionCard post={p} />
-              </li>
+              </Reveal>
             ))}
           </ul>
         )}
         {(failed || items?.length > 0) && (
           <div className="mt-12 text-center">
             <Link to="/diskusi" className="btn-outline px-6">
-              Lihat semua diskusi
+              See all discussions
             </Link>
           </div>
         )}
@@ -163,14 +167,16 @@ function LibrarySection() {
   return (
     <section className="relative bg-mist py-16 sm:py-20">
       <div className="container-page">
-        <h2 className="mb-8 font-serif text-3xl font-semibold sm:text-4xl">Library</h2>
+        <Reveal as="h2" className="mb-8 font-serif text-3xl font-semibold sm:text-4xl">
+          Library
+        </Reveal>
         {!data ? (
           <Spinner />
         ) : data.total === 0 ? (
           <div className="panel p-8 text-center">
             <p className="font-semibold">Belum ada buku di Library.</p>
             <Link to="/unggah" className="btn-primary mt-4">
-              Unggah buku
+              Upload a book
             </Link>
           </div>
         ) : (
@@ -178,7 +184,7 @@ function LibrarySection() {
             <div className="grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {data.items.map((b, i) => (
                 <div key={b._id} className={visibility(i)}>
-                  <BookCard book={b} />
+                  <BookCard book={b} reveal="book" />
                 </div>
               ))}
             </div>
@@ -205,18 +211,25 @@ const LUMA_FEATURES = [
 
 function LumaSection() {
   return (
-    <section className="relative bg-forest py-16 text-white sm:py-20">
+    <section className="relative overflow-x-clip bg-forest py-16 text-white sm:py-20">
       <div className="container-page">
-        <h2 className="text-center font-serif text-3xl font-semibold sm:text-4xl">Mari Belajar bersama LUMA</h2>
+        <div className="flex items-center justify-center gap-3 sm:gap-5">
+          <Reveal variant="side" className="shrink-0">
+            <img src={luma} alt="" width="250" height="250" className="h-20 w-20 object-contain sm:h-24 sm:w-24" />
+          </Reveal>
+          <Reveal as="h2" className="font-serif text-3xl font-semibold sm:text-4xl">
+            Learning Together with LUMA
+          </Reveal>
+        </div>
         <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {LUMA_FEATURES.map(({ mode, icon: Icon, title, text }) => (
-            <li key={mode}>
-              <Link to={`/luma?mode=${mode}`} className="block h-full rounded-xl border border-white/15 p-5 transition-colors hover:border-white/40 hover:bg-white/5">
+            <Reveal as="li" key={mode}>
+              <Link to={`/luma?mode=${mode}`} className="lift block h-full rounded-xl border border-white/15 p-5 hover:border-white/40 hover:bg-white/5">
                 <Icon size={24} className="text-lamp" />
                 <p className="mt-4 text-lg font-bold">{title}</p>
                 <p className="mt-1.5 text-sm leading-relaxed text-white/85">{text}</p>
               </Link>
-            </li>
+            </Reveal>
           ))}
         </ul>
       </div>

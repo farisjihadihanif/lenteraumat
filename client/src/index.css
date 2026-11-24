@@ -42,7 +42,7 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-[color,background-color,border-color,transform] duration-100 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary { @apply btn bg-lantern text-[#1B2B3A] hover:bg-[#FFA63A]; }
   .btn-teal { @apply btn bg-forest text-white hover:bg-forest-deep; }
@@ -137,4 +137,44 @@
 .page-enter { animation: page-enter 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
 @media (prefers-reduced-motion: reduce) {
   .page-enter { animation: none; }
+}
+
+/* ---------- Animasi masuk saat digulir (components/Reveal.jsx) ----------
+   Hanya opacity & transform, tanpa keadaan akhir: setelah selesai elemen kembali biasa. */
+.reveal-rise { --reveal-from: translateY(16px); --reveal-anim: reveal-in; }
+.reveal-side { --reveal-from: translateX(-48px); --reveal-anim: reveal-in; }
+.reveal-book { --reveal-from: translateY(20px) rotate(-2.5deg); --reveal-anim: reveal-book; }
+[data-reveal="wait"] { opacity: 0; transform: var(--reveal-from); }
+[data-reveal="in"] { animation: var(--reveal-anim) .55s cubic-bezier(.2, .7, .2, 1) backwards; }
+@keyframes reveal-in { from { opacity: 0; transform: var(--reveal-from); } }
+@keyframes reveal-book {
+  from { opacity: 0; transform: var(--reveal-from); }
+  65% { opacity: 1; transform: translateY(-2px) rotate(.8deg); }
+}
+[data-cover="wait"] { opacity: 0; }
+[data-cover="in"] { animation: cover-fade .4s ease-out; }
+@keyframes cover-fade { from { opacity: 0; } }
+/* Sampul halaman detail ada di layar pertama: hanya bergerak, tidak disembunyikan. */
+.cover-enter { animation: cover-enter .6s cubic-bezier(.2, .7, .2, 1) backwards; }
+@keyframes cover-enter { from { transform: translateY(14px) rotate(-1.5deg); } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn-primary:active:not(:disabled), .btn-teal:active:not(:disabled), .btn-ghost:active:not(:disabled),
+  .btn-outline:active:not(:disabled), .btn-danger:active:not(:disabled) { transform: scale(.97); }
+  @media (hover: hover) and (pointer: fine) {
+    .lift { transition: transform .2s ease-out; }
+    .lift:hover, .group:hover > .lift { transform: translateY(-4px); }
+  }
+  /* Parallax hero digerakkan compositor; browser tanpa dukungan menampilkan gambar diam. */
+  @supports (animation-timeline: scroll()) {
+    .hero-parallax { animation: hero-parallax linear both; animation-timeline: scroll(root); animation-range: 0 100svh; }
+  }
+}
+@keyframes hero-parallax { to { transform: translateY(8%); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal], [data-cover] { opacity: 1; transform: none; animation: none; }
+  .cover-enter { animation: none; }
+}
+@media print {
+  [data-reveal], [data-cover] { opacity: 1; transform: none; animation: none; }
 }

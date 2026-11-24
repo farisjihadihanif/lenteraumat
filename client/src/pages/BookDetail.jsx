@@ -323,8 +323,8 @@ export default function BookDetail() {
       )}
 
       <div className="grid gap-8 md:grid-cols-[240px_1fr] lg:gap-12">
-        <div className="mx-auto w-48 md:w-full">
-          <BookCover book={book} sizes="lg" />
+        <div className="cover-enter mx-auto w-48 md:w-full">
+          <BookCover book={book} sizes="lg" fade />
         </div>
         <div>
           <Link to={`/buku?kategori=${encodeURIComponent(book.kategori)}`} className="text-sm font-semibold text-teal hover:underline">

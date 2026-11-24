@@ -115,7 +115,7 @@ export default function Catalog() {
           (res.items.length ? (
             <>
               <p className="mb-6 text-sm text-ink-mute">{res.total} buku</p>
-              <BookGrid books={res.items} linkState={{ dariLibrary: true }} />
+              <BookGrid books={res.items} linkState={{ dariLibrary: true }} reveal="rise" />
               <Pagination page={res.page} pages={res.pages} onChange={(p) => update({ page: String(p) })} />
             </>
           ) : (

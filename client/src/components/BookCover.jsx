@@ -15,13 +15,21 @@ function tone(text = "") {
   return TONES[h % TONES.length];
 }
 
-export default function BookCover({ book, className = "", sizes = "sm" }) {
+// Sampul yang belum selesai dimuat muncul pelan di atas kotak polos (ukuran kotak tetap).
+const waitForLoad = (img) => {
+  if (img && !img.complete) img.dataset.cover = "wait";
+};
+const fadeIn = (e) => {
+  if (e.currentTarget.dataset.cover) e.currentTarget.dataset.cover = "in";
+};
+
+export default function BookCover({ book, className = "", sizes = "sm", fade = false }) {
   const [failed, setFailed] = useState(false);
   const base = `relative aspect-[2/3] w-full overflow-hidden rounded-[3px_6px_6px_3px] shadow-book ${className}`;
   if (book?.cover && !failed) {
     return (
-      <div className={base}>
-        <img src={book.cover} alt={`Sampul ${book.judul}`} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
+      <div className={`${base} ${fade ? "bg-line" : ""}`}>
+        <img ref={fade ? waitForLoad : undefined} onLoad={fade ? fadeIn : undefined} src={book.cover} alt={`Sampul ${book.judul}`} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
         <span className="pointer-events-none absolute inset-y-0 left-0 w-2 bg-[image:var(--gradient-cover)]" />
       </div>
     );
