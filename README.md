@@ -25,7 +25,7 @@ client/
 
 Website Deployment on: https://lenteraumat.vercel.app
 
-Mobile APP Version available on release
+Mobile APP availible Version v.01 on release
 
 ## LUMA (Gemini)
 
