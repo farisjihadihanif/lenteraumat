@@ -21,6 +21,10 @@ api/
 client/
 ```
 
+## Website
+
+Website Deployment on: https://lenteraumat.vercel.app/
+
 ## LUMA (Gemini)
 
 - LUMA hanya bisa membaca PDF yang berisi teks. PDF hasil scan (gambar) tetap bisa dibaca manusia di flipbook, tapi LUMA akan memberi tahu bahwa teksnya tidak terbaca.
