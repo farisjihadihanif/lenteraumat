@@ -212,6 +212,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
         fitMode: PdfFitMode.fit,
       ),
       paging: const PdfPaging(),
+      // Bawaan menunggu sentuhan pertama: geseran itu malah menyorot teks, lalu
+      // halaman macet di tengah. Sorot teks tetap bisa lewat tekan lama.
+      textSelectionParams: const PdfTextSelectionParams(
+        enableSelectionHandles: true,
+      ),
       // Ukur hanya halaman yang terlihat; mengukur semuanya berarti mengunduh seluruh buku.
       behaviorControlParams: const PdfViewerBehaviorControlParams(
         loadPageDimensionsOnDemand: true,
