@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { BookOpen, Home, Instagram, Library, LogOut, MessagesSquare, Moon, Search, Settings, Shield, Sparkles, Sun, Upload, User, UserPlus } from "lucide-react";
+import { BookOpen, Github, Home, Instagram, Library, Linkedin, LogOut, MessagesSquare, Moon, Search, Settings, Shield, Sparkles, Sun, Upload, User, UserPlus } from "lucide-react";
 import { useAuth } from "../context/Auth";
 import { Avatar, PageLoader } from "./ui";
 import FloatingLuma from "./FloatingLuma";
@@ -196,6 +196,12 @@ function MobileNav() {
   );
 }
 
+const SOSIAL = [
+  { href: "https://www.instagram.com/farisjihadihanif/", label: "Instagram Faris Jihadi Hanif Lubis", icon: Instagram },
+  { href: "https://github.com/farisjihadihanif", label: "GitHub Faris", icon: Github },
+  { href: "https://www.linkedin.com/in/faris-jihadi-hanif-lubis-62337a286/", label: "LinkedIn Faris", icon: Linkedin },
+];
+
 function Footer({ flush }) {
   return (
     <footer className={`${flush ? "" : "mt-20"} bg-night pb-16 text-white/70 md:pb-0`}>
@@ -203,12 +209,14 @@ function Footer({ flush }) {
       <div className="container-page grid items-center gap-1.5 py-3 text-center text-xs md:grid-cols-3 md:gap-6">
         <span className="flex items-center justify-center gap-1.5 md:justify-start">
           Created by
-          <a href="https://www.instagram.com/farisjihadihanif/" target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-white" aria-label="Instagram Faris Jihadi Hanif Lubis">
-            <Instagram size={15} />
-          </a>
+          {SOSIAL.map(({ href, label, icon: Icon }) => (
+            <a key={href} href={href} target="_blank" rel="noopener noreferrer" className="shrink-0 text-white/80 hover:text-white" aria-label={label}>
+              <Icon size={15} />
+            </a>
+          ))}
           Faris Jihadi Hanif Lubis
         </span>
-        <span>Lentera Umat © 2025</span>
+        <span>Lentera Umat © {new Date().getFullYear()}</span>
         <nav className="flex justify-center gap-4 md:justify-end" aria-label="Informasi">
           <Link to="/ketentuan" className="hover:text-white">Ketentuan</Link>
           <Link to="/privasi" className="hover:text-white">Privasi</Link>

@@ -2,14 +2,14 @@ import { Link } from "react-router-dom";
 import BookCover from "./BookCover";
 import { Stars } from "./ui";
 
-export function BookCard({ book, footer }) {
+export function BookCard({ book, footer, linkState }) {
   return (
     <div className="group flex flex-col">
-      <Link to={`/buku/${book._id}`} className="block transition-transform duration-200 group-hover:-translate-y-1">
+      <Link to={`/buku/${book._id}`} state={linkState} className="block transition-transform duration-200 group-hover:-translate-y-1">
         <BookCover book={book} />
       </Link>
       <div className="mt-4 min-w-0">
-        <Link to={`/buku/${book._id}`} className="book-title line-clamp-2 text-[15px] hover:text-teal">
+        <Link to={`/buku/${book._id}`} state={linkState} className="book-title line-clamp-2 text-[15px] hover:text-teal">
           {book.judul}
         </Link>
         <p className="mt-0.5 truncate text-xs text-ink-mute">{book.penulis}</p>
@@ -25,11 +25,11 @@ export function BookCard({ book, footer }) {
 }
 
 // Deretan sampul di atas "rak". Judul di bawah rak.
-export default function BookGrid({ books, footer }) {
+export default function BookGrid({ books, footer, linkState }) {
   return (
     <div className="grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
       {books.map((b) => (
-        <BookCard key={b._id} book={b} footer={footer?.(b)} />
+        <BookCard key={b._id} book={b} footer={footer?.(b)} linkState={linkState} />
       ))}
     </div>
   );

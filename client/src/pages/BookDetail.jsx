@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Bookmark, BookmarkCheck, BookOpen, Pencil, Share2, Sparkles, Trash2, MessagesSquare } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, BookOpen, Pencil, Share2, Sparkles, Trash2, MessagesSquare } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
 import BookCover from "../components/BookCover";
@@ -237,6 +237,7 @@ function SourceLicense({ book }) {
 export default function BookDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { state } = useLocation();
   const { user } = useAuth();
   const [book, setBook] = useState(null);
   const [error, setError] = useState("");
@@ -299,6 +300,18 @@ export default function BookDetail() {
 
   return (
     <div className="container-page py-8">
+      <Link
+        to="/buku"
+        className="btn-ghost btn-sm -ml-3 mb-4"
+        onClick={(e) => {
+          // Dari Library: mundur, supaya filter & posisi gulirnya kembali.
+          if (!state?.dariLibrary || e.button || e.metaKey || e.ctrlKey || e.shiftKey) return;
+          e.preventDefault();
+          navigate(-1);
+        }}
+      >
+        <ArrowLeft size={16} /> Kembali ke Library
+      </Link>
       {book.status !== "disetujui" && (
         <div className="mb-6 rounded-xl border border-amber-300/50 bg-amber-500/10 p-4 text-sm">
           <div className="flex items-center gap-2">

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useLayoutEffect, useState } from "react";
+import { useLocation, useNavigationType, useSearchParams } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import { api } from "../lib/api";
 import { useCategories } from "../lib/categories";
@@ -13,7 +13,12 @@ const SORTS = [
   ["judul", "Judul A–Z"],
 ];
 
+// Hasil & posisi gulir tiap kunjungan (per entri riwayat), dipakai saat kembali dari detail buku.
+const visits = new Map();
+
 export default function Catalog() {
+  const { key } = useLocation();
+  const saved = useNavigationType() === "POP" ? visits.get(key) : undefined;
   const [params, setParams] = useSearchParams();
   const q = params.get("q") || "";
   const kategori = params.get("kategori") || "";
@@ -21,7 +26,7 @@ export default function Catalog() {
   const page = Number(params.get("page")) || 1;
   const [input, setInput] = useState(q);
   const categories = useCategories();
-  const [res, setRes] = useState(null);
+  const [res, setRes] = useState(saved?.res || null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -29,15 +34,31 @@ export default function Catalog() {
   }, [q]);
   useEffect(() => {
     const ctrl = new AbortController();
-    setRes(null);
+    setRes(visits.get(key)?.res || null);
     setError("");
     const qs = new URLSearchParams({ q, kategori, sort, page, limit: 24 });
     api
       .get(`/books?${qs}`, { signal: ctrl.signal })
-      .then(setRes)
+      .then((r) => {
+        visits.set(key, { y: 0, ...visits.get(key), res: r });
+        setRes(r);
+      })
       .catch((e) => e.name !== "AbortError" && setError(e.message));
     return () => ctrl.abort();
-  }, [q, kategori, sort, page]);
+  }, [q, kategori, sort, page, key]);
+
+  useLayoutEffect(() => {
+    const y = saved?.y;
+    // Setelah Layout menggulir ke atas.
+    const raf = y ? requestAnimationFrame(() => window.scrollTo({ top: y, behavior: "instant" })) : 0;
+    const onScroll = () => visits.set(key, { ...visits.get(key), y: window.scrollY });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
   const update = (patch) => {
     const next = new URLSearchParams(params);
@@ -94,7 +115,7 @@ export default function Catalog() {
           (res.items.length ? (
             <>
               <p className="mb-6 text-sm text-ink-mute">{res.total} buku</p>
-              <BookGrid books={res.items} />
+              <BookGrid books={res.items} linkState={{ dariLibrary: true }} />
               <Pagination page={res.page} pages={res.pages} onChange={(p) => update({ page: String(p) })} />
             </>
           ) : (
